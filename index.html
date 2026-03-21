@@ -1273,7 +1273,6 @@ function renderWeek(){
         data-dk="${dk2}" data-min="${h*60+m}"
         onmousedown="cDragStart(event,'${dk2}',${h*60+m})"
         onmousemove="cDragMove(event,${h*60+m})"
-        onmouseup="cDragEnd(event,'${dk2}')"
       ></div>`;
     }
 
@@ -1329,7 +1328,6 @@ function renderWeek(){
       <div class="cal-week-head">${headHtml}</div>
       <div class="cal-week-scroll" id="cal-wscroll"
         onwheel="calHandleWheel(event)"
-        onmouseup="cDragEndGlobal(event);evtDragEndGlobal(event)"
         onmouseleave="cDragEndGlobal(event)"
       >
         <div class="cal-gutter-col">${gutterHtml}</div>
@@ -1339,6 +1337,13 @@ function renderWeek(){
 
   // touchpad swipe
   const scroll=document.getElementById('cal-wscroll');
+  // document-level mouseup for drag-to-create (touchpad releases outside slot)
+  const _calMouseUp=e=>{if(cDragActive)cDragEndGlobal(e);};
+  // remove previous listener to avoid duplicates
+  document.removeEventListener('mouseup',document._calMouseUp||null);
+  document._calMouseUp=_calMouseUp;
+  document.addEventListener('mouseup',_calMouseUp);
+
   scroll.addEventListener('touchstart',e=>{swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;},{passive:true});
   scroll.addEventListener('touchend',e=>{
     if(swipeStartX===null)return;
@@ -1361,17 +1366,17 @@ function renderWeek(){
 // ── TOUCHPAD / WHEEL SWIPE ──
 let wheelAccum=0,wheelTimer=null;
 function calHandleWheel(e){
-  // horizontal scroll → week navigation
+  // suppress horizontal nav if dragging an event
+  if(evtDragState)return;
   if(Math.abs(e.deltaX)>Math.abs(e.deltaY)){
     e.preventDefault();
     wheelAccum+=e.deltaX;
     clearTimeout(wheelTimer);
     wheelTimer=setTimeout(()=>{
-      if(Math.abs(wheelAccum)>80){calNav(wheelAccum>0?1:-1);}
+      if(Math.abs(wheelAccum)>120){calNav(wheelAccum>0?1:-1);}
       wheelAccum=0;
-    },120);
+    },150);
   }
-  // vertical scroll → normal
 }
 
 // ── DRAG TO CREATE ──
@@ -1444,27 +1449,38 @@ function evtDragStart(e,dk,idx){
 
 function evtDragMove(e){
   if(!evtDragState)return;
-  const{preview,offsetMin}=evtDragState;
-  // move preview
+  const{preview,offsetMin,evt}=evtDragState;
   preview.style.left=(e.clientX+12)+'px';
   preview.style.top=(e.clientY-20)+'px';
   evtDragState.moved=true;
 
-  // find which column we're over
+  // find slot under cursor (skip the preview and dragging event itself)
   const els=document.elementsFromPoint(e.clientX,e.clientY);
-  const slotEl=els.find(el=>el.classList.contains('cal-slot'));
+  const slotEl=els.find(el=>el.classList.contains('cal-slot')&&el.dataset.dk&&el.dataset.min!==undefined);
   if(slotEl){
     const rawMin=parseInt(slotEl.dataset.min);
-    const newStartMin=Math.round((rawMin-offsetMin)/15)*15;
-    const clampedStart=Math.max(0,Math.min(newStartMin,24*60-15));
-    evtDragState.curDk=slotEl.dataset.dk||evtDragState.curDk;
-    evtDragState.curMin=clampedStart;
-    // update preview time
-    const dur=evtDragState.evt.end?
-      ((evtDragState.evt.end.split(':').map(Number).reduce((h,m,i)=>i===0?h*60+m:h))-
-       (evtDragState.evt.start.split(':').map(Number).reduce((h,m,i)=>i===0?h*60+m:h))):60;
-    const newEnd=Math.min(clampedStart+dur,24*60-1);
-    preview.querySelector('div:last-child').textContent=fmtTime(minToStr(clampedStart))+(dur>0?' – '+fmtTime(minToStr(newEnd)):'');
+    const newStartMin=Math.max(0,Math.min(Math.round((rawMin-offsetMin)/15)*15, 24*60-15));
+    evtDragState.curDk=slotEl.dataset.dk;
+    evtDragState.curMin=newStartMin;
+    // duration
+    const[sh,sm]=evt.start.split(':').map(Number);
+    const origStart=sh*60+sm;
+    const dur=evt.end?
+      (evt.end.split(':').map(Number).reduce((a,b,i)=>i===0?a*60+b:a)-origStart):60;
+    const newEnd=Math.min(newStartMin+Math.max(dur,15),24*60-1);
+    preview.querySelector('div:last-child').textContent=
+      fmtTime(minToStr(newStartMin))+(dur>0?' – '+fmtTime(minToStr(newEnd)):'');
+    // show live ghost on column
+    document.querySelectorAll('.cal-evt-live-ghost').forEach(g=>g.remove());
+    const col=document.getElementById('cal-col-'+slotEl.dataset.dk);
+    if(col){
+      const ghost=document.createElement('div');
+      ghost.className='cal-drag-ghost cal-evt-live-ghost';
+      const gcol=getColor(evt.color||'blue');
+      ghost.style.cssText=`background:${gcol.bg};border-left:3px solid ${gcol.border};color:${gcol.text};top:${newStartMin/15*calSlotH}px;height:${Math.max(calSlotH,(newEnd-newStartMin)/15*calSlotH)}px`;
+      ghost.textContent=fmtTime(minToStr(newStartMin))+' – '+fmtTime(minToStr(newEnd));
+      col.appendChild(ghost);
+    }
   }
 }
 
@@ -1478,6 +1494,7 @@ function evtDragEndGlobal(e){
   // restore original event display
   const evtEl=document.getElementById(`evt-${dk}-${idx}`);
   if(evtEl)evtEl.classList.remove('dragging');
+  document.querySelectorAll('.cal-evt-live-ghost').forEach(g=>g.remove());
 
   if(!moved)return; // was just a click, let onclick handle
 
