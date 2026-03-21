@@ -252,11 +252,11 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 /* drag ghost */
 .cal-drag-ghost{position:absolute;left:3px;right:3px;border-radius:5px;z-index:50;pointer-events:none;padding:4px 7px;font-size:11px;font-weight:500;min-height:10px;border-left:3px solid}
 /* events */
-.cal-evt{position:absolute;left:3px;right:3px;border-radius:5px;padding:2px 5px;font-size:10.5px;line-height:1.25;overflow:hidden;cursor:grab;z-index:10;border-left:3px solid transparent;user-select:none}
+.cal-evt{position:absolute;left:3px;right:3px;border-radius:5px;padding:4px 8px;font-size:12px;line-height:1.4;overflow:hidden;cursor:grab;z-index:10;border-left:3px solid transparent;user-select:none}
 .cal-evt:hover{filter:brightness(1.12)}
 .cal-evt.dragging{opacity:.35;cursor:grabbing}
-.cal-evt-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
-.cal-evt-time{font-size:9.5px;opacity:.8;margin-top:1px}
+.cal-evt-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.cal-evt-time{font-size:10.5px;opacity:.8;margin-top:1px}
 .cal-evt-resize{position:absolute;bottom:0;left:0;right:0;height:6px;cursor:s-resize;z-index:11}
 /* drag preview floating */
 .cal-evt-drag-preview{position:fixed;pointer-events:none;z-index:9999;border-radius:5px;padding:4px 8px;font-size:12px;line-height:1.4;border-left:3px solid;opacity:.85;box-shadow:0 4px 20px rgba(0,0,0,.5);min-width:120px}
@@ -584,6 +584,7 @@ canvas#gc{width:100%;height:100%;display:block}
             <button class="cal-zoom-btn" onclick="calZoomOut()" title="Zoom out">−</button>
             <span class="cal-zoom-lbl" id="cal-zoom-lbl">100%</span>
             <button class="cal-zoom-btn" onclick="calZoomIn()" title="Zoom in">+</button>
+            <button class="cal-zoom-btn" onclick="calZoomFit()" title="Fit full day">Fit</button>
           </div>
           <button class="gcal-btn" id="gcal-btn" onclick="gcalConnect()">📅 Sync Google Cal</button>
         </div>
@@ -1130,9 +1131,12 @@ function fAns(ok){if(ok)flashScore.c++;else flashScore.w++;flashIdx++;flashFlipp
 
 // ── CALENDAR ──
 let calView='week';
-const CAL_BASE_SLOT_H=8;
-let calSlotH=CAL_BASE_SLOT_H; // px per 15min slot — zoom control (overview-friendly default)
+let calSlotH=32; // px per 15min slot — zoom control
 let calZoom=100; // percentage label
+const CAL_ZOOM_BASE=32;
+const CAL_ZOOM_MIN=2;
+const CAL_ZOOM_MAX=96;
+const CAL_ZOOM_STEP=2;
 
 // drag-to-create state
 // drag-event-move state
@@ -1160,8 +1164,31 @@ function getColor(id){return EVT_COLORS.find(c=>c.id===id)||EVT_COLORS[0];}
 function evtStyle(evt){const col=getColor(evt.color||'blue');return`background:${col.bg};border-left-color:${col.border};color:${col.text}`;}
 
 // ── ZOOM ──
-function calZoomIn(){calSlotH=Math.min(calSlotH+4,64);calZoom=Math.round(calSlotH/CAL_BASE_SLOT_H*100);document.getElementById('cal-zoom-lbl').textContent=calZoom+'%';renderCal();}
-function calZoomOut(){calSlotH=Math.max(calSlotH-4,2);calZoom=Math.round(calSlotH/CAL_BASE_SLOT_H*100);document.getElementById('cal-zoom-lbl').textContent=calZoom+'%';renderCal();}
+function _updateCalZoomLabel(){
+  calZoom=Math.round(calSlotH/CAL_ZOOM_BASE*100);
+  const z=document.getElementById('cal-zoom-lbl');
+  if(z)z.textContent=calZoom+'%';
+}
+function calZoomIn(){
+  calSlotH=Math.min(calSlotH+CAL_ZOOM_STEP,CAL_ZOOM_MAX);
+  _updateCalZoomLabel();
+  renderCal();
+}
+function calZoomOut(){
+  calSlotH=Math.max(calSlotH-CAL_ZOOM_STEP,CAL_ZOOM_MIN);
+  _updateCalZoomLabel();
+  renderCal();
+}
+function calZoomFit(){
+  if(calView!=='week')setCalView('week');
+  const body=document.getElementById('cal-body');
+  const head=document.querySelector('.cal-week-head');
+  if(!body)return;
+  const available=Math.max(96, body.clientHeight-(head?head.offsetHeight:0)-4);
+  calSlotH=Math.max(CAL_ZOOM_MIN,Math.min(CAL_ZOOM_MAX,Math.floor(available/96)));
+  _updateCalZoomLabel();
+  renderCal();
+}
 
 // ── NAV ──
 function setCalView(v){
@@ -1352,7 +1379,7 @@ function renderWeek(){
   }
   setTimeout(()=>{
     const sc=document.getElementById('cal-wscroll');
-    if(sc)sc.scrollTop=0;
+    if(sc)sc.scrollTop=8*4*calSlotH-calSlotH*2;
     initCalSwipe();
     initCalDrag();
   },30);
@@ -1406,7 +1433,7 @@ function _swipeFlush(){
 }
 
 // ── DRAG TO CREATE (pointer events — works on touchpad) ──
-let cDragDk=null,cDragStartMin=null,cDragEndMin=null,cDragGhost=null,cDragActive=false,cDragPointerId=null;
+let cDragDk=null,cDragStartMin=null,cDragEndMin=null,cDragGhost=null,cDragActive=false,cDragPointerId=null,cDragMoved=false;
 
 function initCalDrag(){
   const scroll=document.getElementById('cal-wscroll');
@@ -1427,7 +1454,7 @@ function _cPtrDown(e){
   // capture pointer so we get move+up even if cursor leaves element
   slot.setPointerCapture(e.pointerId);
   cDragPointerId=e.pointerId;
-  cDragDk=dk; cDragStartMin=startMin; cDragEndMin=startMin+15; cDragActive=true;
+  cDragDk=dk; cDragStartMin=startMin; cDragEndMin=startMin+15; cDragActive=true; cDragMoved=false;
 
   const col=document.getElementById('cal-col-'+dk);
   if(!col)return;
@@ -1453,6 +1480,7 @@ function _cPtrMove(e){
   if(slot){
     const m=parseInt(slot.dataset.min)+15;
     cDragEndMin=Math.max(cDragStartMin+15, Math.round(m/15)*15);
+    if(cDragEndMin>cDragStartMin+15)cDragMoved=true;
     updateCDragGhost();
   }
 }
@@ -1465,11 +1493,30 @@ function _cPtrUp(e){
     scroll2.removeEventListener('pointerup',  _cPtrUp);
     scroll2.removeEventListener('pointercancel',_cPtrUp);
   }
-  const dk=cDragDk, sm=cDragStartMin, em=cDragEndMin;
+  const dk=cDragDk, sm=cDragStartMin, em=cDragEndMin, moved=cDragMoved;
   if(cDragGhost){cDragGhost.remove();cDragGhost=null;}
-  cDragDk=null;cDragStartMin=null;cDragEndMin=null;cDragActive=false;cDragPointerId=null;
+  cDragDk=null;cDragStartMin=null;cDragEndMin=null;cDragActive=false;cDragPointerId=null;cDragMoved=false;
   if(sm===null||em===null||em<=sm)return;
-  showAddPop(e,dk,minToStr(sm),minToStr(em));
+  if(!moved){showAddPop(e,dk,minToStr(sm),minToStr(em));return;}
+  if(!calEvts[dk])calEvts[dk]=[];
+  calEvts[dk].push({
+    title:'New event',
+    start:minToStr(sm),
+    end:minToStr(em),
+    allDay:false,
+    location:'',
+    desc:'',
+    remind:'',
+    color:'blue',
+    repeat:'none',
+    repeatEvery:1,
+    repeatDays:[],
+    repeatEnds:'never',
+    repeatEndDate:'',
+    repeatAfter:4
+  });
+  save();
+  renderCal();
 }
 
 function updateCDragGhost(){
