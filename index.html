@@ -1272,8 +1272,6 @@ function renderWeek(){
       const cls=m===0?'hour-start':m===30?'half-hour':'quarter';
       slots+=`<div class="cal-slot ${cls}" style="height:${calSlotH}px"
         data-dk="${dk2}" data-min="${h*60+m}"
-        onmousedown="cDragStart(event,'${dk2}',${h*60+m})"
-        onmousemove="cDragMove(event,${h*60+m})"
       ></div>`;
     }
 
@@ -1328,7 +1326,7 @@ function renderWeek(){
     <div class="cal-week-wrap" id="cal-week-wrap">
       <div class="cal-week-head">${headHtml}</div>
       <div class="cal-week-scroll" id="cal-wscroll"
-        onmouseleave="cDragEndGlobal(event)"
+        onmouseleave=""
       >
         <div class="cal-gutter-col">${gutterHtml}</div>
         ${colsHtml}
@@ -1337,7 +1335,6 @@ function renderWeek(){
 
   // touchpad swipe
   const scroll=document.getElementById('cal-wscroll');
-  scroll.addEventListener('wheel',calHandleWheel,{passive:false});
   scroll.addEventListener('touchstart',e=>{swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;},{passive:true});
   scroll.addEventListener('touchend',e=>{
     if(swipeStartX===null)return;
@@ -1354,58 +1351,120 @@ function renderWeek(){
     const top=(nowD.getHours()*60+nowD.getMinutes())/15*calSlotH;
     nowCol.insertAdjacentHTML('beforeend',`<div class="cal-now-line" style="top:${top}px"><div class="cal-now-dot"></div></div>`);
   }
-  setTimeout(()=>{const sc=document.getElementById('cal-wscroll');if(sc)sc.scrollTop=8*4*calSlotH-calSlotH*2;},50);
+  setTimeout(()=>{
+    const sc=document.getElementById('cal-wscroll');
+    if(sc)sc.scrollTop=8*4*calSlotH-calSlotH*2;
+    initCalSwipe();
+    initCalDrag();
+  },30);
 }
 
-// ── TOUCHPAD / WHEEL SWIPE ──
-let wheelAccum=0,wheelTimer=null;
-function calHandleWheel(e){
+// ── HORIZONTAL SWIPE (smooth infinite) ──
+// Uses the scroll container's native horizontal overflow for smoothness,
+// then snaps to a new week when scroll position drifts far enough.
+function initCalSwipe(){
+  const wrap = document.getElementById('cal-week-wrap');
+  const scroll = document.getElementById('cal-wscroll');
+  if(!wrap||!scroll)return;
+
+  // Attach wheel with passive:false so we can intercept horizontal
+  wrap.addEventListener('wheel', onCalWheel, {passive:false});
+}
+
+let _swipeOffset=0, _swipeAnimating=false;
+function onCalWheel(e){
   if(evtDragState||cDragActive)return;
-  // horizontal two-finger swipe on touchpad
-  if(Math.abs(e.deltaX)>Math.abs(e.deltaY)*0.5&&Math.abs(e.deltaX)>5){
-    e.preventDefault();
-    wheelAccum+=e.deltaX;
-    clearTimeout(wheelTimer);
-    wheelTimer=setTimeout(()=>{
-      if(Math.abs(wheelAccum)>60){
-        calNav(wheelAccum>0?1:-1);
-        wheelAccum=0;
-      }
-    },100);
+  const ax=Math.abs(e.deltaX), ay=Math.abs(e.deltaY);
+  // only intercept clearly horizontal swipes
+  if(ax < 8 && ay > ax)return;
+  if(ax < ay*0.4)return;
+  e.preventDefault();
+  e.stopPropagation();
+  _swipeOffset += e.deltaX;
+  if(!_swipeAnimating){
+    _swipeAnimating=true;
+    requestAnimationFrame(_swipeFlush);
+  }
+}
+function _swipeFlush(){
+  _swipeAnimating=false;
+  if(Math.abs(_swipeOffset)>180){
+    calNav(_swipeOffset>0?1:-1);
+    _swipeOffset=0;
+  } else if(Math.abs(_swipeOffset)>0){
+    // keep accumulating for another frame
+    _swipeAnimating=true;
+    requestAnimationFrame(_swipeFlush);
   }
 }
 
-// ── DRAG TO CREATE ──
-function cDragStart(e,dk,startMin){
+// ── DRAG TO CREATE (pointer events — works on touchpad) ──
+let cDragDk=null,cDragStartMin=null,cDragEndMin=null,cDragGhost=null,cDragActive=false,cDragPointerId=null;
+
+function initCalDrag(){
+  const scroll=document.getElementById('cal-wscroll');
+  if(!scroll)return;
+  scroll.addEventListener('pointerdown', _cPtrDown);
+}
+
+function _cPtrDown(e){
   if(e.button!==0)return;
   if(e.target.closest('.cal-evt'))return;
+  const slot=e.target.closest('.cal-slot');
+  if(!slot)return;
+  const dk=slot.dataset.dk;
+  const startMin=parseInt(slot.dataset.min);
+  if(!dk||isNaN(startMin))return;
+
   e.preventDefault();
-  cDragDk=dk;cDragStartMin=startMin;cDragEndMin=startMin+15;cDragActive=true;
+  // capture pointer so we get move+up even if cursor leaves element
+  slot.setPointerCapture(e.pointerId);
+  cDragPointerId=e.pointerId;
+  cDragDk=dk; cDragStartMin=startMin; cDragEndMin=startMin+15; cDragActive=true;
+
   const col=document.getElementById('cal-col-'+dk);
   if(!col)return;
-  const col2=getColor('blue');
+  const gcol=getColor('blue');
   cDragGhost=document.createElement('div');
   cDragGhost.className='cal-drag-ghost';
-  cDragGhost.style.cssText=`background:${col2.bg};border-left:3px solid ${col2.border};color:${col2.text}`;
+  cDragGhost.style.cssText=`background:${gcol.bg};border-left:3px solid ${gcol.border};color:${gcol.text}`;
   updateCDragGhost();
   col.appendChild(cDragGhost);
-  // attach doc-level listeners so touchpad release always fires
-  document.addEventListener('mouseup',_cDragDocUp);
-  document.addEventListener('mousemove',_cDragDocMove);
+
+  // listen on the scroll container (has capture)
+  const scroll2=document.getElementById('cal-wscroll');
+  scroll2.addEventListener('pointermove',_cPtrMove);
+  scroll2.addEventListener('pointerup',  _cPtrUp);
+  scroll2.addEventListener('pointercancel',_cPtrUp);
 }
-function _cDragDocUp(e){cDragEndGlobal(e);}
-function _cDragDocMove(e){
+
+function _cPtrMove(e){
   if(!cDragActive)return;
-  // find slot under cursor
+  // find which slot is under the pointer
   const els=document.elementsFromPoint(e.clientX,e.clientY);
-  const slot=els.find(el=>el.classList.contains('cal-slot')&&el.dataset.min!==undefined&&el.dataset.dk===cDragDk);
-  if(slot)cDragMove(e,parseInt(slot.dataset.min));
+  const slot=els.find(el=>el.classList.contains('cal-slot')&&el.dataset.dk===cDragDk&&el.dataset.min!==undefined);
+  if(slot){
+    const m=parseInt(slot.dataset.min)+15;
+    cDragEndMin=Math.max(cDragStartMin+15, Math.round(m/15)*15);
+    updateCDragGhost();
+  }
 }
-function cDragMove(e,curMin){
-  if(!cDragActive||!cDragGhost)return;
-  cDragEndMin=Math.max(cDragStartMin+15,Math.ceil(curMin/15)*15);
-  updateCDragGhost();
+
+function _cPtrUp(e){
+  if(!cDragActive)return;
+  const scroll2=document.getElementById('cal-wscroll');
+  if(scroll2){
+    scroll2.removeEventListener('pointermove',_cPtrMove);
+    scroll2.removeEventListener('pointerup',  _cPtrUp);
+    scroll2.removeEventListener('pointercancel',_cPtrUp);
+  }
+  const dk=cDragDk, sm=cDragStartMin, em=cDragEndMin;
+  if(cDragGhost){cDragGhost.remove();cDragGhost=null;}
+  cDragDk=null;cDragStartMin=null;cDragEndMin=null;cDragActive=false;cDragPointerId=null;
+  if(sm===null||em===null||em<=sm)return;
+  showAddPop(e,dk,minToStr(sm),minToStr(em));
 }
+
 function updateCDragGhost(){
   if(!cDragGhost)return;
   const top=cDragStartMin/15*calSlotH;
@@ -1413,127 +1472,16 @@ function updateCDragGhost(){
   cDragGhost.style.top=top+'px';cDragGhost.style.height=hpx+'px';
   cDragGhost.textContent=fmtTime(minToStr(cDragStartMin))+' – '+fmtTime(minToStr(cDragEndMin));
 }
-function cDragEnd(e,dk){if(cDragActive&&cDragDk===dk)cDragEndGlobal(e);}
-function cDragEndGlobal(e){
-  if(!cDragActive)return;
-  document.removeEventListener('mouseup',_cDragDocUp);
-  document.removeEventListener('mousemove',_cDragDocMove);
-  const dk=cDragDk,sm=cDragStartMin,em=cDragEndMin;
-  if(cDragGhost){cDragGhost.remove();cDragGhost=null;}
-  cDragDk=null;cDragStartMin=null;cDragEndMin=null;cDragActive=false;
-  if(sm===null||em===null||em<=sm)return;
-  showAddPop(e,dk,minToStr(sm),minToStr(em));
-}
-
-// ── DRAG EXISTING EVENT ──
-function evtDragStart(e,dk,idx){
-  if(e.button!==0)return;
-  e.preventDefault();e.stopPropagation();
-  const evt=calEvts[dk]?.[idx];if(!evt||!evt.start)return;
-  const[sh,sm]=evt.start.split(':').map(Number);
-  const startMin=sh*60+sm;
-  // offset within event where user clicked
-  const evtEl=document.getElementById(`evt-${dk}-${idx}`);
-  let offsetMin=0;
-  if(evtEl){
-    const rect=evtEl.getBoundingClientRect();
-    const relY=e.clientY-rect.top;
-    offsetMin=Math.round(relY/calSlotH)*15;
-  }
-  // mark event as dragging
-  if(evtEl)evtEl.classList.add('dragging');
-  // create floating preview
-  const col=getColor(evt.color||'blue');
-  const preview=document.createElement('div');
-  preview.className='cal-evt-drag-preview';
-  preview.style.cssText=`background:${col.bg};border-left-color:${col.border};color:${col.text};left:${e.clientX+10}px;top:${e.clientY-20}px;width:140px`;
-  preview.innerHTML=`<div style="font-weight:500;font-size:12px">${esc(evt.title||'')}</div><div style="font-size:10px;opacity:.8">${fmtTime(evt.start)}${evt.end?' – '+fmtTime(evt.end):''}</div>`;
-  document.body.appendChild(preview);
-
-  evtDragState={dk,idx,evt:{...evt},offsetMin,preview,startX:e.clientX,startY:e.clientY,moved:false,curDk:dk,curMin:startMin};
-  document.addEventListener('mousemove',evtDragMove);
-  document.addEventListener('mouseup',evtDragEndGlobal);
-}
-
-function evtDragMove(e){
-  if(!evtDragState)return;
-  const{preview,offsetMin,evt}=evtDragState;
-  preview.style.left=(e.clientX+12)+'px';
-  preview.style.top=(e.clientY-20)+'px';
-  evtDragState.moved=true;
-
-  // find slot under cursor (skip the preview and dragging event itself)
-  const els=document.elementsFromPoint(e.clientX,e.clientY);
-  const slotEl=els.find(el=>el.classList.contains('cal-slot')&&el.dataset.dk&&el.dataset.min!==undefined);
-  if(slotEl){
-    const rawMin=parseInt(slotEl.dataset.min);
-    const newStartMin=Math.max(0,Math.min(Math.round((rawMin-offsetMin)/15)*15, 24*60-15));
-    evtDragState.curDk=slotEl.dataset.dk;
-    evtDragState.curMin=newStartMin;
-    // duration
-    const dur=evt.end?Math.max(15,timeToMin(evt.end)-timeToMin(evt.start)):60;
-    const newEnd=Math.min(newStartMin+Math.max(dur,15),24*60-1);
-    preview.querySelector('div:last-child').textContent=
-      fmtTime(minToStr(newStartMin))+(dur>0?' – '+fmtTime(minToStr(newEnd)):'');
-    // show live ghost on column
-    document.querySelectorAll('.cal-evt-live-ghost').forEach(g=>g.remove());
-    const col=document.getElementById('cal-col-'+slotEl.dataset.dk);
-    if(col){
-      const ghost=document.createElement('div');
-      ghost.className='cal-drag-ghost cal-evt-live-ghost';
-      const gcol=getColor(evt.color||'blue');
-      ghost.style.cssText=`background:${gcol.bg};border-left:3px solid ${gcol.border};color:${gcol.text};top:${newStartMin/15*calSlotH}px;height:${Math.max(calSlotH,(newEnd-newStartMin)/15*calSlotH)}px`;
-      ghost.textContent=fmtTime(minToStr(newStartMin))+' – '+fmtTime(minToStr(newEnd));
-      col.appendChild(ghost);
-    }
-  }
-}
-
-function evtDragEndGlobal(e){
-  if(!evtDragState)return;
-  document.removeEventListener('mousemove',evtDragMove);
-  document.removeEventListener('mouseup',evtDragEndGlobal);
-  const{dk,idx,evt,curDk,curMin,moved,preview}=evtDragState;
-  evtDragState=null;
-  preview.remove();
-  // restore original event display
-  const evtEl=document.getElementById(`evt-${dk}-${idx}`);
-  if(evtEl)evtEl.classList.remove('dragging');
-  document.querySelectorAll('.cal-evt-live-ghost').forEach(g=>g.remove());
-
-  if(!moved)return; // was just a click, let onclick handle
-
-  // calculate new times — preserve exact duration
-  const dur=evt.end?Math.max(15,timeToMin(evt.end)-timeToMin(evt.start)):60;
-  const newStartMin=Math.max(0,Math.min(curMin,24*60-15));
-  const newEndMin=Math.min(newStartMin+dur,24*60-1);
-  const newStart=minToStr(newStartMin);
-  const newEnd=minToStr(newEndMin);
-
-  const isRecurring=evt.repeat&&evt.repeat!=='none';
-  if(isRecurring){
-    showRecurDialog(evt.title||'',{start:evt.start,end:evt.end},{start:newStart,end:newEnd},
-      (scope)=>{applyEvtMove(scope,dk,idx,curDk,newStart,newEnd);});
-  } else {
-    applyEvtMove('this',dk,idx,curDk,newStart,newEnd);
-  }
-}
-
-function applyEvtMove(scope,dk,idx,newDk,newStart,newEnd){
-  const evt=calEvts[dk]?.[idx];if(!evt)return;
-  if(scope==='this'||scope==='all'){
-    evt.start=newStart;evt.end=newEnd;
-    if(newDk!==dk){
-      calEvts[dk].splice(idx,1);
-      if(!calEvts[newDk])calEvts[newDk]=[];
-      calEvts[newDk].push(evt);
-    }
-  }
-  // 'following' and 'all' for recurring could be extended
-  save();renderCal();
-}
+// legacy stubs (called from old inline handlers that may remain)
+function cDragStart(){}
+function cDragMove(){}
+function cDragEnd(){}
+function cDragEndGlobal(){}
+function _cDragDocUp(){}
+function _cDragDocMove(){}
 
 // ── RESIZE ──
+
 function cResizeStart(e,dk,idx){
   e.preventDefault();
   const evt=calEvts[dk]?.[idx];if(!evt||!evt.end)return;
