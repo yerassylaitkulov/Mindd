@@ -200,18 +200,23 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .fdone p{color:var(--muted);font-size:14px;margin-bottom:20px}
 
 /* ── CALENDAR ── */
-.cal-outer{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0;background:var(--bg)}
-.cal-header{display:flex;align-items:center;gap:10px;padding:0 0 10px;flex-shrink:0}
+.cal-outer{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0}
+.cal-header{display:flex;align-items:center;gap:8px;padding:0 0 8px;flex-shrink:0;flex-wrap:wrap}
 .cal-month-label{font-size:18px;font-weight:600;color:var(--ink);letter-spacing:-.02em;min-width:150px}
 .cal-nav-grp{display:flex;gap:1px}
 .cal-nav-btn{width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;border:1px solid var(--border);background:none;border-radius:50%;cursor:pointer;color:var(--muted);transition:all .1s}
 .cal-nav-btn:hover{background:var(--surface2);color:var(--ink)}
 .cal-today-btn{padding:3px 12px;font-size:13px;font-weight:500;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--ink);font-family:'Geist',sans-serif}
 .cal-today-btn:hover{background:var(--surface2)}
-.cal-view-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-left:auto}
+.cal-view-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
 .cal-vbtn{padding:3px 12px;font-size:13px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .1s}
 .cal-vbtn.active{background:var(--surface2);color:var(--ink);font-weight:500}
-.gcal-btn{display:flex;align-items:center;gap:5px;padding:4px 12px;font-size:12px;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s;white-space:nowrap}
+/* zoom control */
+.cal-zoom-wrap{display:flex;align-items:center;gap:6px;margin-left:auto}
+.cal-zoom-btn{width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid var(--border);background:none;border-radius:4px;cursor:pointer;color:var(--muted);transition:all .1s;line-height:1}
+.cal-zoom-btn:hover{background:var(--surface2);color:var(--ink)}
+.cal-zoom-lbl{font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;min-width:28px;text-align:center}
+.gcal-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:12px;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s;white-space:nowrap}
 .gcal-btn:hover{border-color:#4285f4;color:#4285f4}
 .gcal-btn.connected{border-color:#0f9d58;color:#0f9d58}
 .gcal-btn.syncing{border-color:#4285f4;color:#4285f4;animation:cpulse 1s infinite}
@@ -220,35 +225,42 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 @keyframes cpulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes popin{from{opacity:0;transform:scale(.96) translateY(-4px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes fi{from{opacity:0}to{opacity:1}}
 
 /* WEEK GRID */
-.cal-week-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:8px}
+.cal-week-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:8px;transition:opacity .2s}
 .cal-week-head{display:flex;flex-shrink:0;background:#0d0d0b;border-bottom:1px solid var(--border)}
-.cal-week-gutter{width:58px;flex-shrink:0;padding:8px 0 4px;display:flex;align-items:flex-end;justify-content:center;border-right:1px solid var(--border-light)}
+.cal-week-gutter{width:58px;flex-shrink:0;padding:6px 0 4px;display:flex;align-items:flex-end;justify-content:center;border-right:1px solid var(--border-light)}
 .cal-week-gutter-tz{font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;text-align:center}
-.cal-week-head-cell{flex:1;padding:8px 10px 6px;border-right:1px solid var(--border-light);user-select:none}
+.cal-week-head-cell{flex:1;padding:8px 10px 6px;border-right:1px solid var(--border-light);user-select:none;min-width:0}
 .cal-week-head-cell:last-child{border-right:none}
-.cal-wdow{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
-.cal-wdn{font-size:22px;font-weight:300;color:var(--muted);width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.cal-wdow{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.cal-wdn{font-size:20px;font-weight:300;color:var(--muted);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%}
 .cal-wdn.is-today{background:#c8303a;color:#fff;font-weight:700}
-.cal-week-scroll{flex:1;overflow-y:auto;display:flex;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.cal-week-scroll{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;scrollbar-width:thin;scrollbar-color:var(--border) transparent;transition:transform .3s ease}
 .cal-week-scroll::-webkit-scrollbar{width:5px}
 .cal-week-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .cal-gutter-col{width:58px;flex-shrink:0}
-.cal-gutter-lbl{height:24px;display:flex;align-items:flex-start;justify-content:flex-end;padding-right:8px;font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:-5px;user-select:none}
+.cal-gutter-lbl{display:flex;align-items:flex-start;justify-content:flex-end;padding-right:8px;font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:-5px;user-select:none}
 .cal-day-col{flex:1;border-left:1px solid var(--border-light);position:relative;min-width:0;background:var(--bg)}
 .cal-day-col.is-today{background:#0f0e0c}
-/* 15min slots */
-.cal-slot{height:24px;border-bottom:1px solid rgba(255,255,255,.02);position:relative;cursor:pointer;transition:background .08s}
-.cal-slot:hover{background:rgba(255,255,255,.04)}
-.cal-slot.hour-start{border-bottom-color:rgba(255,255,255,.07)}
-.cal-slot.half-hour{border-bottom-color:rgba(255,255,255,.04)}
-.cal-drag-ghost{position:absolute;left:3px;right:3px;border-radius:5px;z-index:50;pointer-events:none;padding:4px 7px;font-size:11px;font-weight:500;min-height:24px}
-.cal-evt{position:absolute;left:3px;right:3px;border-radius:5px;padding:4px 8px;font-size:12px;line-height:1.4;overflow:hidden;cursor:pointer;transition:filter .1s;z-index:10;border-left:3px solid transparent}
+.cal-slot{position:relative;cursor:crosshair;transition:background .06s}
+.cal-slot:hover{background:rgba(255,255,255,.05)}
+.cal-slot.hour-start{border-top:1px solid rgba(255,255,255,.07)}
+.cal-slot.half-hour{border-top:1px solid rgba(255,255,255,.03)}
+.cal-slot.quarter{border-top:1px solid rgba(255,255,255,.01)}
+/* drag ghost */
+.cal-drag-ghost{position:absolute;left:3px;right:3px;border-radius:5px;z-index:50;pointer-events:none;padding:4px 7px;font-size:11px;font-weight:500;min-height:10px;border-left:3px solid}
+/* events */
+.cal-evt{position:absolute;left:3px;right:3px;border-radius:5px;padding:4px 8px;font-size:12px;line-height:1.4;overflow:hidden;cursor:grab;z-index:10;border-left:3px solid transparent;user-select:none}
 .cal-evt:hover{filter:brightness(1.12)}
+.cal-evt.dragging{opacity:.35;cursor:grabbing}
 .cal-evt-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
 .cal-evt-time{font-size:10.5px;opacity:.8;margin-top:1px}
-.cal-evt-resize{position:absolute;bottom:0;left:0;right:0;height:6px;cursor:s-resize}
+.cal-evt-resize{position:absolute;bottom:0;left:0;right:0;height:6px;cursor:s-resize;z-index:11}
+/* drag preview floating */
+.cal-evt-drag-preview{position:fixed;pointer-events:none;z-index:9999;border-radius:5px;padding:4px 8px;font-size:12px;line-height:1.4;border-left:3px solid;opacity:.85;box-shadow:0 4px 20px rgba(0,0,0,.5);min-width:120px}
+/* now line */
 .cal-now-line{position:absolute;left:0;right:0;height:2px;background:#c8303a;z-index:30;pointer-events:none}
 .cal-now-dot{position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#c8303a}
 
@@ -263,13 +275,14 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-cell.other-month .cal-dn{color:var(--subtle)}
 .cal-cell.is-today{background:#0f0e0c}
 .cal-cell.is-sel{box-shadow:inset 0 0 0 2px var(--gold-d)}
+.cal-cell.drag-over{background:rgba(66,133,244,.08);box-shadow:inset 0 0 0 2px #4285f4}
 .cal-dn{font-size:12px;font-weight:500;color:var(--muted);width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0}
 .cal-cell.is-today .cal-dn{background:#c8303a;color:#fff;font-weight:700}
 .cal-pill{font-size:11px;padding:2px 7px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:1.5;border-left:2px solid transparent}
 .cal-pill:hover{filter:brightness(1.15)}
 .cal-overflow{font-size:10px;color:var(--muted);padding:1px 4px;cursor:pointer}
 
-/* EVENT CREATION POPOVER */
+/* EVENT POPOVER */
 .cal-add-pop,.cal-popover{position:fixed;background:#1e1c19;border:1px solid #3a3630;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.7);z-index:4000;width:360px;overflow:hidden;animation:popin .12s ease}
 .cap-head{padding:14px 16px 10px;border-bottom:1px solid #2e2b26;display:flex;align-items:center;gap:8px}
 .cap-title{font-size:15px;font-weight:500;color:var(--ink);background:none;border:none;outline:none;flex:1;font-family:'Geist',sans-serif}
@@ -277,65 +290,55 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cap-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;border-radius:4px;transition:all .1s}
 .cap-close:hover{background:#252320;color:var(--ink)}
 .cap-body{padding:10px 16px}
-.cap-row{display:flex;align-items:center;gap:10px;padding:5px 0;min-height:32px}
-.cap-row-icon{width:16px;height:16px;flex-shrink:0;opacity:.5;display:flex;align-items:center;justify-content:center;font-size:13px}
-.cap-time-wrap{display:flex;align-items:center;gap:6px;flex:1;flex-wrap:wrap}
-.cap-time{padding:3px 8px;font-size:13px;background:#252320;border:1px solid #3a3630;border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;cursor:pointer;width:88px}
+.cap-row{display:flex;align-items:center;gap:10px;padding:4px 0;min-height:30px}
+.cap-row-icon{width:16px;height:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;opacity:.6}
+.cap-time-wrap{display:flex;align-items:center;gap:5px;flex:1}
+.cap-time{padding:3px 7px;font-size:13px;background:#252320;border:1px solid #3a3630;border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;width:86px}
 .cap-time:focus{border-color:var(--gold-d)}
 .cap-dur{font-size:12px;color:var(--subtle)}
-.cap-date-inp{padding:3px 8px;font-size:13px;background:#252320;border:1px solid #3a3630;border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;cursor:pointer}
+.cap-date-inp{padding:3px 7px;font-size:13px;background:#252320;border:1px solid #3a3630;border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif}
 .cap-date-inp:focus{border-color:var(--gold-d)}
-.cap-allday-lbl{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
-.cap-allday-lbl input{accent-color:var(--gold-d)}
-.cap-sep{height:1px;background:#2e2b26;margin:6px 0}
-.cap-field{font-size:13px;color:var(--muted);flex:1;cursor:text}
+.cap-allday-lbl{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none}
+.cap-allday-lbl input{accent-color:#4285f4}
+.cap-sep{height:1px;background:#2e2b26;margin:5px 0}
 .cap-field-inp{width:100%;font-size:13px;background:none;border:none;outline:none;color:var(--ink);font-family:'Geist',sans-serif}
 .cap-field-inp::placeholder{color:#3d3a35}
 .cap-field-ta{width:100%;font-size:13px;background:none;border:none;outline:none;color:var(--ink);font-family:'Geist',sans-serif;resize:none;min-height:28px}
 .cap-field-ta::placeholder{color:#3d3a35}
-
-/* repeat row */
-.cap-repeat-btn{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Geist',sans-serif;padding:0;text-align:left}
+.cap-repeat-btn{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Geist',sans-serif;padding:0}
 .cap-repeat-btn:hover{color:var(--ink)}
-.cap-repeat-val{color:var(--ink);font-size:13px}
-
-/* color picker row */
-.cap-colors{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.cap-color-dot{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .1s,border-color .1s;flex-shrink:0}
-.cap-color-dot:hover{transform:scale(1.15)}
-.cap-color-dot.sel{border-color:#fff;transform:scale(1.15)}
-
-/* reminder */
-.cap-remind-sel{padding:3px 8px;font-size:13px;background:#252320;border:1px solid #3a3630;border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;cursor:pointer}
-.cap-remind-sel:focus{border-color:var(--gold-d)}
-
+.cap-repeat-val{color:var(--ink)}
+.cap-colors{display:flex;gap:5px;flex-wrap:wrap}
+.cap-color-dot{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .1s,border-color .1s;flex-shrink:0}
+.cap-color-dot:hover{transform:scale(1.2)}
+.cap-color-dot.sel{border-color:#fff;transform:scale(1.2)}
+.cap-remind-sel{padding:3px 7px;font-size:13px;background:#252320;border:1px solid #3a3630;border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;cursor:pointer}
 .cap-footer{padding:10px 16px;border-top:1px solid #2e2b26;display:flex;justify-content:space-between;align-items:center}
 .cap-cancel{font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;padding:5px 10px;border-radius:5px;font-family:'Geist',sans-serif}
 .cap-cancel:hover{background:#252320;color:var(--ink)}
-.cap-save-btn{font-size:13px;font-weight:500;color:#fff;background:#4285f4;border:none;cursor:pointer;padding:6px 18px;border-radius:6px;font-family:'Geist',sans-serif;transition:background .1s}
+.cap-save-btn{font-size:13px;font-weight:500;color:#fff;background:#4285f4;border:none;cursor:pointer;padding:6px 18px;border-radius:6px;font-family:'Geist',sans-serif}
 .cap-save-btn:hover{background:#5a95f5}
-.cap-del-btn{font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Geist',sans-serif;padding:5px 8px;border-radius:4px;transition:all .1s;display:flex;align-items:center;gap:4px}
+.cap-del-btn{font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Geist',sans-serif;padding:5px 8px;border-radius:4px}
 .cap-del-btn:hover{color:var(--red);background:var(--red-bg)}
 
 /* REPEAT DROPDOWN */
 .repeat-dd{position:fixed;background:#1e1c19;border:1px solid #3a3630;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.6);z-index:5000;min-width:220px;padding:4px;animation:popin .1s ease}
-.repeat-dd-item{padding:8px 14px;font-size:13px;color:var(--ink);cursor:pointer;border-radius:5px;font-family:'Geist',sans-serif;display:flex;justify-content:space-between;align-items:center}
+.repeat-dd-item{padding:7px 14px;font-size:13px;color:var(--ink);cursor:pointer;border-radius:5px;font-family:'Geist',sans-serif;display:flex;justify-content:space-between;align-items:center}
 .repeat-dd-item:hover{background:#252320}
 .repeat-dd-item .dim{color:var(--muted);font-size:12px}
 .repeat-dd-item.active{color:#4285f4}
 
 /* REPEAT CUSTOM MODAL */
-.repeat-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:6000;display:flex;align-items:center;justify-content:center;animation:fi .15s ease}
-@keyframes fi{from{opacity:0}to{opacity:1}}
+.repeat-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:6000;display:flex;align-items:center;justify-content:center;animation:fi .12s ease}
 .repeat-modal{background:#1e1c19;border:1px solid #3a3630;border-radius:12px;padding:24px;width:380px;box-shadow:0 12px 48px rgba(0,0,0,.7)}
-.repeat-modal h3{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:20px}
-.rm-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:14px;color:var(--muted)}
+.repeat-modal h3{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:18px}
+.rm-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:14px;color:var(--muted)}
 .rm-inp{padding:5px 10px;font-size:14px;background:#252320;border:1px solid #3a3630;border-radius:6px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;width:60px;text-align:center}
 .rm-inp:focus{border-color:#4285f4}
 .rm-sel{padding:5px 10px;font-size:14px;background:#252320;border:1px solid #3a3630;border-radius:6px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;cursor:pointer}
 .rm-sel:focus{border-color:#4285f4}
-.rm-days{display:flex;gap:6px;flex-wrap:wrap}
-.rm-day{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;cursor:pointer;border:1px solid #3a3630;color:var(--muted);transition:all .1s;user-select:none}
+.rm-days{display:flex;gap:5px;flex-wrap:wrap}
+.rm-day{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;cursor:pointer;border:1px solid #3a3630;color:var(--muted);transition:all .1s;user-select:none}
 .rm-day:hover{border-color:#4285f4;color:#4285f4}
 .rm-day.on{background:#4285f4;border-color:#4285f4;color:#fff}
 .rm-ends{display:flex;flex-direction:column;gap:10px}
@@ -344,11 +347,29 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .rm-end-opt.active{color:var(--ink)}
 .rm-end-date,.rm-end-n{padding:4px 8px;font-size:13px;background:#252320;border:1px solid #3a3630;border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;margin-left:4px}
 .rm-end-date:focus,.rm-end-n:focus{border-color:#4285f4}
-.rm-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.rm-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
 .rm-cancel{font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;padding:6px 14px;border-radius:6px;font-family:'Geist',sans-serif}
 .rm-cancel:hover{background:#252320;color:var(--ink)}
 .rm-done{font-size:13px;font-weight:500;color:#fff;background:#4285f4;border:none;cursor:pointer;padding:6px 18px;border-radius:6px;font-family:'Geist',sans-serif}
 .rm-done:hover{background:#5a95f5}
+
+/* RECURRING EDIT DIALOG */
+.recur-dialog-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:7000;display:flex;align-items:center;justify-content:center;animation:fi .12s ease}
+.recur-dialog{background:#1e1c19;border:1px solid #3a3630;border-radius:12px;padding:24px;width:420px;box-shadow:0 12px 48px rgba(0,0,0,.7)}
+.recur-dialog h3{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:16px}
+.recur-opt{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px}
+.recur-opt input[type=radio]{accent-color:#4285f4;cursor:pointer}
+.recur-opt.active{color:var(--ink)}
+.recur-time-info{margin:12px 0;padding:12px;background:#252320;border-radius:8px;font-size:13px;color:var(--muted)}
+.recur-time-new{color:var(--ink);font-weight:500}
+.recur-time-old{text-decoration:line-through;opacity:.5;margin-top:3px}
+.recur-footer{display:flex;justify-content:space-between;margin-top:16px;gap:8px}
+.recur-discard{font-size:13px;color:var(--muted);background:none;border:1px solid #3a3630;cursor:pointer;padding:6px 14px;border-radius:6px;font-family:'Geist',sans-serif}
+.recur-discard:hover{border-color:var(--red);color:var(--red)}
+.recur-continue{font-size:13px;color:var(--ink);background:none;border:1px solid #3a3630;cursor:pointer;padding:6px 14px;border-radius:6px;font-family:'Geist',sans-serif}
+.recur-continue:hover{background:#252320}
+.recur-save{font-size:13px;font-weight:500;color:#fff;background:#4285f4;border:none;cursor:pointer;padding:6px 18px;border-radius:6px;font-family:'Geist',sans-serif}
+.recur-save:hover{background:#5a95f5}
 
 /* CONTEXT MENU */
 .cal-ctx-menu{position:fixed;background:#1e1c19;border:1px solid #3a3630;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:5000;min-width:200px;padding:4px;animation:popin .1s ease}
@@ -558,6 +579,11 @@ canvas#gc{width:100%;height:100%;display:block}
           <div class="cal-view-toggle">
             <button class="cal-vbtn active" id="cvbtn-week" onclick="setCalView('week')">Week</button>
             <button class="cal-vbtn" id="cvbtn-month" onclick="setCalView('month')">Month</button>
+          </div>
+          <div class="cal-zoom-wrap">
+            <button class="cal-zoom-btn" onclick="calZoomOut()" title="Zoom out">−</button>
+            <span class="cal-zoom-lbl" id="cal-zoom-lbl">100%</span>
+            <button class="cal-zoom-btn" onclick="calZoomIn()" title="Zoom in">+</button>
           </div>
           <button class="gcal-btn" id="gcal-btn" onclick="gcalConnect()">📅 Sync Google Cal</button>
         </div>
@@ -1104,29 +1130,41 @@ function fAns(ok){if(ok)flashScore.c++;else flashScore.w++;flashIdx++;flashFlipp
 
 // ── CALENDAR ──
 let calView='week';
-let calDragDk=null,calDragStartMin=null,calDragEndMin=null,calGhost=null,calDragActive=false;
+let calSlotH=32; // px per 15min slot — zoom control
+let calZoom=100; // percentage label
+
+// drag-to-create state
+let cDragDk=null,cDragStartMin=null,cDragEndMin=null,cDragGhost=null,cDragActive=false;
+
+// drag-event-move state
+let evtDragState=null; // {dk,idx,evt,offsetMin,preview,startX,startY}
+
+// swipe state
+let swipeStartX=null,swipeStartY=null;
+
+// repeat state
+let _pRepeat='none',_pRepeatEvery=1,_pRepeatDays=[],_pRepeatEnds='never',_pRepeatEndDate='',_pRepeatAfter=4;
+let _pDk=null,_pIdx=null;
 
 // Event color palette
 const EVT_COLORS=[
-  {id:'blue',   bg:'#1e3a5f', border:'#4285f4', text:'#8ab4f8'},
-  {id:'green',  bg:'#0f2820', border:'#0f9d58', text:'#34d399'},
-  {id:'red',    bg:'#2e0f0f', border:'#c8303a', text:'#f87171'},
-  {id:'orange', bg:'#2a2015', border:'#c8873a', text:'#e8a55a'},
-  {id:'purple', bg:'#1e0f2e', border:'#7a3ac8', text:'#c084fc'},
-  {id:'teal',   bg:'#0a1f1f', border:'#0d9488', text:'#2dd4bf'},
-  {id:'pink',   bg:'#2e0f1e', border:'#db2777', text:'#f472b6'},
-  {id:'yellow', bg:'#1e1a00', border:'#ca8a04', text:'#fbbf24'},
+  {id:'blue',   bg:'#1e3a5f',border:'#4285f4',text:'#8ab4f8'},
+  {id:'green',  bg:'#0f2820',border:'#0f9d58',text:'#34d399'},
+  {id:'red',    bg:'#2e0f0f',border:'#c8303a',text:'#f87171'},
+  {id:'orange', bg:'#2a2015',border:'#c8873a',text:'#e8a55a'},
+  {id:'purple', bg:'#1e0f2e',border:'#7a3ac8',text:'#c084fc'},
+  {id:'teal',   bg:'#0a1f1f',border:'#0d9488',text:'#2dd4bf'},
+  {id:'pink',   bg:'#2e0f1e',border:'#db2777',text:'#f472b6'},
+  {id:'yellow', bg:'#1e1a00',border:'#ca8a04',text:'#fbbf24'},
 ];
-function getColor(colorId){return EVT_COLORS.find(c=>c.id===colorId)||EVT_COLORS[0];}
-function getEvtStyle(evt){
-  const col=getColor(evt.color);
-  return `background:${col.bg};border-left-color:${col.border};color:${col.text}`;
-}
-function getPillStyle(evt){
-  const col=getColor(evt.color);
-  return `background:${col.bg};border-left-color:${col.border};color:${col.text}`;
-}
+function getColor(id){return EVT_COLORS.find(c=>c.id===id)||EVT_COLORS[0];}
+function evtStyle(evt){const col=getColor(evt.color||'blue');return`background:${col.bg};border-left-color:${col.border};color:${col.text}`;}
 
+// ── ZOOM ──
+function calZoomIn(){calSlotH=Math.min(calSlotH+8,80);calZoom=Math.round(calSlotH/32*100);document.getElementById('cal-zoom-lbl').textContent=calZoom+'%';renderCal();}
+function calZoomOut(){calSlotH=Math.max(calSlotH-8,12);calZoom=Math.round(calSlotH/32*100);document.getElementById('cal-zoom-lbl').textContent=calZoom+'%';renderCal();}
+
+// ── NAV ──
 function setCalView(v){
   calView=v;
   document.getElementById('cvbtn-week').classList.toggle('active',v==='week');
@@ -1141,6 +1179,7 @@ function calNav(dir){
 function calGoToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();selDate=dkey(n);renderCal();}
 function renderCal(){calView==='week'?renderWeek():renderMonth();}
 
+// helpers
 function pad(n){return String(n).padStart(2,'0')}
 function fmtTime(t){
   if(!t)return'';const[h,m]=t.split(':').map(Number);
@@ -1153,34 +1192,30 @@ function calcDur(s,e){
   const mins=(eh*60+em)-(sh*60+sm);if(mins<=0)return'';
   if(mins<60)return mins+'min';if(mins%60===0)return(mins/60)+'h';return Math.floor(mins/60)+'h '+mins%60+'min';
 }
+function minToStr(m){return pad(Math.floor(m/60))+':'+pad(m%60);}
 
 // ── RECURRENCE EXPANSION ──
-// Returns all dates an event should appear on, for a given week's date range
-function getRecurDates(evt, wDates){
+function getRecurDates(evt,originDk,dates){
   if(!evt.repeat||evt.repeat==='none')return[];
-  const results=[];
-  const origin=new Date(evt._originDk+'T12:00:00');
+  const origin=new Date(originDk+'T12:00:00');
   const endDate=evt.repeatEnds==='on'&&evt.repeatEndDate?new Date(evt.repeatEndDate+'T23:59:59'):null;
-  let count=0;
-  wDates.forEach(d=>{
-    const dk2=dkey(d);
-    if(dk2<=evt._originDk)return; // don't show before origin
+  let count=0;const results=[];
+  dates.forEach(d=>{
+    const dk2=dkey(d);if(dk2<=originDk)return;
     if(endDate&&d>endDate)return;
     if(evt.repeatEnds==='after'&&count>=evt.repeatAfter)return;
-    let matches=false;
-    const r=evt.repeat;
-    const diffDays=Math.round((d-origin)/(1000*60*60*24));
+    const diffDays=Math.round((d-origin)/(86400000));
     const diffWeeks=Math.round(diffDays/7);
-    if(r==='daily'&&diffDays>0&&diffDays%1===0)matches=true;
-    else if(r==='weekday'&&d.getDay()>0&&d.getDay()<6&&diffDays>0)matches=true;
-    else if(r==='weekly'&&d.getDay()===origin.getDay()&&diffWeeks>0&&diffWeeks%(evt.repeatEvery||1)===0)matches=true;
-    else if(r==='biweekly'&&d.getDay()===origin.getDay()&&diffWeeks>0&&diffWeeks%2===0)matches=true;
-    else if(r==='monthly'&&d.getDate()===origin.getDate()&&(d.getFullYear()>origin.getFullYear()||(d.getFullYear()===origin.getFullYear()&&d.getMonth()>origin.getMonth())))matches=true;
-    else if(r==='yearly'&&d.getDate()===origin.getDate()&&d.getMonth()===origin.getMonth()&&d.getFullYear()>origin.getFullYear())matches=true;
-    else if(r==='custom'&&evt.repeatDays&&evt.repeatDays.includes(d.getDay())&&diffDays>0){
-      const wk=Math.floor(diffDays/7);matches=wk%(evt.repeatEvery||1)===0;
-    }
-    if(matches){results.push(dk2);count++;}
+    let ok=false;
+    const r=evt.repeat;
+    if(r==='daily'&&diffDays>0)ok=true;
+    else if(r==='weekday'&&d.getDay()>0&&d.getDay()<6&&diffDays>0)ok=true;
+    else if(r==='weekly'&&d.getDay()===origin.getDay()&&diffWeeks>0&&diffWeeks%(evt.repeatEvery||1)===0)ok=true;
+    else if(r==='biweekly'&&d.getDay()===origin.getDay()&&diffWeeks>0&&diffWeeks%2===0)ok=true;
+    else if(r==='monthly'&&d.getDate()===origin.getDate()&&(d.getFullYear()>origin.getFullYear()||(d.getFullYear()===origin.getFullYear()&&d.getMonth()>origin.getMonth())))ok=true;
+    else if(r==='yearly'&&d.getDate()===origin.getDate()&&d.getMonth()===origin.getMonth()&&d.getFullYear()>origin.getFullYear())ok=true;
+    else if(r==='custom'&&evt.repeatDays?.includes(d.getDay())&&diffDays>0){const wk=Math.floor(diffDays/7);ok=wk%(evt.repeatEvery||1)===0;}
+    if(ok){results.push(dk2);count++;}
   });
   return results;
 }
@@ -1206,26 +1241,22 @@ function renderWeek(){
     </div>`;
   });
 
-  // gutter: one label per hour (96 15min slots total = 24hrs)
+  // gutter labels — one per hour
   let gutterHtml='';
   for(let h=0;h<24;h++){
     const lbl=h===0?'':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM';
-    // 4 slots per hour, label only on first
-    gutterHtml+=`<div class="cal-gutter-lbl" style="height:24px">${lbl}</div>`;
-    gutterHtml+=`<div class="cal-gutter-lbl" style="height:24px"></div>`;
-    gutterHtml+=`<div class="cal-gutter-lbl" style="height:24px"></div>`;
-    gutterHtml+=`<div class="cal-gutter-lbl" style="height:24px"></div>`;
+    // 4 slots × calSlotH px each = 1 hour
+    gutterHtml+=`<div class="cal-gutter-lbl" style="height:${calSlotH*4}px">${lbl}</div>`;
   }
 
-  // build recurring event ghost copies
-  const recurEvts={};
+  // build recurring overlay map for this week
+  const recurMap={};
   Object.entries(calEvts).forEach(([dk2,evts])=>{
     (evts||[]).forEach((evt,i)=>{
       if(!evt.repeat||evt.repeat==='none')return;
-      const rDates=getRecurDates({...evt,_originDk:dk2},wds);
-      rDates.forEach(rdk=>{
-        if(!recurEvts[rdk])recurEvts[rdk]=[];
-        recurEvts[rdk].push({...evt,_isRecur:true,_originDk:dk2,_originIdx:i});
+      getRecurDates(evt,dk2,wds).forEach(rdk=>{
+        if(!recurMap[rdk])recurMap[rdk]=[];
+        recurMap[rdk].push({...evt,_oDk:dk2,_oIdx:i,_isRecur:true});
       });
     });
   });
@@ -1233,141 +1264,299 @@ function renderWeek(){
   let colsHtml='';
   wds.forEach(d=>{
     const dk2=dkey(d);const isT=dk2===today;
-    // 96 slots (15min each)
+    // 96 slots × calSlotH px
     let slots='';
     for(let s=0;s<96;s++){
       const h=Math.floor(s/4);const m=(s%4)*15;
-      const cls=m===0?'hour-start':m===30?'half-hour':'';
-      slots+=`<div class="cal-slot ${cls}" data-dk="${dk2}" data-min="${h*60+m}"
+      const cls=m===0?'hour-start':m===30?'half-hour':'quarter';
+      slots+=`<div class="cal-slot ${cls}" style="height:${calSlotH}px"
+        data-dk="${dk2}" data-min="${h*60+m}"
         onmousedown="cDragStart(event,'${dk2}',${h*60+m})"
         onmousemove="cDragMove(event,${h*60+m})"
         onmouseup="cDragEnd(event,'${dk2}')"
       ></div>`;
     }
 
-    let evtsHtml='';
+    let evtHtml='';
     // local events
     (calEvts[dk2]||[]).forEach((evt,i)=>{
       if(!evt.start)return;
       const[sh,sm]=evt.start.split(':').map(Number);
       const[eh,em]=evt.end?evt.end.split(':').map(Number):[sh+1,sm];
-      const top=(sh*60+sm)/60*24*4;
-      const hpx=Math.max(22,((eh*60+em)-(sh*60+sm))/60*24*4);
-      const st=getEvtStyle(evt);
-      evtsHtml+=`<div class="cal-evt" style="top:${top}px;height:${hpx}px;${st}"
-        onclick="event.stopPropagation();showEvtPop(event,'${dk2}',${i},false)"
+      const top=(sh*60+sm)/15*calSlotH;
+      const hpx=Math.max(calSlotH,((eh*60+em)-(sh*60+sm))/15*calSlotH);
+      evtHtml+=`<div class="cal-evt" id="evt-${dk2}-${i}" style="top:${top}px;height:${hpx}px;${evtStyle(evt)}"
+        data-dk="${dk2}" data-idx="${i}"
+        onmousedown="evtDragStart(event,'${dk2}',${i})"
+        onclick="event.stopPropagation();showEvtPop(event,'${dk2}',${i})"
         oncontextmenu="event.preventDefault();event.stopPropagation();showCtxMenu(event,'${dk2}',${i})"
       >
         <div class="cal-evt-title">${esc(evt.title||'')}</div>
-        <div class="cal-evt-time">${fmtTime(evt.start)}${evt.end?' – '+fmtTime(evt.end):''}</div>
+        ${hpx>calSlotH?`<div class="cal-evt-time">${fmtTime(evt.start)}${evt.end?' – '+fmtTime(evt.end):''}</div>`:''}
         <div class="cal-evt-resize" onmousedown="event.stopPropagation();cResizeStart(event,'${dk2}',${i})"></div>
       </div>`;
     });
-    // recurring copies
-    (recurEvts[dk2]||[]).forEach((evt,i)=>{
+    // recurring
+    (recurMap[dk2]||[]).forEach(evt=>{
       if(!evt.start)return;
       const[sh,sm]=evt.start.split(':').map(Number);
       const[eh,em]=evt.end?evt.end.split(':').map(Number):[sh+1,sm];
-      const top=(sh*60+sm)/60*24*4;
-      const hpx=Math.max(22,((eh*60+em)-(sh*60+sm))/60*24*4);
-      const st=getEvtStyle(evt);
-      evtsHtml+=`<div class="cal-evt" style="top:${top}px;height:${hpx}px;${st};opacity:.85"
-        onclick="event.stopPropagation();showEvtPop(event,'${evt._originDk}',${evt._originIdx},false)"
-        oncontextmenu="event.preventDefault();event.stopPropagation();showCtxMenu(event,'${evt._originDk}',${evt._originIdx})"
+      const top=(sh*60+sm)/15*calSlotH;
+      const hpx=Math.max(calSlotH,((eh*60+em)-(sh*60+sm))/15*calSlotH);
+      evtHtml+=`<div class="cal-evt" style="top:${top}px;height:${hpx}px;${evtStyle(evt)};opacity:.8"
+        onclick="event.stopPropagation();showEvtPop(event,'${evt._oDk}',${evt._oIdx})"
+        oncontextmenu="event.preventDefault();event.stopPropagation();showCtxMenu(event,'${evt._oDk}',${evt._oIdx})"
       >
         <div class="cal-evt-title">↻ ${esc(evt.title||'')}</div>
-        <div class="cal-evt-time">${fmtTime(evt.start)}${evt.end?' – '+fmtTime(evt.end):''}</div>
+        ${hpx>calSlotH?`<div class="cal-evt-time">${fmtTime(evt.start)}${evt.end?' – '+fmtTime(evt.end):''}</div>`:''}
       </div>`;
     });
     // notes
     notes.filter(n=>n.dateKey===dk2).forEach((n,ni)=>{
       const col=getColor('blue');
-      evtsHtml+=`<div class="cal-evt" style="top:${ni*26}px;height:24px;background:${col.bg};border-left-color:${col.border};color:${col.text}"
+      evtHtml+=`<div class="cal-evt" style="top:${ni*(calSlotH+2)}px;height:${calSlotH}px;background:${col.bg};border-left-color:${col.border};color:${col.text}"
         onclick="event.stopPropagation();show('notes')"
         oncontextmenu="event.preventDefault();event.stopPropagation();showNoteCtx(event,'${n.id}')"
       ><div class="cal-evt-title">${esc(n.title||'(note)')}</div></div>`;
     });
 
-    colsHtml+=`<div class="cal-day-col ${isT?'is-today':''}" id="cal-col-${dk2}">${slots}${evtsHtml}</div>`;
+    colsHtml+=`<div class="cal-day-col ${isT?'is-today':''}" id="cal-col-${dk2}">${slots}${evtHtml}</div>`;
   });
 
-  document.getElementById('cal-body').innerHTML=`
-    <div class="cal-week-wrap">
+  const body=document.getElementById('cal-body');
+  body.innerHTML=`
+    <div class="cal-week-wrap" id="cal-week-wrap">
       <div class="cal-week-head">${headHtml}</div>
       <div class="cal-week-scroll" id="cal-wscroll"
-        onmouseup="cDragEndGlobal(event)"
-        onmouseleave="cDragEndGlobal(event)">
+        onwheel="calHandleWheel(event)"
+        onmouseup="cDragEndGlobal(event);evtDragEndGlobal(event)"
+        onmouseleave="cDragEndGlobal(event)"
+      >
         <div class="cal-gutter-col">${gutterHtml}</div>
         ${colsHtml}
       </div>
     </div>`;
 
+  // touchpad swipe
+  const scroll=document.getElementById('cal-wscroll');
+  scroll.addEventListener('touchstart',e=>{swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;},{passive:true});
+  scroll.addEventListener('touchend',e=>{
+    if(swipeStartX===null)return;
+    const dx=e.changedTouches[0].clientX-swipeStartX;
+    const dy=e.changedTouches[0].clientY-swipeStartY;
+    if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>60){calNav(dx<0?1:-1);}
+    swipeStartX=null;swipeStartY=null;
+  },{passive:true});
+
   // now line
   const nowD=new Date();const nowDk=dkey(nowD);
-  const col=document.getElementById('cal-col-'+nowDk);
-  if(col){
-    const top=(nowD.getHours()*60+nowD.getMinutes())/60*96;
-    col.insertAdjacentHTML('beforeend',`<div class="cal-now-line" style="top:${top}px"><div class="cal-now-dot"></div></div>`);
+  const nowCol=document.getElementById('cal-col-'+nowDk);
+  if(nowCol){
+    const top=(nowD.getHours()*60+nowD.getMinutes())/15*calSlotH;
+    nowCol.insertAdjacentHTML('beforeend',`<div class="cal-now-line" style="top:${top}px"><div class="cal-now-dot"></div></div>`);
   }
-  setTimeout(()=>{const sc=document.getElementById('cal-wscroll');if(sc)sc.scrollTop=8*96-24;},50);
+  setTimeout(()=>{const sc=document.getElementById('cal-wscroll');if(sc)sc.scrollTop=8*4*calSlotH-calSlotH*2;},50);
 }
 
-// ── 15-MIN DRAG TO CREATE ──
+// ── TOUCHPAD / WHEEL SWIPE ──
+let wheelAccum=0,wheelTimer=null;
+function calHandleWheel(e){
+  // horizontal scroll → week navigation
+  if(Math.abs(e.deltaX)>Math.abs(e.deltaY)){
+    e.preventDefault();
+    wheelAccum+=e.deltaX;
+    clearTimeout(wheelTimer);
+    wheelTimer=setTimeout(()=>{
+      if(Math.abs(wheelAccum)>80){calNav(wheelAccum>0?1:-1);}
+      wheelAccum=0;
+    },120);
+  }
+  // vertical scroll → normal
+}
+
+// ── DRAG TO CREATE ──
 function cDragStart(e,dk,startMin){
-  if(e.button!==0)return;e.preventDefault();
-  calDragDk=dk;calDragStartMin=startMin;calDragEndMin=startMin+15;calDragActive=true;
+  if(e.button!==0)return;
+  // don't start create-drag if we're about to move an event
+  if(e.target.closest('.cal-evt'))return;
+  e.preventDefault();
+  cDragDk=dk;cDragStartMin=startMin;cDragEndMin=startMin+15;cDragActive=true;
   const col=document.getElementById('cal-col-'+dk);
-  calGhost=document.createElement('div');calGhost.className='cal-drag-ghost';
+  if(!col)return;
   const col2=getColor('blue');
-  calGhost.style.cssText=`background:${col2.bg};border-left:3px solid ${col2.border};color:${col2.text}`;
-  updateGhost();col.appendChild(calGhost);
+  cDragGhost=document.createElement('div');
+  cDragGhost.className='cal-drag-ghost';
+  cDragGhost.style.cssText=`background:${col2.bg};border-left:3px solid ${col2.border};color:${col2.text}`;
+  updateCDragGhost();
+  col.appendChild(cDragGhost);
 }
 function cDragMove(e,curMin){
-  if(!calDragActive||!calGhost)return;
-  calDragEndMin=Math.max(calDragStartMin+15,curMin+15);
-  updateGhost();
+  if(!cDragActive||!cDragGhost)return;
+  cDragEndMin=Math.max(cDragStartMin+15,Math.ceil(curMin/15)*15);
+  updateCDragGhost();
 }
-function updateGhost(){
-  if(!calGhost)return;
-  const top=calDragStartMin/60*96;
-  const hpx=Math.max(24,(calDragEndMin-calDragStartMin)/60*96);
-  calGhost.style.top=top+'px';calGhost.style.height=hpx+'px';
-  const s=pad(Math.floor(calDragStartMin/60))+':'+pad(calDragStartMin%60);
-  const e=pad(Math.floor(calDragEndMin/60))+':'+pad(calDragEndMin%60);
-  calGhost.textContent=fmtTime(s)+' – '+fmtTime(e);
+function updateCDragGhost(){
+  if(!cDragGhost)return;
+  const top=cDragStartMin/15*calSlotH;
+  const hpx=Math.max(calSlotH,(cDragEndMin-cDragStartMin)/15*calSlotH);
+  cDragGhost.style.top=top+'px';cDragGhost.style.height=hpx+'px';
+  cDragGhost.textContent=fmtTime(minToStr(cDragStartMin))+' – '+fmtTime(minToStr(cDragEndMin));
 }
-function cDragEnd(e,dk){
-  if(calDragDk&&calDragDk===dk)cDragEndGlobal(e);
-}
+function cDragEnd(e,dk){if(cDragActive&&cDragDk===dk)cDragEndGlobal(e);}
 function cDragEndGlobal(e){
-  if(!calDragActive)return;
-  const dk=calDragDk;const sm=calDragStartMin;const em=calDragEndMin;
-  if(calGhost)calGhost.remove();
-  calDragDk=null;calDragStartMin=null;calDragEndMin=null;calGhost=null;calDragActive=false;
-  if(sm===null)return;
-  const start=pad(Math.floor(sm/60))+':'+pad(sm%60);
-  const end=pad(Math.floor(em/60))+':'+pad(em%60);
-  showAddPop(e,dk,start,end);
+  if(!cDragActive)return;
+  const dk=cDragDk,sm=cDragStartMin,em=cDragEndMin;
+  if(cDragGhost){cDragGhost.remove();cDragGhost=null;}
+  cDragDk=null;cDragStartMin=null;cDragEndMin=null;cDragActive=false;
+  if(sm===null||em===null)return;
+  showAddPop(e,dk,minToStr(sm),minToStr(em));
+}
+
+// ── DRAG EXISTING EVENT ──
+function evtDragStart(e,dk,idx){
+  if(e.button!==0)return;
+  e.preventDefault();e.stopPropagation();
+  const evt=calEvts[dk]?.[idx];if(!evt||!evt.start)return;
+  const[sh,sm]=evt.start.split(':').map(Number);
+  const startMin=sh*60+sm;
+  // offset within event where user clicked
+  const evtEl=document.getElementById(`evt-${dk}-${idx}`);
+  let offsetMin=0;
+  if(evtEl){
+    const rect=evtEl.getBoundingClientRect();
+    const relY=e.clientY-rect.top;
+    offsetMin=Math.round(relY/calSlotH)*15;
+  }
+  // mark event as dragging
+  if(evtEl)evtEl.classList.add('dragging');
+  // create floating preview
+  const col=getColor(evt.color||'blue');
+  const preview=document.createElement('div');
+  preview.className='cal-evt-drag-preview';
+  preview.style.cssText=`background:${col.bg};border-left-color:${col.border};color:${col.text};left:${e.clientX+10}px;top:${e.clientY-20}px;width:140px`;
+  preview.innerHTML=`<div style="font-weight:500;font-size:12px">${esc(evt.title||'')}</div><div style="font-size:10px;opacity:.8">${fmtTime(evt.start)}${evt.end?' – '+fmtTime(evt.end):''}</div>`;
+  document.body.appendChild(preview);
+
+  evtDragState={dk,idx,evt:{...evt},offsetMin,preview,startX:e.clientX,startY:e.clientY,moved:false,curDk:dk,curMin:startMin};
+  document.addEventListener('mousemove',evtDragMove);
+  document.addEventListener('mouseup',evtDragEndGlobal);
+}
+
+function evtDragMove(e){
+  if(!evtDragState)return;
+  const{preview,offsetMin}=evtDragState;
+  // move preview
+  preview.style.left=(e.clientX+12)+'px';
+  preview.style.top=(e.clientY-20)+'px';
+  evtDragState.moved=true;
+
+  // find which column we're over
+  const els=document.elementsFromPoint(e.clientX,e.clientY);
+  const slotEl=els.find(el=>el.classList.contains('cal-slot'));
+  if(slotEl){
+    const rawMin=parseInt(slotEl.dataset.min);
+    const newStartMin=Math.round((rawMin-offsetMin)/15)*15;
+    const clampedStart=Math.max(0,Math.min(newStartMin,24*60-15));
+    evtDragState.curDk=slotEl.dataset.dk||evtDragState.curDk;
+    evtDragState.curMin=clampedStart;
+    // update preview time
+    const dur=evtDragState.evt.end?
+      ((evtDragState.evt.end.split(':').map(Number).reduce((h,m,i)=>i===0?h*60+m:h))-
+       (evtDragState.evt.start.split(':').map(Number).reduce((h,m,i)=>i===0?h*60+m:h))):60;
+    const newEnd=Math.min(clampedStart+dur,24*60-1);
+    preview.querySelector('div:last-child').textContent=fmtTime(minToStr(clampedStart))+(dur>0?' – '+fmtTime(minToStr(newEnd)):'');
+  }
+}
+
+function evtDragEndGlobal(e){
+  if(!evtDragState)return;
+  document.removeEventListener('mousemove',evtDragMove);
+  document.removeEventListener('mouseup',evtDragEndGlobal);
+  const{dk,idx,evt,curDk,curMin,moved,preview}=evtDragState;
+  evtDragState=null;
+  preview.remove();
+  // restore original event display
+  const evtEl=document.getElementById(`evt-${dk}-${idx}`);
+  if(evtEl)evtEl.classList.remove('dragging');
+
+  if(!moved)return; // was just a click, let onclick handle
+
+  // calculate new times
+  const[sh,sm]=evt.start.split(':').map(Number);
+  const origStartMin=sh*60+sm;
+  const dur=evt.end?
+    ((evt.end.split(':').map(Number).reduce((a,b,i)=>i===0?a*60+b:a))-origStartMin):60;
+  const newStartMin=Math.max(0,Math.min(curMin,24*60-15));
+  const newEndMin=Math.min(newStartMin+dur,24*60-1);
+  const newStart=minToStr(newStartMin);
+  const newEnd=minToStr(newEndMin);
+
+  const isRecurring=evt.repeat&&evt.repeat!=='none';
+  if(isRecurring){
+    showRecurDialog(evt.title||'',{start:evt.start,end:evt.end},{start:newStart,end:newEnd},
+      (scope)=>{applyEvtMove(scope,dk,idx,curDk,newStart,newEnd);});
+  } else {
+    applyEvtMove('this',dk,idx,curDk,newStart,newEnd);
+  }
+}
+
+function applyEvtMove(scope,dk,idx,newDk,newStart,newEnd){
+  const evt=calEvts[dk]?.[idx];if(!evt)return;
+  if(scope==='this'||scope==='all'){
+    evt.start=newStart;evt.end=newEnd;
+    if(newDk!==dk){
+      calEvts[dk].splice(idx,1);
+      if(!calEvts[newDk])calEvts[newDk]=[];
+      calEvts[newDk].push(evt);
+    }
+  }
+  // 'following' and 'all' for recurring could be extended
+  save();renderCal();
 }
 
 // ── RESIZE ──
 function cResizeStart(e,dk,idx){
   e.preventDefault();
   const evt=calEvts[dk]?.[idx];if(!evt||!evt.end)return;
-  const startY=e.clientY;
-  const[eh0,em0]=evt.end.split(':').map(Number);
+  const[eh,em]=evt.end.split(':').map(Number);
+  const startY=e.clientY;const origEndMin=eh*60+em;
   const onMove=ev=>{
     const dy=ev.clientY-startY;
-    const deltaMin=Math.round(dy/96*60/15)*15;
-    const origEndMin=eh0*60+em0;
-    let newMin=origEndMin+deltaMin;
+    const dMin=Math.round(dy/calSlotH)*15;
     const[sh,sm]=evt.start.split(':').map(Number);
-    newMin=Math.max(sh*60+sm+15,Math.min(newMin,24*60-1));
-    evt.end=pad(Math.floor(newMin/60))+':'+pad(newMin%60);
-    save();renderCal();
+    const newMin=Math.max(sh*60+sm+15,Math.min(origEndMin+dMin,24*60-1));
+    evt.end=minToStr(newMin);save();renderCal();
   };
   const onUp=()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
   document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
+}
+
+// ── RECURRING EDIT DIALOG ──
+function showRecurDialog(title,oldTimes,newTimes,callback){
+  document.getElementById('recur-dialog-overlay')?.remove();
+  const ov=document.createElement('div');ov.className='recur-dialog-overlay';ov.id='recur-dialog-overlay';
+  ov.innerHTML=`
+    <div class="recur-dialog">
+      <h3>Edit repeat event "${esc(title)}"</h3>
+      <label class="recur-opt active"><input type="radio" name="rscope" value="this" checked onchange="document.querySelectorAll('.recur-opt').forEach((el,i)=>el.classList.toggle('active',['this','following','all'][i]===this.value))"/> This event</label>
+      <label class="recur-opt"><input type="radio" name="rscope" value="following" onchange="document.querySelectorAll('.recur-opt').forEach((el,i)=>el.classList.toggle('active',['this','following','all'][i]===this.value))"/> This and following events</label>
+      <label class="recur-opt"><input type="radio" name="rscope" value="all" onchange="document.querySelectorAll('.recur-opt').forEach((el,i)=>el.classList.toggle('active',['this','following','all'][i]===this.value))"/> All events</label>
+      ${oldTimes.start?`<div class="recur-time-info">
+        <div class="recur-time-new">Time ${fmtTime(newTimes.start)}${newTimes.end?' – '+fmtTime(newTimes.end):''}</div>
+        <div class="recur-time-old">${fmtTime(oldTimes.start)}${oldTimes.end?' – '+fmtTime(oldTimes.end):''}</div>
+      </div>`:''}
+      <div class="recur-footer">
+        <button class="recur-discard" onclick="document.getElementById('recur-dialog-overlay').remove();renderCal()">Discard change</button>
+        <button class="recur-continue" onclick="document.getElementById('recur-dialog-overlay').remove()">Continue editing</button>
+        <button class="recur-save" onclick="
+          const scope=document.querySelector('input[name=rscope]:checked').value;
+          document.getElementById('recur-dialog-overlay').remove();
+          recurCallback(scope);
+        ">Save event</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  window.recurCallback=callback;
 }
 
 // ── MONTH VIEW ──
@@ -1377,7 +1566,6 @@ function renderMonth(){
   document.getElementById('cal-month-label').textContent=MONTHS[calMonth]+' '+calYear;
   const fd=new Date(calYear,calMonth,1).getDay(),dm=new Date(calYear,calMonth+1,0).getDate(),dp=new Date(calYear,calMonth,0).getDate();
   const tot=Math.ceil((fd+dm)/7)*7;
-  // build all dates for recurrence check
   const allDates=[];
   for(let i=0;i<tot;i++){
     let day,dk2,isOther=false;
@@ -1386,15 +1574,13 @@ function renderMonth(){
     else{day=i-fd+1;dk2=`${calYear}-${pad(calMonth+1)}-${pad(day)}`;}
     allDates.push({day,dk2,isOther});
   }
-  // build recurring overlays for month
-  const recurEvts={};
+  const recurMap={};
   Object.entries(calEvts).forEach(([dk2,evts])=>{
     (evts||[]).forEach((evt,i)=>{
       if(!evt.repeat||evt.repeat==='none')return;
-      const rDates=getRecurDates({...evt,_originDk:dk2},allDates.map(x=>new Date(x.dk2+'T12:00:00')));
-      rDates.forEach(rdk=>{
-        if(!recurEvts[rdk])recurEvts[rdk]=[];
-        recurEvts[rdk].push({...evt,_isRecur:true,_originDk:dk2,_originIdx:i});
+      getRecurDates(evt,dk2,allDates.map(x=>new Date(x.dk2+'T12:00:00'))).forEach(rdk=>{
+        if(!recurMap[rdk])recurMap[rdk]=[];
+        recurMap[rdk].push({...evt,_oDk:dk2,_oIdx:i});
       });
     });
   });
@@ -1402,8 +1588,8 @@ function renderMonth(){
   let cells='';
   allDates.forEach(({day,dk2,isOther})=>{
     const isT=dk2===today,isSel=dk2===selDate;
-    const evts=(calEvts[dk2]||[]).map((e2,i2)=>({...e2,idx:i2,dk:dk2,isRecur:false}));
-    const rec=(recurEvts[dk2]||[]).map((e2,i2)=>({...e2,idx:e2._originIdx,dk:e2._originDk,isRecur:true}));
+    const evts=(calEvts[dk2]||[]).map((e,i)=>({...e,idx:i,dk:dk2}));
+    const rec=(recurMap[dk2]||[]).map(e=>({...e,idx:e._oIdx,dk:e._oDk,isRecur:true}));
     const nts=notes.filter(n=>n.dateKey===dk2).map(n=>({title:n.title||'(note)',color:'blue',isNote:true,nid:n.id}));
     const all=[...evts,...rec,...nts];const shown=all.slice(0,3),ov=all.length-3;
     cells+=`<div class="cal-cell ${isOther?'other-month':''} ${isT?'is-today':''} ${isSel?'is-sel':''}"
@@ -1413,8 +1599,9 @@ function renderMonth(){
     >
       <div class="cal-dn">${day}</div>
       ${shown.map(it=>{
-        if(it.isNote)return`<div class="cal-pill" style="${getPillStyle({color:'blue'})}" onclick="event.stopPropagation();show('notes')">${esc(it.title)}</div>`;
-        return`<div class="cal-pill ${it.isRecur?'':''}\" style="${getPillStyle(it)}" onclick="event.stopPropagation();showEvtPop(event,'${it.dk}',${it.idx},false)" oncontextmenu="event.preventDefault();event.stopPropagation();showCtxMenu(event,'${it.dk}',${it.idx})">${it.isRecur?'↻ ':''}${esc(it.title||'')}</div>`;
+        if(it.isNote){const col=getColor('blue');return`<div class="cal-pill" style="background:${col.bg};border-left-color:${col.border};color:${col.text}" onclick="event.stopPropagation();show('notes')">${esc(it.title)}</div>`;}
+        const col=getColor(it.color||'blue');
+        return`<div class="cal-pill" style="background:${col.bg};border-left-color:${col.border};color:${col.text}" onclick="event.stopPropagation();showEvtPop(event,'${it.dk}',${it.idx})" oncontextmenu="event.preventDefault();event.stopPropagation();showCtxMenu(event,'${it.dk}',${it.idx})">${it.isRecur?'↻ ':''}${esc(it.title||'')}</div>`;
       }).join('')}
       ${ov>0?`<div class="cal-overflow">+${ov} more</div>`:''}
     </div>`;
@@ -1427,78 +1614,68 @@ function renderMonth(){
 }
 
 // ── ADD / EDIT POPOVER ──
-let _popEvtDk=null,_popEvtIdx=null,_popRepeat='none',_popRepeatEvery=1,_popRepeatDays=[],_popRepeatEnds='never',_popRepeatEndDate='',_popRepeatAfter=4;
-
 function showAddPop(e,dk,start,end){
-  closeAllCal();
-  _popEvtDk=dk;_popEvtIdx=null;_popRepeat='none';
-  buildEvtPop(e,dk,null,start,end,false);
+  closeAllCal();_pDk=dk;_pIdx=null;_pRepeat='none';
+  buildPop(e,dk,null,start,end,false);
 }
-function showEvtPop(e,dk,idx,isNew){
+function showEvtPop(e,dk,idx){
   closeAllCal();
-  const evt=calEvts[dk]?.[idx];if(!evt&&!isNew)return;
-  _popEvtDk=dk;_popEvtIdx=idx;
-  _popRepeat=evt?.repeat||'none';_popRepeatEvery=evt?.repeatEvery||1;
-  _popRepeatDays=evt?.repeatDays||[];_popRepeatEnds=evt?.repeatEnds||'never';
-  _popRepeatEndDate=evt?.repeatEndDate||'';_popRepeatAfter=evt?.repeatAfter||4;
-  buildEvtPop(e,dk,evt,evt?.start,evt?.end,true);
+  const evt=calEvts[dk]?.[idx];if(!evt)return;
+  _pDk=dk;_pIdx=idx;
+  _pRepeat=evt.repeat||'none';_pRepeatEvery=evt.repeatEvery||1;
+  _pRepeatDays=evt.repeatDays||[];_pRepeatEnds=evt.repeatEnds||'never';
+  _pRepeatEndDate=evt.repeatEndDate||'';_pRepeatAfter=evt.repeatAfter||4;
+  buildPop(e,dk,evt,evt.start,evt.end,true);
 }
-function buildEvtPop(e,dk,evt,start,end,isEdit){
-  const d=new Date(dk+'T12:00:00');
-  const dateLabel=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+function buildPop(e,dk,evt,start,end,isEdit){
   const dur=calcDur(start,end);
-  const repeatLabel=repeatDisplayLabel(_popRepeat,_popRepeatEvery,_popRepeatDays,dk);
+  const rl=repeatLabel(_pRepeat,_pRepeatEvery,_pRepeatDays,dk);
   const pop=document.createElement('div');
-  pop.className='cal-add-pop';pop.id='cap-pop';pop.dataset.dk=dk;pop.dataset.isEdit=isEdit?'1':'0';
-  const x=Math.min(e.clientX+10,window.innerWidth-380),y=Math.max(10,Math.min(e.clientY-10,window.innerHeight-560));
+  pop.className='cal-add-pop';pop.id='cap-pop';pop.dataset.dk=dk;pop.dataset.edit=isEdit?'1':'0';
+  const x=Math.min(e.clientX+10,window.innerWidth-380),y=Math.max(10,Math.min(e.clientY-10,window.innerHeight-520));
   pop.style.cssText=`left:${x}px;top:${y}px`;
-
-  const colorDotsHtml=EVT_COLORS.map(col=>`
-    <div class="cap-color-dot ${(evt?.color||'blue')===col.id?'sel':''}"
-      style="background:${col.border}"
-      data-color="${col.id}"
-      onclick="capSetColor('${col.id}',this)"
-      title="${col.id}"></div>`).join('');
-
+  const cdots=EVT_COLORS.map(col=>`<div class="cap-color-dot ${(evt?.color||'blue')===col.id?'sel':''}"
+    style="background:${col.border}" data-color="${col.id}"
+    onclick="capSetColor('${col.id}',this)" title="${col.id}"></div>`).join('');
   pop.innerHTML=`
     <div class="cap-head">
-      <input class="cap-title" id="cap-title-inp" placeholder="Title" value="${esc(evt?.title||'')}"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey)capSave();if(event.key==='Escape')closeAllCal()"/>
+      <input class="cap-title" id="cap-title" placeholder="Title" value="${esc(evt?.title||'')}"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();capSave();}if(event.key==='Escape')closeAllCal()"/>
       <button class="cap-close" onclick="closeAllCal()">✕</button>
     </div>
     <div class="cap-body">
-      <div class="cap-row">
+      <div class="cap-row" id="cap-time-row">
         <span class="cap-row-icon">🕐</span>
         <div class="cap-time-wrap">
-          <input class="cap-time" type="time" id="cap-start" value="${start||'09:00'}" oninput="document.getElementById('cap-dur-lbl').textContent=calcDur(this.value,document.getElementById('cap-end').value)"/>
-          <span style="color:var(--subtle);font-size:13px">→</span>
-          <input class="cap-time" type="time" id="cap-end" value="${end||'10:00'}" oninput="document.getElementById('cap-dur-lbl').textContent=calcDur(document.getElementById('cap-start').value,this.value)"/>
-          <span class="cap-dur" id="cap-dur-lbl">${dur}</span>
+          <input class="cap-time" type="time" id="cap-start" value="${start||'09:00'}" oninput="document.getElementById('cap-dur').textContent=calcDur(this.value,document.getElementById('cap-end').value)"/>
+          <span style="color:var(--subtle)">→</span>
+          <input class="cap-time" type="time" id="cap-end" value="${end||'10:00'}" oninput="document.getElementById('cap-dur').textContent=calcDur(document.getElementById('cap-start').value,this.value)"/>
+          <span class="cap-dur" id="cap-dur">${dur}</span>
         </div>
       </div>
       <div class="cap-row">
         <span class="cap-row-icon">📅</span>
         <input class="cap-date-inp" type="date" id="cap-date" value="${dk}"/>
-        <label class="cap-allday-lbl"><input type="checkbox" id="cap-allday" ${evt?.allDay?'checked':''} onchange="capToggleAllDay(this.checked)"/> All-day</label>
+        <label class="cap-allday-lbl"><input type="checkbox" id="cap-allday" ${evt?.allDay?'checked':''} onchange="if(this.checked)document.getElementById('cap-time-row').style.display='none';else document.getElementById('cap-time-row').style.display='';"/> All-day</label>
       </div>
       <div class="cap-row">
         <span class="cap-row-icon">🔁</span>
-        <button class="cap-repeat-btn" id="cap-repeat-btn" onclick="showRepeatDd(event)">
-          <span class="cap-repeat-val" id="cap-repeat-lbl">${repeatLabel}</span>
-          <span style="color:var(--subtle);font-size:11px;margin-left:4px">▾</span>
+        <button class="cap-repeat-btn" onclick="showRepeatDd(event)">
+          <span class="cap-repeat-val" id="cap-rl">${rl}</span>
+          <span style="color:var(--subtle);font-size:10px;margin-left:4px">▾</span>
         </button>
       </div>
       <div class="cap-row">
         <span class="cap-row-icon">🎨</span>
-        <div class="cap-colors" id="cap-colors">${colorDotsHtml}</div>
+        <div class="cap-colors" id="cap-colors">${cdots}</div>
       </div>
       <div class="cap-sep"></div>
-      <div class="cap-row" style="align-items:flex-start">
-        <span class="cap-row-icon" style="margin-top:3px">📍</span>
-        <input class="cap-field-inp" id="cap-location" placeholder="Location" value="${esc(evt?.location||'')}"/>
+      <div class="cap-row">
+        <span class="cap-row-icon">📍</span>
+        <input class="cap-field-inp" id="cap-loc" placeholder="Location" value="${esc(evt?.location||'')}"/>
       </div>
       <div class="cap-row" style="align-items:flex-start">
-        <span class="cap-row-icon" style="margin-top:3px">📝</span>
+        <span class="cap-row-icon" style="margin-top:2px">📝</span>
         <textarea class="cap-field-ta" id="cap-desc" placeholder="Description" rows="2">${esc(evt?.desc||'')}</textarea>
       </div>
       <div class="cap-row">
@@ -1515,180 +1692,161 @@ function buildEvtPop(e,dk,evt,start,end,isEdit){
       </div>
     </div>
     <div class="cap-footer">
-      ${isEdit?`<button class="cap-del-btn" onclick="calDelEvt('${dk}',${_popEvtIdx})">🗑 Delete</button>`:'<div></div>'}
+      ${isEdit?`<button class="cap-del-btn" onclick="capDelete()">🗑 Delete</button>`:'<div></div>'}
       <div style="display:flex;gap:8px">
         <button class="cap-cancel" onclick="closeAllCal()">Cancel</button>
         <button class="cap-save-btn" onclick="capSave()">Save</button>
       </div>
     </div>`;
-  // store selected color
   pop.dataset.color=evt?.color||'blue';
   document.body.appendChild(pop);
-  setTimeout(()=>document.getElementById('cap-title-inp').focus(),30);
+  setTimeout(()=>document.getElementById('cap-title').focus(),30);
 }
-
-function capSetColor(colorId,el){
+function capSetColor(id,el){
   document.querySelectorAll('#cap-colors .cap-color-dot').forEach(d=>d.classList.remove('sel'));
-  el.classList.add('sel');
-  document.getElementById('cap-pop').dataset.color=colorId;
+  el.classList.add('sel');document.getElementById('cap-pop').dataset.color=id;
 }
-
-function capToggleAllDay(on){
-  document.getElementById('cap-start').closest('.cap-row').style.display=on?'none':'';
-}
-
 function capSave(){
   const pop=document.getElementById('cap-pop');if(!pop)return;
-  const val=document.getElementById('cap-title-inp').value.trim();if(!val){closeAllCal();return;}
+  const val=document.getElementById('cap-title').value.trim();if(!val){closeAllCal();return;}
   const dk=document.getElementById('cap-date').value||pop.dataset.dk;
   const allDay=document.getElementById('cap-allday').checked;
   const start=allDay?null:document.getElementById('cap-start').value;
   const end=allDay?null:document.getElementById('cap-end').value;
-  const desc=document.getElementById('cap-desc').value.trim();
-  const location=document.getElementById('cap-location').value.trim();
-  const remind=document.getElementById('cap-remind').value;
-  const color=pop.dataset.color||'blue';
-  const newEvt={title:val,start,end,desc,location,remind,color,allDay,
-    repeat:_popRepeat,repeatEvery:_popRepeatEvery,repeatDays:_popRepeatDays,
-    repeatEnds:_popRepeatEnds,repeatEndDate:_popRepeatEndDate,repeatAfter:_popRepeatAfter};
-  const isEdit=pop.dataset.isEdit==='1';
+  const newEvt={title:val,start,end,allDay,
+    location:document.getElementById('cap-loc').value.trim(),
+    desc:document.getElementById('cap-desc').value.trim(),
+    remind:document.getElementById('cap-remind').value,
+    color:pop.dataset.color||'blue',
+    repeat:_pRepeat,repeatEvery:_pRepeatEvery,repeatDays:_pRepeatDays,
+    repeatEnds:_pRepeatEnds,repeatEndDate:_pRepeatEndDate,repeatAfter:_pRepeatAfter};
+  const isEdit=pop.dataset.edit==='1';
   const origDk=pop.dataset.dk;
-  if(isEdit&&_popEvtIdx!==null){
-    // handle date change
-    if(dk!==origDk){
-      calEvts[origDk].splice(_popEvtIdx,1);
-      if(!calEvts[dk])calEvts[dk]=[];
-      calEvts[dk].push(newEvt);
+  const doSave=(scope)=>{
+    if(isEdit&&_pIdx!==null){
+      if(dk!==origDk){calEvts[origDk].splice(_pIdx,1);if(!calEvts[dk])calEvts[dk]=[];calEvts[dk].push(newEvt);}
+      else calEvts[origDk][_pIdx]=newEvt;
     } else {
-      calEvts[origDk][_popEvtIdx]=newEvt;
+      if(!calEvts[dk])calEvts[dk]=[];calEvts[dk].push(newEvt);
+      pushToNotion(val,dk,start,end);
     }
-  } else {
-    if(!calEvts[dk])calEvts[dk]=[];
-    calEvts[dk].push(newEvt);
-    pushToNotion(val,dk,start,end);
-  }
-  save();closeAllCal();renderCal();
+    save();closeAllCal();renderCal();
+  };
+  const isRecur=isEdit&&_pIdx!==null&&(calEvts[origDk]?.[_pIdx]?.repeat||'none')!=='none';
+  if(isRecur){
+    const oldEvt=calEvts[origDk][_pIdx];
+    showRecurDialog(val,{start:oldEvt.start,end:oldEvt.end},{start,end},doSave);
+  } else doSave('this');
 }
-
+function capDelete(){
+  if(_pDk&&_pIdx!==null){
+    const evt=calEvts[_pDk][_pIdx];
+    const isRecur=(evt?.repeat||'none')!=='none';
+    if(isRecur){
+      showRecurDialog(evt.title||'',{start:evt.start,end:evt.end},{start:evt.start,end:evt.end},(scope)=>{
+        if(scope==='all'){calEvts[_pDk].splice(_pIdx,1);}
+        else if(scope==='this'){calEvts[_pDk].splice(_pIdx,1);}
+        else{calEvts[_pDk].splice(_pIdx,1);}
+        save();closeAllCal();renderCal();
+      });
+    } else {
+      calEvts[_pDk].splice(_pIdx,1);save();closeAllCal();renderCal();
+    }
+  }
+}
 function calDelEvt(dk,idx){calEvts[dk].splice(idx,1);save();closeAllCal();renderCal();}
 
-// ── REPEAT DROPDOWN ──
-function repeatDisplayLabel(r,every,days,dk){
+// ── REPEAT ──
+function repeatLabel(r,every,days,dk){
+  const d=new Date((dk||selDate)+'T12:00:00');
+  const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+  const dom=d.getDate();const mon=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   if(!r||r==='none')return'Does not repeat';
   if(r==='daily')return'Every day';
   if(r==='weekday')return'Every weekday (Mon – Fri)';
-  if(r==='weekly'){const d=new Date(dk+'T12:00:00');return'Every week on '+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];}
-  if(r==='biweekly'){const d=new Date(dk+'T12:00:00');return'Every 2 weeks on '+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];}
-  if(r==='monthly'){const d=new Date(dk+'T12:00:00');return'Every month on the '+d.getDate()+'th';}
-  if(r==='yearly'){const d=new Date(dk+'T12:00:00');return'Every year on '+d.toLocaleDateString('en-US',{month:'short',day:'numeric'});}
-  if(r==='custom')return'Custom…';
+  if(r==='weekly')return'Every week on '+dow;
+  if(r==='biweekly')return'Every 2 weeks on '+dow;
+  if(r==='monthly')return'Every month on the '+dom+'th';
+  if(r==='yearly')return'Every year on '+mon;
+  if(r==='custom')return'Custom';
   return'Repeats';
 }
-
 function showRepeatDd(e){
-  closeAllCal(true); // close only context/dd, keep main pop
+  document.getElementById('repeat-dd')?.remove();
   const dk=document.getElementById('cap-pop')?.dataset?.dk||selDate;
   const d=new Date(dk+'T12:00:00');
   const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
-  const dom=d.getDate();
-  const mon=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const dom=d.getDate();const mon=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   const items=[
-    {r:'none',   label:'Does not repeat',    dim:''},
-    {r:'daily',  label:'Every day',           dim:''},
-    {r:'weekday',label:'Every weekday',       dim:'Mon – Fri'},
-    {r:'weekly', label:'Every week',          dim:'on '+dow},
-    {r:'biweekly',label:'Every 2 weeks',      dim:'on '+dow},
-    {r:'monthly',label:'Every month',         dim:'on the '+dom+'th'},
-    {r:'yearly', label:'Every year',          dim:'on '+mon},
-    {r:'custom', label:'Custom…',             dim:''},
+    {r:'none',label:'Does not repeat',dim:''},
+    {r:'daily',label:'Every day',dim:''},
+    {r:'weekday',label:'Every weekday',dim:'Mon – Fri'},
+    {r:'weekly',label:'Every week',dim:'on '+dow},
+    {r:'biweekly',label:'Every 2 weeks',dim:'on '+dow},
+    {r:'monthly',label:'Every month',dim:'on the '+dom+'th'},
+    {r:'yearly',label:'Every year',dim:'on '+mon},
+    {r:'custom',label:'Custom…',dim:''},
   ];
-  const dd=document.createElement('div');
-  dd.className='repeat-dd';dd.id='repeat-dd';
-  const btn=document.getElementById('cap-repeat-btn');
-  const rect=btn.getBoundingClientRect();
+  const dd=document.createElement('div');dd.className='repeat-dd';dd.id='repeat-dd';
+  const btn=e.currentTarget||e.target;const rect=btn.getBoundingClientRect();
   dd.style.cssText=`left:${rect.left}px;top:${rect.bottom+4}px`;
   items.forEach(it=>{
     const div=document.createElement('div');
-    div.className='repeat-dd-item'+(it.r===_popRepeat?' active':'');
+    div.className='repeat-dd-item'+(it.r===_pRepeat?' active':'');
     div.innerHTML=`${it.label}${it.dim?`<span class="dim">${it.dim}</span>`:''}`;
     div.onclick=()=>{
-      if(it.r==='custom'){
-        document.getElementById('repeat-dd')?.remove();
-        showRepeatCustom(dk);
-        return;
-      }
-      _popRepeat=it.r;
-      document.getElementById('cap-repeat-lbl').textContent=repeatDisplayLabel(it.r,1,[],dk);
-      document.getElementById('repeat-dd')?.remove();
+      if(it.r==='custom'){dd.remove();showRepeatCustom(dk);return;}
+      _pRepeat=it.r;
+      document.getElementById('cap-rl').textContent=repeatLabel(it.r,1,[],dk);
+      dd.remove();
     };
     dd.appendChild(div);
   });
-  document.body.appendChild(dd);
-  e.stopPropagation();
+  document.body.appendChild(dd);e.stopPropagation();
 }
-
-// ── CUSTOM REPEAT MODAL ──
 function showRepeatCustom(dk){
   document.getElementById('repeat-modal-overlay')?.remove();
-  const DAYS_LABELS=['Mo','Tu','We','Th','Fr','Sa','Su'];
-  const DAYS_VALS=[1,2,3,4,5,6,0];
+  const DLBLS=['Mo','Tu','We','Th','Fr','Sa','Su'];const DVALS=[1,2,3,4,5,6,0];
   const ov=document.createElement('div');ov.className='repeat-modal-overlay';ov.id='repeat-modal-overlay';
   ov.innerHTML=`
     <div class="repeat-modal">
       <h3>Repeat</h3>
-      <div class="rm-row">
-        Every <input class="rm-inp" type="number" min="1" max="99" value="${_popRepeatEvery}" id="rm-every"/>
+      <div class="rm-row">Every <input class="rm-inp" type="number" min="1" max="99" value="${_pRepeatEvery}" id="rm-every"/>
         <select class="rm-sel" id="rm-freq">
-          <option value="day">day</option>
-          <option value="week" selected>week</option>
-          <option value="month">month</option>
-          <option value="year">year</option>
+          <option value="day">day</option><option value="week" selected>week</option>
+          <option value="month">month</option><option value="year">year</option>
         </select>
       </div>
-      <div class="rm-row" id="rm-days-row">
-        On <div class="rm-days" style="margin-left:8px">
-          ${DAYS_LABELS.map((l,i)=>`<div class="rm-day ${_popRepeatDays.includes(DAYS_VALS[i])?'on':''}" data-val="${DAYS_VALS[i]}" onclick="this.classList.toggle('on')">${l}</div>`).join('')}
+      <div class="rm-row" id="rm-days-row">On
+        <div class="rm-days" style="margin-left:8px">
+          ${DLBLS.map((l,i)=>`<div class="rm-day ${_pRepeatDays.includes(DVALS[i])?'on':''}" data-val="${DVALS[i]}" onclick="this.classList.toggle('on')">${l}</div>`).join('')}
         </div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Ends</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Ends</div>
       <div class="rm-ends">
-        <label class="rm-end-opt ${_popRepeatEnds==='never'?'active':''}">
-          <input type="radio" name="rmends" value="never" ${_popRepeatEnds==='never'?'checked':''} onchange="document.querySelectorAll('.rm-end-opt').forEach((el,i)=>el.classList.toggle('active',['never','on','after'][i]===this.value))"/> Never
-        </label>
-        <label class="rm-end-opt ${_popRepeatEnds==='on'?'active':''}">
-          <input type="radio" name="rmends" value="on" ${_popRepeatEnds==='on'?'checked':''} onchange="document.querySelectorAll('.rm-end-opt').forEach((el,i)=>el.classList.toggle('active',['never','on','after'][i]===this.value))"/> On
-          <input class="rm-end-date" type="date" id="rm-end-date" value="${_popRepeatEndDate||''}"/>
-        </label>
-        <label class="rm-end-opt ${_popRepeatEnds==='after'?'active':''}">
-          <input type="radio" name="rmends" value="after" ${_popRepeatEnds==='after'?'checked':''} onchange="document.querySelectorAll('.rm-end-opt').forEach((el,i)=>el.classList.toggle('active',['never','on','after'][i]===this.value))"/> After
-          <input class="rm-end-n" type="number" min="1" max="999" value="${_popRepeatAfter||4}" id="rm-after" style="width:54px"/> times
-        </label>
+        <label class="rm-end-opt ${_pRepeatEnds==='never'?'active':''}"><input type="radio" name="rme" value="never" ${_pRepeatEnds==='never'?'checked':''} onchange="document.querySelectorAll('.rm-end-opt').forEach((el,i)=>el.classList.toggle('active',['never','on','after'][i]===this.value))"/> Never</label>
+        <label class="rm-end-opt ${_pRepeatEnds==='on'?'active':''}"><input type="radio" name="rme" value="on" ${_pRepeatEnds==='on'?'checked':''} onchange="document.querySelectorAll('.rm-end-opt').forEach((el,i)=>el.classList.toggle('active',['never','on','after'][i]===this.value))"/> On <input class="rm-end-date" type="date" id="rm-end-date" value="${_pRepeatEndDate}"/></label>
+        <label class="rm-end-opt ${_pRepeatEnds==='after'?'active':''}"><input type="radio" name="rme" value="after" ${_pRepeatEnds==='after'?'checked':''} onchange="document.querySelectorAll('.rm-end-opt').forEach((el,i)=>el.classList.toggle('active',['never','on','after'][i]===this.value))"/> After <input class="rm-end-n" type="number" min="1" max="999" value="${_pRepeatAfter}" id="rm-after" style="width:50px"/> times</label>
       </div>
       <div class="rm-footer">
         <button class="rm-cancel" onclick="document.getElementById('repeat-modal-overlay').remove()">Cancel</button>
         <button class="rm-done" onclick="rmSave('${dk}')">Done</button>
       </div>
     </div>`;
-  // toggle days row visibility
   document.body.appendChild(ov);
-  document.getElementById('rm-freq').addEventListener('change',function(){
-    document.getElementById('rm-days-row').style.display=this.value==='week'?'':'none';
-  });
+  document.getElementById('rm-freq').addEventListener('change',function(){document.getElementById('rm-days-row').style.display=this.value==='week'?'':'none';});
 }
-
 function rmSave(dk){
   const freq=document.getElementById('rm-freq').value;
-  _popRepeatEvery=parseInt(document.getElementById('rm-every').value)||1;
-  _popRepeatDays=[...document.querySelectorAll('.rm-day.on')].map(el=>parseInt(el.dataset.val));
-  const endsVal=document.querySelector('input[name="rmends"]:checked')?.value||'never';
-  _popRepeatEnds=endsVal;
-  _popRepeatEndDate=document.getElementById('rm-end-date')?.value||'';
-  _popRepeatAfter=parseInt(document.getElementById('rm-after')?.value)||4;
-  // map freq to repeat type
-  const freqMap={day:'daily',week:'custom',month:'monthly',year:'yearly'};
-  _popRepeat=freqMap[freq]||'custom';
-  if(freq==='week'&&_popRepeatEvery===1&&_popRepeatDays.length===0){_popRepeat='weekly';}
-  document.getElementById('cap-repeat-lbl').textContent=repeatDisplayLabel(_popRepeat,_popRepeatEvery,_popRepeatDays,dk);
+  _pRepeatEvery=parseInt(document.getElementById('rm-every').value)||1;
+  _pRepeatDays=[...document.querySelectorAll('.rm-day.on')].map(el=>parseInt(el.dataset.val));
+  _pRepeatEnds=document.querySelector('input[name="rme"]:checked')?.value||'never';
+  _pRepeatEndDate=document.getElementById('rm-end-date')?.value||'';
+  _pRepeatAfter=parseInt(document.getElementById('rm-after')?.value)||4;
+  const fm={day:'daily',week:'custom',month:'monthly',year:'yearly'};
+  _pRepeat=fm[freq]||'custom';
+  if(freq==='week'&&_pRepeatEvery===1&&_pRepeatDays.length===0)_pRepeat='weekly';
+  document.getElementById('cap-rl').textContent=repeatLabel(_pRepeat,_pRepeatEvery,_pRepeatDays,dk);
   document.getElementById('repeat-modal-overlay').remove();
 }
 
@@ -1697,31 +1855,28 @@ function showCtxMenu(e,dk,idx){
   closeAllCal();
   const evt=calEvts[dk]?.[idx];if(!evt)return;
   spawnCtx(e,[
-    {icon:'✏️',label:'Edit event',action:()=>showEvtPop(e,dk,idx,false)},
-    {icon:'📋',label:'Duplicate',action:()=>{
-      const cp={...evt,title:(evt.title||'')+' (copy)'};
-      if(!calEvts[dk])calEvts[dk]=[];calEvts[dk].push(cp);save();renderCal();
-    }},
+    {icon:'✏️',label:'Edit event',action:()=>showEvtPop(e,dk,idx)},
+    {icon:'📋',label:'Duplicate',action:()=>{const cp={...evt,title:(evt.title||'')+' (copy)'};if(!calEvts[dk])calEvts[dk]=[];calEvts[dk].push(cp);save();renderCal();}},
     {sep:true},
-    {icon:'🗑',label:'Delete event',danger:true,action:()=>{calEvts[dk].splice(idx,1);save();renderCal();}}
+    {icon:'🗑',label:'Delete event',danger:true,action:()=>{
+      const isRecur=(evt.repeat||'none')!=='none';
+      if(isRecur)showRecurDialog(evt.title||'',{start:evt.start,end:evt.end},{start:evt.start,end:evt.end},(scope)=>{calEvts[dk].splice(idx,1);save();renderCal();});
+      else{calEvts[dk].splice(idx,1);save();renderCal();}
+    }}
   ]);
 }
 function showDayCtx(e,dk){
   closeAllCal();
   spawnCtx(e,[
     {icon:'➕',label:'New event',action:()=>showAddPop(e,dk,'09:00','10:00')},
-    {icon:'📝',label:'New note',action:()=>{
-      const n2={id:Date.now(),title:'',body:'',tags:[],topic:'',quick:true,
-        date:new Date(dk+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),dateKey:dk};
-      notes.unshift(n2);save();updateCounts();renderTopics();show('notes');
-    }},
+    {icon:'📝',label:'New note',action:()=>{const n2={id:Date.now(),title:'',body:'',tags:[],topic:'',quick:true,date:new Date(dk+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),dateKey:dk};notes.unshift(n2);save();updateCounts();renderTopics();show('notes');}},
   ]);
 }
 function showNoteCtx(e,nid){
   closeAllCal();
   spawnCtx(e,[
     {icon:'📝',label:'Open note',action:()=>show('notes')},
-    {icon:'🗑',label:'Delete note',danger:true,action:()=>{notes=notes.filter(n=>n.id!==nid);save();renderNotes();renderTopics();updateCounts();renderCal();}}
+    {icon:'🗑',label:'Delete note',danger:true,action:()=>{notes=notes.filter(n=>n.id!==nid);save();renderNotes();renderTopics();updateCounts();renderCal();}},
   ]);
 }
 function spawnCtx(e,items){
@@ -1738,17 +1893,20 @@ function spawnCtx(e,items){
   });
   document.body.appendChild(m);
 }
-
-function closeAllCal(keepMain){
-  if(!keepMain)['cap-pop'].forEach(id=>{const el=document.getElementById(id);if(el)el.remove();});
-  ['cal-ctx','repeat-dd'].forEach(id=>{const el=document.getElementById(id);if(el)el.remove();});
+function closeAllCal(keepPop){
+  if(!keepPop){['cap-pop'].forEach(id=>{document.getElementById(id)?.remove();});}
+  ['cal-ctx','repeat-dd'].forEach(id=>{document.getElementById(id)?.remove();});
 }
 document.addEventListener('click',e=>{
-  if(!e.target.closest('.cal-ctx-menu')&&!e.target.closest('.cal-add-pop')&&!e.target.closest('.repeat-dd')&&!e.target.closest('.repeat-modal'))closeAllCal();
+  if(!e.target.closest('.cal-ctx-menu')&&!e.target.closest('.cal-add-pop')&&!e.target.closest('.repeat-dd')&&!e.target.closest('.repeat-modal')&&!e.target.closest('.recur-dialog'))closeAllCal();
 });
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){document.getElementById('repeat-modal-overlay')?.remove();closeAllCal();}
+  if(e.key==='Escape'){document.getElementById('repeat-modal-overlay')?.remove();document.getElementById('recur-dialog-overlay')?.remove();closeAllCal();}
+  // Ctrl+scroll zoom
 });
+document.addEventListener('wheel',e=>{
+  if(e.ctrlKey){e.preventDefault();if(e.deltaY<0)calZoomIn();else calZoomOut();}
+},{passive:false});
 
 // legacy compat
 function calAdd(){capSave();}
