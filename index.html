@@ -238,15 +238,17 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 @keyframes fi{from{opacity:0}to{opacity:1}}
 
 /* WEEK GRID */
-.cal-week-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:8px;transition:opacity .2s}
-.cal-week-head{display:flex;flex-shrink:0;background:#0d0d0b;border-bottom:1px solid var(--border);box-sizing:border-box}
+.cal-week-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:8px;transition:opacity .2s;min-width:0}
+.cal-week-head{display:flex;flex-shrink:0;background:#0d0d0b;border-bottom:1px solid var(--border);box-sizing:border-box;position:sticky;top:0;z-index:20}
 .cal-week-gutter{width:58px;flex-shrink:0;padding:6px 0 4px;display:flex;align-items:flex-end;justify-content:center;border-right:1px solid var(--border-light)}
 .cal-week-gutter-tz{font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;text-align:center}
-.cal-week-head-cell{flex:1;padding:8px 6px 6px;border:none;user-select:none;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;box-sizing:border-box}
+.cal-week-head-cell{flex:1;padding:8px 6px 6px;border:none;user-select:none;min-width:80px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;box-sizing:border-box}
 .cal-wdow{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;width:100%}
 .cal-wdn{font-size:20px;font-weight:300;color:var(--muted);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin:0 auto}
 .cal-wdn.is-today{background:#c8303a;color:#fff;font-weight:700}
-.cal-week-scroll{flex:1;overflow-y:auto;overflow-x:auto;display:flex;scrollbar-width:thin;scrollbar-color:var(--border) transparent;scrollbar-gutter:stable;min-width:0}
+.cal-week-scroll{flex:1;overflow-y:auto;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;min-width:0}
+.cal-week-inner{display:flex;flex-direction:column;min-width:calc(58px + 7 * 80px)}
+.cal-week-body-row{display:flex;flex:1}
 .cal-week-scroll::-webkit-scrollbar{width:5px}
 .cal-week-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .cal-gutter-col{width:58px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06);box-sizing:border-box}
@@ -1308,8 +1310,8 @@ function renderWeek(){
     if(q===0){
       lbl=h===0?'':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM';
       cls='gl-hour';
-    } else if(q===2 && hourPx>=36){
-      lbl=':30';
+    } else if(false){
+      // :30 labels removed
       cls='gl-half';
     } else if((q===1||q===3) && hourPx>=72){
       lbl=q===1?':15':':45';
@@ -1407,12 +1409,14 @@ function renderWeek(){
   const body=document.getElementById('cal-body');
   body.innerHTML=`
     <div class="cal-week-wrap" id="cal-week-wrap">
-      <div class="cal-week-head">${headHtml}</div>
-      <div class="cal-week-scroll" id="cal-wscroll"
-        onmouseleave=""
-      >
-        <div class="cal-gutter-col">${gutterHtml}</div>
-        ${colsHtml}
+      <div class="cal-week-scroll" id="cal-wscroll" onmouseleave="">
+        <div class="cal-week-inner">
+          <div class="cal-week-head">${headHtml}</div>
+          <div class="cal-week-body-row">
+            <div class="cal-gutter-col">${gutterHtml}</div>
+            ${colsHtml}
+          </div>
+        </div>
       </div>
     </div>`;
 
@@ -1855,11 +1859,7 @@ function buildPop(e,dk,evt,start,end,isEdit){
   if(!isEdit)wireCapDraft();
 }
 function syncCalHeaderScrollbar(){
-  const w=document.getElementById('cal-wscroll');
-  const head=document.querySelector('.cal-week-head');
-  if(!w||!head)return;
-  const sw=Math.max(0,w.offsetWidth-w.clientWidth);
-  head.style.paddingRight=sw+'px';
+  // head scrolls with body now — no sync needed
 }
 function removeCapDraft(){
   document.getElementById('cap-draft-evt')?.remove();
