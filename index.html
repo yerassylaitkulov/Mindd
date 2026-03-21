@@ -214,6 +214,13 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .notion-sync-btn.syncing{border-color:var(--blue);color:var(--blue);animation:pulse-sync 1s infinite}
 .notion-sync-btn.ok{border-color:var(--green);color:var(--green)}
 .notion-sync-btn.err{border-color:var(--red);color:var(--red)}
+
+.gcal-btn{display:flex;align-items:center;gap:6px;padding:5px 12px;font-size:12px;border:1px solid var(--border);background:none;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .15s;white-space:nowrap}
+.gcal-btn:hover{border-color:#4285f4;color:#4285f4}
+.gcal-btn.connected{border-color:var(--green);color:var(--green)}
+.gcal-btn.syncing{border-color:#4285f4;color:#4285f4;animation:pulse-sync 1s infinite}
+.gcal-btn.err{border-color:var(--red);color:var(--red)}
+
 @keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:.5}}
 .cal-vbtn{padding:4px 12px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s}
 .cal-vbtn.active{background:var(--surface);color:var(--ink)}
@@ -338,6 +345,7 @@ canvas#gc{width:100%;height:100%;display:block}
 .sfb{font-family:'Geist Mono',monospace;font-size:11px;color:var(--green);margin-top:6px;min-height:14px}
 .data-box{width:100%;min-height:70px;padding:9px;font-family:'Geist Mono',monospace;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);color:var(--ink);outline:none;resize:vertical}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -485,7 +493,7 @@ canvas#gc{width:100%;height:100%;display:block}
             <button class="cal-nav-btn" onclick="calNav(1)"  title="Next">›</button>
           </div>
           <button class="cal-today-btn" onclick="calGoToday()">Today</button>
-          <button class="notion-sync-btn" id="notion-sync-btn" onclick="notionSync()" title="Sync with Notion">🔄 Sync Notion</button>
+          <button class="gcal-btn" id="gcal-btn" onclick="gcalConnect()" title="Sync Google Calendar">📅 Connect Google Calendar</button>
           <div class="cal-view-toggle">
             <button class="cal-vbtn active" id="cvbtn-week" onclick="setCalView('week')">Week</button>
             <button class="cal-vbtn"        id="cvbtn-month" onclick="setCalView('month')">Month</button>
@@ -1490,12 +1498,141 @@ async function pushToNotion(title, day, start, end) {
   }
 }
 
+
+// ── GOOGLE CALENDAR SYNC ──
+const GCAL_CLIENT_ID = '584971150624-3phej39s8knovu706g52ptbhp58cc46n.apps.googleusercontent.com';
+const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+let gcalToken = null;
+let gcalTokenClient = null;
+
+function gcalInit() {
+  gcalToken = localStorage.getItem('gcal_token') || null;
+  if (gcalToken) {
+    const btn = document.getElementById('gcal-btn');
+    if (btn) { btn.textContent = '🔄 Sync Google Cal'; btn.className = 'gcal-btn connected'; }
+  }
+}
+
+function gcalConnect() {
+  const btn = document.getElementById('gcal-btn');
+  if (gcalToken) {
+    // Already connected — just sync
+    gcalSync();
+    return;
+  }
+  // Initialize token client
+  btn.className = 'gcal-btn syncing';
+  btn.textContent = '⏳ Connecting…';
+  try {
+    gcalTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GCAL_CLIENT_ID,
+      scope: GCAL_SCOPE,
+      callback: (response) => {
+        if (response.error) {
+          btn.className = 'gcal-btn err';
+          btn.textContent = '✕ Auth failed';
+          setTimeout(() => { btn.className='gcal-btn'; btn.textContent='📅 Connect Google Calendar'; }, 3000);
+          return;
+        }
+        gcalToken = response.access_token;
+        localStorage.setItem('gcal_token', gcalToken);
+        btn.className = 'gcal-btn connected';
+        btn.textContent = '🔄 Sync Google Cal';
+        gcalSync();
+      }
+    });
+    gcalTokenClient.requestAccessToken();
+  } catch(e) {
+    btn.className = 'gcal-btn err';
+    btn.textContent = '✕ Error: ' + e.message;
+    setTimeout(() => { btn.className='gcal-btn'; btn.textContent='📅 Connect Google Calendar'; }, 4000);
+  }
+}
+
+async function gcalSync() {
+  const btn = document.getElementById('gcal-btn');
+  btn.className = 'gcal-btn syncing';
+  btn.textContent = '⏳ Syncing…';
+
+  try {
+    // Fetch events from primary calendar — next 60 days + past 30 days
+    const now = new Date();
+    const timeMin = new Date(now); timeMin.setDate(now.getDate() - 30);
+    const timeMax = new Date(now); timeMax.setDate(now.getDate() + 60);
+
+    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
+      `timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}` +
+      `&singleEvents=true&orderBy=startTime&maxResults=250`;
+
+    const resp = await fetch(url, {
+      headers: { 'Authorization': 'Bearer ' + gcalToken }
+    });
+
+    if (resp.status === 401) {
+      // Token expired — re-auth
+      gcalToken = null;
+      localStorage.removeItem('gcal_token');
+      btn.className = 'gcal-btn';
+      btn.textContent = '📅 Connect Google Calendar';
+      gcalConnect();
+      return;
+    }
+
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+    const data = await resp.json();
+    const items = data.items || [];
+    let added = 0;
+
+    items.forEach(evt => {
+      if (!evt.summary) return;
+      // Get day key
+      const startRaw = evt.start?.dateTime || evt.start?.date;
+      const endRaw   = evt.end?.dateTime   || evt.end?.date;
+      if (!startRaw) return;
+
+      const dayKey = startRaw.split('T')[0];
+      const startTime = startRaw.includes('T') ? startRaw.split('T')[1].slice(0,5) : null;
+      const endTime   = endRaw && endRaw.includes('T') ? endRaw.split('T')[1].slice(0,5) : null;
+
+      if (!calEvts[dayKey]) calEvts[dayKey] = [];
+
+      // Skip if already synced by gcal id
+      const exists = calEvts[dayKey].some(e => e.gcalId === evt.id);
+      if (!exists) {
+        calEvts[dayKey].push({
+          title: evt.summary,
+          start: startTime,
+          end:   endTime,
+          gcalId: evt.id,
+          fromGcal: true,
+          color: evt.colorId || null
+        });
+        added++;
+      }
+    });
+
+    save();
+    renderCal();
+    btn.className = 'gcal-btn connected';
+    btn.textContent = `✓ ${items.length} events synced`;
+    setTimeout(() => { btn.className='gcal-btn connected'; btn.textContent='🔄 Sync Google Cal'; }, 3000);
+
+  } catch(err) {
+    console.error('GCal sync error:', err);
+    btn.className = 'gcal-btn err';
+    btn.textContent = '✕ Sync failed';
+    setTimeout(() => { btn.className='gcal-btn connected'; btn.textContent='🔄 Sync Google Cal'; }, 3000);
+  }
+}
+
 // ── INIT ──
 renderTagSel();
 renderTopics();
 renderNotes();
 updateCounts();
 loadCfg();
+gcalInit();
 </script>
 </body>
 </html>
