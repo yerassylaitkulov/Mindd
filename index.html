@@ -1160,7 +1160,7 @@ function evtStyle(evt){const col=getColor(evt.color||'blue');return`background:$
 
 // ── ZOOM ──
 function calZoomIn(){calSlotH=Math.min(calSlotH+8,80);calZoom=Math.round(calSlotH/32*100);document.getElementById('cal-zoom-lbl').textContent=calZoom+'%';renderCal();}
-function calZoomOut(){calSlotH=Math.max(calSlotH-8,12);calZoom=Math.round(calSlotH/32*100);document.getElementById('cal-zoom-lbl').textContent=calZoom+'%';renderCal();}
+function calZoomOut(){calSlotH=Math.max(calSlotH-8,4);calZoom=Math.round(calSlotH/32*100);document.getElementById('cal-zoom-lbl').textContent=calZoom+'%';renderCal();}
 
 // ── NAV ──
 function setCalView(v){
