@@ -582,7 +582,7 @@ canvas#gc{width:100%;height:100%;display:block}
           </div>
           <div class="cal-zoom-wrap">
             <button class="cal-zoom-btn" onclick="calZoomOut()" title="Zoom out">−</button>
-            <span class="cal-zoom-lbl" id="cal-zoom-lbl">100%</span>
+            <span class="cal-zoom-lbl" id="cal-zoom-lbl">50%</span>
             <button class="cal-zoom-btn" onclick="calZoomIn()" title="Zoom in">+</button>
             <button class="cal-zoom-btn" onclick="calZoomFit()" title="Fit full day">Fit</button>
           </div>
@@ -1131,8 +1131,8 @@ function fAns(ok){if(ok)flashScore.c++;else flashScore.w++;flashIdx++;flashFlipp
 
 // ── CALENDAR ──
 let calView='week';
-let calSlotH=32; // px per 15min slot — zoom control
-let calZoom=100; // percentage label
+let calSlotH=16; // px per 15min slot — default denser week scale
+let calZoom=50; // percentage label
 const CAL_ZOOM_BASE=32;
 const CAL_ZOOM_MIN=2;
 const CAL_ZOOM_MAX=96;
@@ -1203,7 +1203,7 @@ function calNav(dir){
   renderCal();
 }
 function calGoToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();selDate=dkey(n);renderCal();}
-function renderCal(){calView==='week'?renderWeek():renderMonth();}
+function renderCal(){_updateCalZoomLabel();calView==='week'?renderWeek():renderMonth();}
 
 // helpers
 function pad(n){return String(n).padStart(2,'0')}
