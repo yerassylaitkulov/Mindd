@@ -200,7 +200,22 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .fdone p{color:var(--muted);font-size:14px;margin-bottom:20px}
 
 /* ── CALENDAR ── */
-.cal-outer{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0}
+.cal-outer{display:flex;flex-direction:row;flex:1;overflow:hidden;min-height:0;gap:12px}
+.cal-side{width:220px;flex-shrink:0;border:1px solid var(--border);border-radius:8px;background:#0d0d0b;padding:10px}
+.cal-mini-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-mini-title{font-size:12px;font-weight:600;color:var(--ink);letter-spacing:.02em}
+.cal-mini-nav{display:flex;gap:4px}
+.cal-mini-nav button{width:22px;height:22px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:none;border-radius:50%;color:var(--muted);cursor:pointer;font-size:12px}
+.cal-mini-nav button:hover{background:var(--surface2);color:var(--ink)}
+.cal-mini-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+.cal-mini-dow div{font-size:9px;color:var(--subtle);text-align:center;padding:2px 0;font-family:'Geist Mono',monospace}
+.cal-mini-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-mini-day{height:24px;border-radius:999px;border:none;background:none;color:var(--muted);font-size:11px;cursor:pointer}
+.cal-mini-day:hover{background:rgba(255,255,255,.07);color:var(--ink)}
+.cal-mini-day.other{opacity:.35}
+.cal-mini-day.today{border:1px solid #c8303a;color:#fff}
+.cal-mini-day.sel{background:#c8303a;color:#fff;font-weight:600}
+.cal-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .cal-header{display:flex;align-items:center;gap:8px;padding:0 0 8px;flex-shrink:0;flex-wrap:wrap}
 .cal-month-label{font-size:18px;font-weight:600;color:var(--ink);letter-spacing:-.02em;min-width:150px}
 .cal-nav-grp{display:flex;gap:1px}
@@ -242,13 +257,14 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-week-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .cal-gutter-col{width:58px;flex-shrink:0}
 .cal-gutter-lbl{display:flex;align-items:flex-start;justify-content:flex-end;padding-right:8px;font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:0;user-select:none}
-.cal-day-col{flex:1;border-left:1px solid var(--border-light);position:relative;min-width:0;background:var(--bg)}
+.cal-day-col{flex:1;border-left:1px solid rgba(255,255,255,.08);position:relative;min-width:0;background:var(--bg)}
 .cal-day-col.is-today{background:#0f0e0c}
 .cal-slot{position:relative;cursor:crosshair;transition:background .06s}
 .cal-slot:hover{background:rgba(255,255,255,.05)}
-.cal-slot.hour-start{border-top:1px solid rgba(255,255,255,.07)}
-.cal-slot.half-hour{border-top:1px solid rgba(255,255,255,.03)}
-.cal-slot.quarter{border-top:1px solid rgba(255,255,255,.01)}
+.cal-slot{border-top:1px solid transparent}
+.cal-slot.hour-start{border-top:1px solid rgba(255,255,255,.09)}
+.cal-slot.half-hour{border-top:1px solid rgba(255,255,255,.04)}
+.cal-slot.quarter{border-top-color:transparent}
 /* drag ghost */
 .cal-drag-ghost{position:absolute;left:3px;right:3px;border-radius:5px;z-index:50;pointer-events:none;padding:4px 7px;font-size:11px;font-weight:500;min-height:10px;border-left:3px solid}
 /* events */
@@ -569,26 +585,41 @@ canvas#gc{width:100%;height:100%;display:block}
     <!-- CALENDAR -->
     <div class="view" id="view-calendar">
       <div class="cal-outer">
-        <div class="cal-header">
-          <div class="cal-month-label" id="cal-month-label"></div>
-          <div class="cal-nav-grp">
-            <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
-            <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+        <div class="cal-side">
+          <div class="cal-mini-head">
+            <div class="cal-mini-title" id="cal-mini-title"></div>
+            <div class="cal-mini-nav">
+              <button onclick="calMiniNav(-1)">‹</button>
+              <button onclick="calMiniNav(1)">›</button>
+            </div>
           </div>
-          <button class="cal-today-btn" onclick="calGoToday()">Today</button>
-          <div class="cal-view-toggle">
-            <button class="cal-vbtn active" id="cvbtn-week" onclick="setCalView('week')">Week</button>
-            <button class="cal-vbtn" id="cvbtn-month" onclick="setCalView('month')">Month</button>
+          <div class="cal-mini-dow">
+            <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
           </div>
-          <div class="cal-zoom-wrap">
-            <button class="cal-zoom-btn" onclick="calZoomOut()" title="Zoom out">−</button>
-            <span class="cal-zoom-lbl" id="cal-zoom-lbl">50%</span>
-            <button class="cal-zoom-btn" onclick="calZoomIn()" title="Zoom in">+</button>
-            <button class="cal-zoom-btn" onclick="calZoomFit()" title="Fit full day">Fit</button>
-          </div>
-          <button class="gcal-btn" id="gcal-btn" onclick="gcalConnect()">📅 Sync Google Cal</button>
+          <div class="cal-mini-grid" id="cal-mini-grid"></div>
         </div>
-        <div id="cal-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0"></div>
+        <div class="cal-main">
+          <div class="cal-header">
+            <div class="cal-month-label" id="cal-month-label"></div>
+            <div class="cal-nav-grp">
+              <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+              <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+            </div>
+            <button class="cal-today-btn" onclick="calGoToday()">Today</button>
+            <div class="cal-view-toggle">
+              <button class="cal-vbtn active" id="cvbtn-week" onclick="setCalView('week')">Week</button>
+              <button class="cal-vbtn" id="cvbtn-month" onclick="setCalView('month')">Month</button>
+            </div>
+            <div class="cal-zoom-wrap">
+              <button class="cal-zoom-btn" onclick="calZoomOut()" title="Zoom out">−</button>
+              <span class="cal-zoom-lbl" id="cal-zoom-lbl">50%</span>
+              <button class="cal-zoom-btn" onclick="calZoomIn()" title="Zoom in">+</button>
+              <button class="cal-zoom-btn" onclick="calZoomFit()" title="Fit full day">Fit</button>
+            </div>
+            <button class="gcal-btn" id="gcal-btn" onclick="gcalConnect()">📅 Sync Google Cal</button>
+          </div>
+          <div id="cal-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0"></div>
+        </div>
       </div>
     </div>
 
@@ -1203,7 +1234,45 @@ function calNav(dir){
   renderCal();
 }
 function calGoToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();selDate=dkey(n);renderCal();}
-function renderCal(){_updateCalZoomLabel();calView==='week'?renderWeek():renderMonth();}
+function calMiniNav(dir){
+  calMonth+=dir;
+  if(calMonth<0){calMonth=11;calYear--;}
+  if(calMonth>11){calMonth=0;calYear++;}
+  renderCal();
+}
+function renderMiniCal(){
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const title=document.getElementById('cal-mini-title');
+  const grid=document.getElementById('cal-mini-grid');
+  if(!title||!grid)return;
+  title.textContent=MONTHS[calMonth]+' '+calYear;
+  const today=dkey(new Date());
+  const fd=new Date(calYear,calMonth,1).getDay();
+  const dm=new Date(calYear,calMonth+1,0).getDate();
+  const dp=new Date(calYear,calMonth,0).getDate();
+  const cells=[];
+  const total=Math.ceil((fd+dm)/7)*7;
+  for(let i=0;i<total;i++){
+    let day,month=calMonth,year=calYear,isOther=false;
+    if(i<fd){day=dp-fd+i+1;isOther=true;month=calMonth===0?11:calMonth-1;year=calMonth===0?calYear-1:calYear;}
+    else if(i>=fd+dm){day=i-fd-dm+1;isOther=true;month=calMonth===11?0:calMonth+1;year=calMonth===11?calYear+1:calYear;}
+    else{day=i-fd+1;}
+    const dk=`${year}-${pad(month+1)}-${pad(day)}`;
+    const cls=['cal-mini-day',isOther?'other':'',dk===today?'today':'',dk===selDate?'sel':''].filter(Boolean).join(' ');
+    cells.push(`<button class="${cls}" onclick="calMiniPick('${dk}',${year},${month})">${day}</button>`);
+  }
+  grid.innerHTML=cells.join('');
+}
+function calMiniPick(dk,y,m){
+  selDate=dk;
+  calYear=y;
+  calMonth=m;
+  if(calView!=='week')calView='week';
+  document.getElementById('cvbtn-week').classList.add('active');
+  document.getElementById('cvbtn-month').classList.remove('active');
+  renderCal();
+}
+function renderCal(){_updateCalZoomLabel();renderMiniCal();calView==='week'?renderWeek():renderMonth();}
 
 // helpers
 function pad(n){return String(n).padStart(2,'0')}
