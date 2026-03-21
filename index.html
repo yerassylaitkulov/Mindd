@@ -209,6 +209,12 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-today-btn{padding:4px 12px;font-size:12px;border:1px solid var(--border);background:none;border-radius:var(--rs);cursor:pointer;color:var(--muted);transition:all .12s;font-family:'Geist',sans-serif}
 .cal-today-btn:hover{background:var(--surface);color:var(--ink)}
 .cal-view-toggle{display:flex;border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;margin-left:auto}
+.notion-sync-btn{display:flex;align-items:center;gap:6px;padding:5px 12px;font-size:12px;border:1px solid var(--border);background:none;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .15s;white-space:nowrap}
+.notion-sync-btn:hover{border-color:var(--gold-d);color:var(--gold)}
+.notion-sync-btn.syncing{border-color:var(--blue);color:var(--blue);animation:pulse-sync 1s infinite}
+.notion-sync-btn.ok{border-color:var(--green);color:var(--green)}
+.notion-sync-btn.err{border-color:var(--red);color:var(--red)}
+@keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:.5}}
 .cal-vbtn{padding:4px 12px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s}
 .cal-vbtn.active{background:var(--surface);color:var(--ink)}
 
@@ -479,6 +485,7 @@ canvas#gc{width:100%;height:100%;display:block}
             <button class="cal-nav-btn" onclick="calNav(1)"  title="Next">›</button>
           </div>
           <button class="cal-today-btn" onclick="calGoToday()">Today</button>
+          <button class="notion-sync-btn" id="notion-sync-btn" onclick="notionSync()" title="Sync with Notion">🔄 Sync Notion</button>
           <div class="cal-view-toggle">
             <button class="cal-vbtn active" id="cvbtn-week" onclick="setCalView('week')">Week</button>
             <button class="cal-vbtn"        id="cvbtn-month" onclick="setCalView('month')">Month</button>
@@ -1277,6 +1284,8 @@ function calModalAdd(){
   if(!calEvts[selDate])calEvts[selDate]=[];
   calEvts[selDate].push({title:val,start,end});
   save();inp.value='';calRenderModal();renderCal();
+  // push to Notion in background
+  pushToNotion(val, selDate, start, end);
 }
 function calAdd(){calModalAdd()}
 function calDel(dk2,i){calEvts[dk2].splice(i,1);save();calRenderModal();renderCal()}
@@ -1419,6 +1428,65 @@ function toggleSettings(){
   } else {
     show('settings');
     document.getElementById('settings-btn').classList.add('active');
+  }
+}
+
+
+// ── NOTION SYNC ──
+const NOTION_PROXY = 'https://notion-proxy.yerassylaitkulov.workers.dev';
+
+async function notionSync() {
+  const btn = document.getElementById('notion-sync-btn');
+  btn.className = 'notion-sync-btn syncing';
+  btn.textContent = '⏳ Syncing…';
+  try {
+    // Fetch events from Notion
+    const resp = await fetch(NOTION_PROXY + '/get');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const events = await resp.json();
+
+    // Merge into calEvts — only add ones not already present by Notion ID
+    let added = 0;
+    events.forEach(evt => {
+      if (!evt.day) return;
+      if (!calEvts[evt.day]) calEvts[evt.day] = [];
+      // check if already synced (by notion id)
+      const exists = calEvts[evt.day].some(e => e.notionId === evt.id);
+      if (!exists) {
+        calEvts[evt.day].push({
+          title: evt.title,
+          start: evt.start || null,
+          end:   evt.end   || null,
+          notionId: evt.id,
+          fromNotion: true
+        });
+        added++;
+      }
+    });
+
+    save();
+    renderCal();
+    btn.className = 'notion-sync-btn ok';
+    btn.textContent = '✓ Synced (' + events.length + ')';
+    setTimeout(() => { btn.className = 'notion-sync-btn'; btn.innerHTML = '🔄 Sync Notion'; }, 3000);
+  } catch(err) {
+    console.error('Notion sync error:', err);
+    btn.className = 'notion-sync-btn err';
+    btn.textContent = '✕ Sync failed';
+    setTimeout(() => { btn.className = 'notion-sync-btn'; btn.innerHTML = '🔄 Sync Notion'; }, 3000);
+  }
+}
+
+// Push a new event to Notion when added via modal
+async function pushToNotion(title, day, start, end) {
+  try {
+    await fetch(NOTION_PROXY + '/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, day, start, end })
+    });
+  } catch(e) {
+    console.warn('Could not push to Notion:', e);
   }
 }
 
