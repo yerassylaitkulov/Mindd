@@ -200,126 +200,144 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .fdone p{color:var(--muted);font-size:14px;margin-bottom:20px}
 
 /* ── CALENDAR ── */
-.cal-outer{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0}
-.cal-header{display:flex;align-items:center;gap:8px;padding:0 0 10px;flex-shrink:0}
-.cal-month-label{font-size:15px;font-weight:600;color:var(--ink);min-width:140px;letter-spacing:-.01em}
-.cal-nav-grp{display:flex;gap:2px}
-.cal-nav-btn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);transition:all .12s}
+.cal-outer{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0;background:var(--bg)}
+.cal-header{display:flex;align-items:center;gap:10px;padding:0 0 10px;flex-shrink:0}
+.cal-month-label{font-size:18px;font-weight:600;color:var(--ink);letter-spacing:-.02em;min-width:150px}
+.cal-nav-grp{display:flex;gap:1px}
+.cal-nav-btn{width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;border:1px solid var(--border);background:none;border-radius:50%;cursor:pointer;color:var(--muted);transition:all .1s;line-height:1}
 .cal-nav-btn:hover{background:var(--surface2);color:var(--ink)}
-.cal-today-btn{padding:4px 12px;font-size:12px;font-weight:500;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);transition:all .12s;font-family:'Geist',sans-serif}
-.cal-today-btn:hover{background:var(--surface2);color:var(--ink)}
-.cal-view-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
-.cal-vbtn{padding:4px 10px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s}
+.cal-today-btn{padding:3px 12px;font-size:13px;font-weight:500;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--ink);transition:all .1s;font-family:'Geist',sans-serif}
+.cal-today-btn:hover{background:var(--surface2)}
+.cal-view-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-left:auto}
+.cal-vbtn{padding:3px 12px;font-size:13px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .1s}
 .cal-vbtn.active{background:var(--surface2);color:var(--ink);font-weight:500}
-.gcal-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:12px;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s;white-space:nowrap;margin-left:auto}
+.gcal-btn{display:flex;align-items:center;gap:5px;padding:4px 12px;font-size:12px;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s;white-space:nowrap}
 .gcal-btn:hover{border-color:#4285f4;color:#4285f4}
-.gcal-btn.connected{border-color:var(--green);color:var(--green)}
-.gcal-btn.syncing{border-color:#4285f4;color:#4285f4;animation:cal-pulse 1s infinite}
+.gcal-btn.connected{border-color:#0f9d58;color:#0f9d58}
+.gcal-btn.syncing{border-color:#4285f4;color:#4285f4;animation:cpulse 1s infinite}
 .gcal-btn.err{border-color:var(--red);color:var(--red)}
-.notion-sync-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:12px;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s;white-space:nowrap}
-.notion-sync-btn:hover{border-color:var(--gold-d);color:var(--gold)}
-@keyframes cal-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.notion-sync-btn{display:none}
+@keyframes cpulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:.5}}
 
-/* WEEK GRID */
-.cal-week-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
-.cal-week-head{display:flex;flex-shrink:0;border-bottom:1px solid var(--border)}
-.cal-week-gutter{width:52px;flex-shrink:0;border-right:1px solid var(--border-light)}
-.cal-week-head-cell{flex:1;padding:8px 10px;border-right:1px solid var(--border-light);cursor:pointer;transition:background .12s}
+/* WEEK GRID — identical to Notion Calendar layout */
+.cal-week-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:8px}
+.cal-week-head{display:flex;flex-shrink:0;background:#0d0d0b;border-bottom:1px solid var(--border)}
+.cal-week-gutter{width:58px;flex-shrink:0;padding:8px 0;display:flex;align-items:flex-end;justify-content:center;border-right:1px solid var(--border-light)}
+.cal-week-gutter-tz{font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;text-align:center;line-height:1.3}
+.cal-week-head-cell{flex:1;padding:8px 10px 6px;border-right:1px solid var(--border-light);cursor:pointer;user-select:none}
 .cal-week-head-cell:last-child{border-right:none}
-.cal-week-head-cell:hover{background:var(--surface2)}
-.cal-wdow{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.cal-wdn{font-size:20px;font-weight:300;color:var(--muted);margin-top:3px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .12s}
-.cal-wdn.is-today{background:var(--gold-d);color:#fff;font-weight:600}
+.cal-wdow{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.cal-wdn-wrap{display:flex;align-items:center;gap:0}
+.cal-wdn{font-size:22px;font-weight:300;color:var(--muted);width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .1s;cursor:pointer}
+.cal-wdn:hover{background:var(--surface2)}
+.cal-wdn.is-today{background:#c8303a;color:#fff;font-weight:700}
 .cal-week-scroll{flex:1;overflow-y:auto;display:flex;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-.cal-week-scroll::-webkit-scrollbar{width:6px}
+.cal-week-scroll::-webkit-scrollbar{width:5px}
 .cal-week-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.cal-gutter-col{width:52px;flex-shrink:0}
-.cal-gutter-lbl{height:48px;display:flex;align-items:flex-start;justify-content:flex-end;padding:0 8px;font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:-6px;user-select:none}
-.cal-day-col{flex:1;border-left:1px solid var(--border-light);position:relative;min-width:0}
-.cal-day-col.is-today{background:rgba(200,135,58,.025)}
-.cal-slot{height:48px;border-bottom:1px solid rgba(255,255,255,.04);position:relative;cursor:crosshair}
-.cal-slot:hover .cal-slot-hint{opacity:1}
-.cal-slot-hint{position:absolute;inset:0;display:flex;align-items:center;padding-left:8px;font-size:11px;color:var(--subtle);opacity:0;pointer-events:none;transition:opacity .1s}
-.cal-slot.half-hour{border-bottom:1px dashed rgba(255,255,255,.03)}
+.cal-gutter-col{width:58px;flex-shrink:0;position:relative}
+.cal-gutter-lbl{height:48px;display:flex;align-items:flex-start;justify-content:flex-end;padding-right:8px;font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;padding-top:0;margin-top:-6px;user-select:none}
+.cal-day-col{flex:1;border-left:1px solid var(--border-light);position:relative;min-width:0;background:var(--bg)}
+.cal-day-col.is-today{background:#0f0e0c}
+.cal-slot{height:24px;border-bottom:1px solid rgba(255,255,255,.025);position:relative;cursor:pointer;transition:background .08s}
+.cal-slot:hover{background:rgba(255,255,255,.04)}
+.cal-slot.hour-top{border-bottom-color:rgba(255,255,255,.06)}
 
-/* drag-to-create ghost */
-.cal-drag-ghost{position:absolute;left:2px;right:2px;background:rgba(200,135,58,.35);border:1px solid var(--gold-d);border-radius:4px;z-index:50;pointer-events:none;padding:3px 6px;font-size:11px;color:var(--gold);font-weight:500}
+/* drag ghost */
+.cal-drag-ghost{position:absolute;left:2px;right:2px;background:rgba(200,135,58,.3);border:1px solid var(--gold-d);border-radius:4px;z-index:50;pointer-events:none;padding:4px 6px;font-size:11px;color:var(--gold);font-weight:500;min-height:24px}
 
-/* events */
-.cal-evt{position:absolute;left:2px;right:2px;border-radius:4px;padding:3px 7px;font-size:11px;line-height:1.45;overflow:hidden;cursor:pointer;transition:filter .1s,box-shadow .1s;z-index:10;border-left:3px solid transparent}
-.cal-evt:hover{filter:brightness(1.15);box-shadow:0 2px 8px rgba(0,0,0,.3)}
-.cal-evt.gcal{background:rgba(66,133,244,.22);border-left-color:#4285f4;color:#7ab0f5}
-.cal-evt.local{background:rgba(200,135,58,.22);border-left-color:var(--gold-d);color:var(--gold)}
-.cal-evt.note-evt{background:rgba(90,143,232,.18);border-left-color:var(--blue);color:var(--blue)}
-.cal-evt-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cal-evt-time{font-size:10px;opacity:.75;font-family:'Geist Mono',monospace;margin-top:1px}
-/* resize handle */
-.cal-evt-resize{position:absolute;bottom:0;left:0;right:0;height:6px;cursor:s-resize;background:transparent}
-.cal-evt-resize:hover{background:rgba(255,255,255,.15);border-radius:0 0 4px 4px}
+/* events — match Notion's dark rounded blocks */
+.cal-evt{position:absolute;left:3px;right:3px;border-radius:5px;padding:4px 8px;font-size:12px;line-height:1.4;overflow:hidden;cursor:pointer;transition:filter .1s;z-index:10}
+.cal-evt:hover{filter:brightness(1.12)}
+.cal-evt.gcal{background:#1e3a5f;color:#8ab4f8;border-left:3px solid #4285f4}
+.cal-evt.local{background:#2a2015;color:#e8a55a;border-left:3px solid var(--gold-d)}
+.cal-evt.note-evt{background:#0f1a2e;color:#7ab4f8;border-left:3px solid #5a8fe8}
+.cal-evt-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.cal-evt-time{font-size:10.5px;opacity:.8;margin-top:1px}
+.cal-evt-resize{position:absolute;bottom:0;left:0;right:0;height:5px;cursor:s-resize}
 
 /* now line */
-.cal-now-line{position:absolute;left:0;right:0;height:2px;background:#e85a5a;z-index:30;pointer-events:none}
-.cal-now-dot{position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#e85a5a}
+.cal-now-line{position:absolute;left:0;right:0;height:2px;background:#c8303a;z-index:30;pointer-events:none}
+.cal-now-dot{position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#c8303a}
 
 /* MONTH GRID */
-.cal-month-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
-.cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);flex-shrink:0}
-.cal-dow{padding:7px 10px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-family:'Geist',sans-serif}
+.cal-month-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:8px;background:var(--bg)}
+.cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);flex-shrink:0;background:#0d0d0b}
+.cal-dow{padding:8px 10px;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .cal-cells{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr;overflow-y:auto;flex:1}
-.cal-cell{border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light);padding:5px 6px;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:80px;position:relative;transition:background .1s}
-.cal-cell:hover{background:rgba(255,255,255,.03)}
-.cal-cell.other-month{background:rgba(0,0,0,.1)}
+.cal-cell{border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light);padding:5px 6px;display:flex;flex-direction:column;gap:2px;min-height:90px;position:relative;transition:background .1s;cursor:pointer}
+.cal-cell:hover{background:rgba(255,255,255,.02)}
+.cal-cell.other-month{background:rgba(0,0,0,.15)}
 .cal-cell.other-month .cal-dn{color:var(--subtle)}
-.cal-cell.is-today{background:rgba(200,135,58,.04)}
+.cal-cell.is-today{background:#0f0e0c}
 .cal-cell.is-sel{box-shadow:inset 0 0 0 2px var(--gold-d)}
-.cal-dn{font-size:11.5px;font-weight:500;color:var(--muted);width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0;transition:background .1s}
-.cal-cell.is-today .cal-dn{background:var(--gold-d);color:#fff;font-weight:700}
-.cal-pill{font-size:11px;padding:1px 6px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:1.6;border-left:2px solid transparent}
-.cal-pill.gcal{background:rgba(66,133,244,.18);color:#7ab0f5;border-left-color:#4285f4}
-.cal-pill.local{background:rgba(200,135,58,.18);color:var(--gold);border-left-color:var(--gold-d)}
-.cal-pill.note-evt{background:rgba(90,143,232,.15);color:var(--blue);border-left-color:var(--blue)}
-.cal-overflow{font-size:10px;color:var(--muted);padding:1px 4px;cursor:pointer;transition:color .1s}
+.cal-dn{font-size:12px;font-weight:500;color:var(--muted);width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0}
+.cal-cell.is-today .cal-dn{background:#c8303a;color:#fff;font-weight:700}
+.cal-pill{font-size:11px;padding:2px 7px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:1.5;border-left:2px solid transparent;transition:filter .1s}
+.cal-pill:hover{filter:brightness(1.15)}
+.cal-pill.gcal{background:#1e3a5f;color:#8ab4f8;border-left-color:#4285f4}
+.cal-pill.local{background:#2a2015;color:#e8a55a;border-left-color:var(--gold-d)}
+.cal-pill.note-evt{background:#0f1a2e;color:#7ab4f8;border-left-color:#5a8fe8}
+.cal-overflow{font-size:10px;color:var(--muted);padding:1px 4px;cursor:pointer}
 .cal-overflow:hover{color:var(--ink)}
 
-/* RIGHT-CLICK CONTEXT MENU */
-.cal-ctx-menu{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.4);z-index:5000;min-width:180px;padding:4px;animation:ctx-in .1s ease}
-@keyframes ctx-in{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
-.cal-ctx-item{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:13px;color:var(--ink);cursor:pointer;border-radius:5px;transition:background .1s;font-family:'Geist',sans-serif}
-.cal-ctx-item:hover{background:var(--surface2)}
-.cal-ctx-item.danger{color:var(--red)}
-.cal-ctx-item.danger:hover{background:var(--red-bg)}
-.cal-ctx-sep{height:1px;background:var(--border);margin:3px 0}
-.cal-ctx-icon{width:16px;text-align:center;font-size:13px;flex-shrink:0}
+/* EVENT CREATION POPOVER — matches Notion exactly */
+.cal-add-pop{position:fixed;background:#1e1c19;border:1px solid #3a3630;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.7);z-index:4000;width:340px;padding:0;overflow:hidden;animation:popin .12s ease}
+@keyframes popin{from{opacity:0;transform:scale(.96) translateY(-4px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.cap-head{padding:14px 16px 8px;border-bottom:1px solid #2e2b26}
+.cap-title{font-size:16px;font-weight:500;color:var(--ink);background:none;border:none;outline:none;width:100%;font-family:'Geist',sans-serif}
+.cap-title::placeholder{color:#3d3a35}
+.cap-body{padding:12px 16px}
+.cap-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:var(--muted)}
+.cap-row svg{width:15px;height:15px;flex-shrink:0;opacity:.6}
+.cap-time-wrap{display:flex;align-items:center;gap:6px;flex:1}
+.cap-time{padding:3px 8px;font-size:13px;background:#252320;border:1px solid #3a3630;border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;cursor:pointer;width:90px}
+.cap-time:focus{border-color:var(--gold-d)}
+.cap-date-inp{padding:3px 8px;font-size:13px;background:#252320;border:1px solid #3a3630;border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;cursor:pointer}
+.cap-date-inp:focus{border-color:var(--gold-d)}
+.cap-allday{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.cap-allday input{accent-color:var(--gold-d);cursor:pointer}
+.cap-sep{height:1px;background:#2e2b26;margin:4px 0}
+.cap-field{display:flex;align-items:flex-start;gap:10px;padding:6px 0;cursor:pointer;transition:background .1s;border-radius:5px;padding:5px 4px}
+.cap-field:hover{background:#252320}
+.cap-field-lbl{font-size:13px;color:#3d3a35}
+.cap-field-lbl.filled{color:var(--muted)}
+.cap-desc{width:100%;font-size:13px;background:none;border:none;outline:none;color:var(--ink);font-family:'Geist',sans-serif;resize:none;min-height:32px}
+.cap-desc::placeholder{color:#3d3a35}
+.cap-footer{padding:10px 16px;border-top:1px solid #2e2b26;display:flex;justify-content:space-between;align-items:center}
+.cap-cancel{font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;padding:5px 10px;border-radius:5px;font-family:'Geist',sans-serif}
+.cap-cancel:hover{background:#252320;color:var(--ink)}
+.cap-save{font-size:13px;font-weight:500;color:#fff;background:#4285f4;border:none;cursor:pointer;padding:6px 16px;border-radius:6px;font-family:'Geist',sans-serif;transition:background .1s}
+.cap-save:hover{background:#5a95f5}
 
-/* EVENT EDIT POPOVER */
-.cal-popover{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:4000;width:320px;padding:0;overflow:hidden;animation:ctx-in .15s ease}
-.cal-pop-head{padding:14px 16px 0;display:flex;align-items:center;justify-content:space-between}
-.cal-pop-title-inp{font-size:15px;font-weight:600;color:var(--ink);background:none;border:none;outline:none;flex:1;font-family:'Geist',sans-serif}
-.cal-pop-title-inp::placeholder{color:var(--subtle)}
-.cal-pop-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;border-radius:4px;transition:all .1s}
-.cal-pop-close:hover{background:var(--surface2);color:var(--ink)}
-.cal-pop-body{padding:8px 16px 14px}
-.cal-pop-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.cal-pop-label{font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;width:36px;flex-shrink:0}
-.cal-pop-time{padding:4px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;outline:none;color:var(--ink);font-family:'Geist Mono',monospace;width:80px;cursor:pointer}
+/* EDIT POPOVER */
+.cal-popover{position:fixed;background:#1e1c19;border:1px solid #3a3630;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.7);z-index:4000;width:340px;overflow:hidden;animation:popin .12s ease}
+.cal-pop-head{padding:14px 16px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #2e2b26}
+.cal-pop-actions{display:flex;gap:4px;margin-left:auto}
+.cal-pop-action-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--muted);border-radius:5px;font-size:14px;transition:all .1s}
+.cal-pop-action-btn:hover{background:#252320;color:var(--ink)}
+.cal-pop-title-inp{font-size:15px;font-weight:600;color:var(--ink);background:none;border:none;outline:none;flex:1;font-family:'Geist',sans-serif;min-width:0}
+.cal-pop-body{padding:10px 16px 14px}
+.cal-pop-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:var(--muted)}
+.cal-pop-label{font-size:11px;color:var(--subtle);font-family:'Geist Mono',monospace;width:40px;flex-shrink:0}
+.cal-pop-time{padding:4px 8px;font-size:12.5px;background:#252320;border:1px solid #3a3630;border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;width:88px}
 .cal-pop-time:focus{border-color:var(--gold-d)}
-.cal-pop-date{padding:4px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;cursor:pointer}
+.cal-pop-date{padding:4px 8px;font-size:12.5px;background:#252320;border:1px solid #3a3630;border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif}
 .cal-pop-date:focus{border-color:var(--gold-d)}
-.cal-pop-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-.cal-pop-del{background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif;transition:color .1s;padding:4px 8px;border-radius:4px}
+.cal-pop-footer{padding:10px 16px;border-top:1px solid #2e2b26;display:flex;justify-content:space-between;align-items:center}
+.cal-pop-del{font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Geist',sans-serif;padding:5px 8px;border-radius:4px;transition:all .1s;display:flex;align-items:center;gap:5px}
 .cal-pop-del:hover{color:var(--red);background:var(--red-bg)}
-.cal-pop-save{padding:5px 14px;font-size:12px;font-weight:500;background:var(--gold-d);color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:'Geist',sans-serif;transition:background .1s}
-.cal-pop-save:hover{background:var(--gold)}
+.cal-pop-save{font-size:13px;font-weight:500;color:#fff;background:#4285f4;border:none;cursor:pointer;padding:6px 16px;border-radius:6px;font-family:'Geist',sans-serif;transition:background .1s}
+.cal-pop-save:hover{background:#5a95f5}
 
-/* ADD EVENT POPOVER (new) */
-.cal-add-pop{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:4000;width:300px;padding:14px 16px;animation:ctx-in .15s ease}
-.cal-add-pop input{width:100%;font-size:14px;font-weight:500;color:var(--ink);background:none;border:none;outline:none;font-family:'Geist',sans-serif;margin-bottom:10px}
-.cal-add-pop input::placeholder{color:var(--subtle)}
-.cal-add-pop-times{display:flex;gap:6px;align-items:center;margin-bottom:10px;font-size:12px;color:var(--muted)}
-.cal-add-pop-times input[type=time]{padding:4px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;outline:none;color:var(--ink);font-family:'Geist Mono',monospace;width:78px}
-.cal-add-pop-times input[type=time]:focus{border-color:var(--gold-d)}
-.cal-add-pop-footer{display:flex;justify-content:flex-end;gap:6px}
+/* CONTEXT MENU */
+.cal-ctx-menu{position:fixed;background:#1e1c19;border:1px solid #3a3630;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:5000;min-width:200px;padding:4px;animation:popin .1s ease}
+.cal-ctx-item{display:flex;align-items:center;gap:9px;padding:7px 12px;font-size:13px;color:var(--ink);cursor:pointer;border-radius:5px;transition:background .1s;font-family:'Geist',sans-serif}
+.cal-ctx-item:hover{background:#252320}
+.cal-ctx-item.danger{color:#e85a5a}
+.cal-ctx-item.danger:hover{background:var(--red-bg)}
+.cal-ctx-sep{height:1px;background:#2e2b26;margin:3px 0}
+.cal-ctx-icon{width:16px;text-align:center;font-size:13px;flex-shrink:0;opacity:.8}
 
 /* ── GRAPH ── */
 .graph-wrap{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);position:relative;overflow:hidden}
@@ -1065,8 +1083,7 @@ function fAns(ok){if(ok)flashScore.c++;else flashScore.w++;flashIdx++;flashFlipp
 
 // ── CALENDAR ──
 let calView='week';
-let calDragState=null; // {dk, startSlot, endSlot, ghost}
-let editingEvt=null;   // {dk, idx}
+let calDragDk=null,calDragH=null,calDragM=null,calDragEndH=null,calDragEndM=null,calGhost=null;
 
 function setCalView(v){
   calView=v;
@@ -1094,67 +1111,77 @@ function renderWeek(){
   document.getElementById('cal-month-label').textContent=
     f.getMonth()===l.getMonth()?MONTHS[f.getMonth()]+' '+f.getFullYear():MONTHS[f.getMonth()]+' – '+MONTHS[l.getMonth()]+' '+l.getFullYear();
 
-  let headHtml=`<div class="cal-week-gutter"></div>`;
+  // header
+  let headHtml=`<div class="cal-week-gutter"><div class="cal-week-gutter-tz">GMT+5</div></div>`;
   wds.forEach(d=>{
     const dk2=dkey(d);const isT=dk2===today;
-    headHtml+=`<div class="cal-week-head-cell" onclick="selDate='${dk2}';renderCal()">
+    headHtml+=`<div class="cal-week-head-cell">
       <div class="cal-wdow">${DAYS[d.getDay()]}</div>
-      <div class="cal-wdn ${isT?'is-today':''}">${d.getDate()}</div>
+      <div class="cal-wdn-wrap"><div class="cal-wdn ${isT?'is-today':''}">${d.getDate()}</div></div>
     </div>`;
   });
 
+  // gutter (30min slots = 48 labels)
   let gutterHtml='';
   for(let h=0;h<24;h++){
-    const lbl=h===0?'':h<12?h+'AM':h===12?'12PM':(h-12)+'PM';
-    gutterHtml+=`<div class="cal-gutter-lbl">${lbl}</div>`;
+    const lbl=h===0?'':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM';
+    gutterHtml+=`<div class="cal-gutter-lbl" style="height:48px">${lbl}</div>`;
   }
 
+  // day columns — 48 half-hour slots each
   let colsHtml='';
   wds.forEach(d=>{
     const dk2=dkey(d);const isT=dk2===today;
     let slots='';
     for(let h=0;h<24;h++){
-      slots+=`<div class="cal-slot" data-dk="${dk2}" data-h="${h}"
-        onmousedown="calDragStart(event,'${dk2}',${h})"
-        onmousemove="calDragMove(event,${h})"
-      ><span class="cal-slot-hint">${h<12?h+'AM':h===12?'12PM':(h-12)+'PM'}</span></div>`;
+      // hour slot (top half)
+      slots+=`<div class="cal-slot hour-top" data-dk="${dk2}" data-h="${h}" data-m="0"
+        onmousedown="calDragStart(event,'${dk2}',${h},0)"
+        onmousemove="calDragMove(event,${h},0)"
+        onmouseup="calDragEnd(event,'${dk2}')"
+      ></div>`;
+      // half-hour slot
+      slots+=`<div class="cal-slot" data-dk="${dk2}" data-h="${h}" data-m="30"
+        onmousedown="calDragStart(event,'${dk2}',${h},30)"
+        onmousemove="calDragMove(event,${h},30)"
+        onmouseup="calDragEnd(event,'${dk2}')"
+      ></div>`;
     }
-    // events
+
+    // placed events
     let evtsHtml='';
     (calEvts[dk2]||[]).forEach((evt,i)=>{
       if(!evt.start)return;
       const[sh,sm]=evt.start.split(':').map(Number);
       const[eh,em]=evt.end?evt.end.split(':').map(Number):[sh+1,sm];
-      const top=sh*48+sm*.8;
-      const h2=Math.max(22,(eh-sh)*48+(em-sm)*.8);
+      const top=(sh*60+sm)/60*48;
+      const hpx=Math.max(22,((eh*60+em)-(sh*60+sm))/60*48);
       const cls=evt.fromGcal?'gcal':'local';
-      evtsHtml+=`<div class="cal-evt ${cls}" style="top:${top}px;height:${h2}px"
+      evtsHtml+=`<div class="cal-evt ${cls}" style="top:${top}px;height:${hpx}px"
         data-dk="${dk2}" data-idx="${i}"
         onclick="event.stopPropagation();showEvtPopover(event,'${dk2}',${i})"
         oncontextmenu="event.preventDefault();event.stopPropagation();showCtxMenu(event,'${dk2}',${i})"
       >
-        <div class="cal-evt-title">${esc(evt.title||evt)}</div>
-        <div class="cal-evt-time">${evt.start}${evt.end?' – '+evt.end:''}</div>
+        <div class="cal-evt-title">${esc(evt.title||'')}</div>
+        <div class="cal-evt-time">${fmtTime(evt.start)}${evt.end?' – '+fmtTime(evt.end):''}</div>
         <div class="cal-evt-resize" onmousedown="event.stopPropagation();calResizeStart(event,'${dk2}',${i})"></div>
       </div>`;
     });
-    // notes as events
-    notes.filter(n=>n.dateKey===dk2).forEach((n,i)=>{
-      evtsHtml+=`<div class="cal-evt note-evt" style="top:${i*24}px;height:22px"
-        data-dk="${dk2}"
+    // notes
+    notes.filter(n=>n.dateKey===dk2).forEach((n,ni)=>{
+      evtsHtml+=`<div class="cal-evt note-evt" style="top:${ni*26}px;height:24px"
         onclick="event.stopPropagation();show('notes')"
         oncontextmenu="event.preventDefault();event.stopPropagation();showNoteCtx(event,'${n.id}')"
-      >
-        <div class="cal-evt-title">${esc(n.title||'(note)')}</div>
-      </div>`;
+      ><div class="cal-evt-title">${esc(n.title||'(note)')}</div></div>`;
     });
-    colsHtml+=`<div class="cal-day-col ${isT?'is-today':''}" id="cal-col-${dk2}" onmouseup="calDragEnd(event,'${dk2}')">${slots}${evtsHtml}</div>`;
+
+    colsHtml+=`<div class="cal-day-col ${isT?'is-today':''}" id="cal-col-${dk2}">${slots}${evtsHtml}</div>`;
   });
 
   document.getElementById('cal-body').innerHTML=`
     <div class="cal-week-wrap">
       <div class="cal-week-head">${headHtml}</div>
-      <div class="cal-week-scroll" id="cal-week-scroll" onmouseup="calDragEndGlobal(event)" onmouseleave="calDragEndGlobal(event)">
+      <div class="cal-week-scroll" id="cal-wscroll" onmouseup="calDragEndGlobal(event)" onmouseleave="calDragEndGlobal(event)">
         <div class="cal-gutter-col">${gutterHtml}</div>
         ${colsHtml}
       </div>
@@ -1164,71 +1191,72 @@ function renderWeek(){
   const nowD=new Date();const nowDk=dkey(nowD);
   const col=document.getElementById('cal-col-'+nowDk);
   if(col){
-    const top=nowD.getHours()*48+nowD.getMinutes()*.8;
+    const top=(nowD.getHours()*60+nowD.getMinutes())/60*48;
     col.insertAdjacentHTML('beforeend',`<div class="cal-now-line" style="top:${top}px"><div class="cal-now-dot"></div></div>`);
   }
-  setTimeout(()=>{const sc=document.getElementById('cal-week-scroll');if(sc)sc.scrollTop=8*48-40;},50);
+  setTimeout(()=>{const sc=document.getElementById('cal-wscroll');if(sc)sc.scrollTop=8*48-24;},50);
+}
+
+function fmtTime(t){
+  if(!t)return'';const[h,m]=t.split(':').map(Number);
+  const ampm=h<12?'AM':'PM';const h12=h===0?12:h>12?h-12:h;
+  return m===0?h12+' '+ampm:h12+':'+String(m).padStart(2,'0')+' '+ampm;
 }
 
 // ── DRAG TO CREATE ──
-let calDragDk=null,calDragStart2=null,calDragEnd2=null,calGhost=null;
-
-function calDragStart(e,dk,h){
-  if(e.button!==0)return;
-  e.preventDefault();
-  calDragDk=dk;calDragStart2=h;calDragEnd2=h;
+function calDragStart(e,dk,h,m){
+  if(e.button!==0)return;e.preventDefault();
+  calDragDk=dk;calDragH=h;calDragM=m;calDragEndH=h;calDragEndM=m;
   const col=document.getElementById('cal-col-'+dk);
-  calGhost=document.createElement('div');
-  calGhost.className='cal-drag-ghost';
-  calGhost.style.top=(h*48)+'px';calGhost.style.height='48px';
-  calGhost.textContent='New event';
-  col.appendChild(calGhost);
+  calGhost=document.createElement('div');calGhost.className='cal-drag-ghost';
+  updateGhostPos();col.appendChild(calGhost);
 }
-function calDragMove(e,h){
+function calDragMove(e,h,m){
   if(!calDragDk||!calGhost)return;
-  calDragEnd2=Math.max(h,calDragStart2);
-  calGhost.style.top=(calDragStart2*48)+'px';
-  calGhost.style.height=((calDragEnd2-calDragStart2+1)*48)+'px';
-  const s=calDragStart2<12?calDragStart2+'AM':calDragStart2===12?'12PM':(calDragStart2-12)+'PM';
-  const e2=(calDragEnd2+1)<12?(calDragEnd2+1)+'AM':(calDragEnd2+1)===12?'12PM':((calDragEnd2+1)-12)+'PM';
-  calGhost.textContent=s+' – '+e2;
+  if(h>calDragH||(h===calDragH&&m>=calDragM)){calDragEndH=h;calDragEndM=m;}
+  updateGhostPos();
 }
-function calDragEnd(e,dk){
-  if(!calDragDk||calDragDk!==dk)return;
-  calDragEndGlobal(e);
+function updateGhostPos(){
+  if(!calGhost)return;
+  const top=(calDragH*60+calDragM)/60*48;
+  const endMin=(calDragEndH*60+calDragEndM)+30;
+  const startMin=calDragH*60+calDragM;
+  const hpx=Math.max(24,(endMin-startMin)/60*48);
+  calGhost.style.top=top+'px';calGhost.style.height=hpx+'px';
+  const s=pad(calDragH)+':'+pad(calDragM);
+  const em2=Math.min((calDragEndH*60+calDragEndM)+30,24*60);
+  const e2=pad(Math.floor(em2/60))+':'+pad(em2%60);
+  calGhost.textContent=fmtTime(s)+' – '+fmtTime(e2);
 }
+function pad(n){return String(n).padStart(2,'0')}
+function calDragEnd(e,dk){if(calDragDk&&calDragDk===dk)calDragEndGlobal(e);}
 function calDragEndGlobal(e){
   if(!calDragDk)return;
-  const dk=calDragDk;
-  const h1=calDragStart2,h2=calDragEnd2;
+  const dk=calDragDk,sh=calDragH,sm=calDragM;
+  const endMin=Math.min((calDragEndH*60+calDragEndM)+30,24*60-1);
+  const eh=Math.floor(endMin/60),em=endMin%60;
   if(calGhost)calGhost.remove();
-  calDragDk=null;calDragStart2=null;calDragEnd2=null;calGhost=null;
-  const start=String(h1).padStart(2,'0')+':00';
-  const end=String(h2+1).padStart(2,'0')+':00';
+  calDragDk=null;calDragH=null;calDragM=null;calDragEndH=null;calDragEndM=null;calGhost=null;
+  const start=pad(sh)+':'+pad(sm);const end=pad(eh)+':'+pad(em);
   showAddPop(e,dk,start,end);
 }
 
 // ── RESIZE ──
-let resizeState=null;
 function calResizeStart(e,dk,idx){
   e.preventDefault();
-  resizeState={dk,idx,startY:e.clientY};
+  const startY=e.clientY;
+  const evt=calEvts[dk]?.[idx];if(!evt||!evt.end)return;
+  const[eh0,em0]=evt.end.split(':').map(Number);
   const onMove=ev=>{
-    if(!resizeState)return;
-    const dy=ev.clientY-resizeState.startY;
-    const slots=Math.round(dy/48);
-    if(slots===0)return;
-    const evt=calEvts[resizeState.dk]?.[resizeState.idx];
-    if(!evt||!evt.end)return;
-    const[eh,em]=evt.end.split(':').map(Number);
-    let newH=Math.max(eh+slots,0);newH=Math.min(newH,23);
-    evt.end=String(newH).padStart(2,'0')+':'+String(em).padStart(2,'0');
+    const dy=ev.clientY-startY;
+    const deltaMin=Math.round(dy/48*60/30)*30;
+    let newMin=eh0*60+em0+deltaMin;
+    newMin=Math.max((calEvts[dk][idx].start?parseInt(calEvts[dk][idx].start)*60:0)+30,Math.min(newMin,24*60-1));
+    evt.end=pad(Math.floor(newMin/60))+':'+pad(newMin%60);
     save();renderCal();
-    resizeState.startY=ev.clientY;
   };
-  const onUp=()=>{resizeState=null;document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
-  document.addEventListener('mousemove',onMove);
-  document.addEventListener('mouseup',onUp);
+  const onUp=()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
+  document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
 }
 
 // ── MONTH VIEW ──
@@ -1241,24 +1269,24 @@ function renderMonth(){
   let cells='';
   for(let i=0;i<tot;i++){
     let day,dk2,isOther=false;
-    if(i<fd){day=dp-fd+i+1;const pm=calMonth===0?12:calMonth,py=calMonth===0?calYear-1:calYear;dk2=`${py}-${String(pm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;isOther=true;}
-    else if(i>=fd+dm){day=i-fd-dm+1;const nm=calMonth===11?1:calMonth+2,ny=calMonth===11?calYear+1:calYear;dk2=`${ny}-${String(nm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;isOther=true;}
-    else{day=i-fd+1;dk2=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;}
+    if(i<fd){day=dp-fd+i+1;const pm=calMonth===0?12:calMonth,py=calMonth===0?calYear-1:calYear;dk2=`${py}-${pad(pm)}-${pad(day)}`;isOther=true;}
+    else if(i>=fd+dm){day=i-fd-dm+1;const nm=calMonth===11?1:calMonth+2,ny=calMonth===11?calYear+1:calYear;dk2=`${ny}-${pad(nm)}-${pad(day)}`;isOther=true;}
+    else{day=i-fd+1;dk2=`${calYear}-${pad(calMonth+1)}-${pad(day)}`;}
     const isT=dk2===today,isSel=dk2===selDate;
-    const evts=(calEvts[dk2]||[]).map((e,i)=>({text:e.title||e,cls:e.fromGcal?'gcal':'local',idx:i,dk:dk2}));
-    const nts=notes.filter(n=>n.dateKey===dk2).map(n=>({text:n.title||'(note)',cls:'note-evt',isNote:true,id:n.id}));
+    const evts=(calEvts[dk2]||[]).map((e2,i2)=>({text:e2.title||'',cls:e2.fromGcal?'gcal':'local',idx:i2,dk:dk2}));
+    const nts=notes.filter(n=>n.dateKey===dk2).map(n=>({text:n.title||'(note)',cls:'note-evt',isNote:true,nid:n.id}));
     const all=[...evts,...nts];const shown=all.slice(0,3),ov=all.length-3;
     cells+=`<div class="cal-cell ${isOther?'other-month':''} ${isT?'is-today':''} ${isSel?'is-sel':''}"
       onclick="selDate='${dk2}';renderCal()"
-      ondblclick="showAddPop(event,'${dk2}','09:00','10:00')"
+      ondblclick="event.stopPropagation();showAddPop(event,'${dk2}','09:00','10:00')"
       oncontextmenu="event.preventDefault();showDayCtx(event,'${dk2}')"
     >
       <div class="cal-dn">${day}</div>
       ${shown.map(it=>it.isNote
-        ?`<div class="cal-pill ${it.cls}" onclick="event.stopPropagation();show('notes')" oncontextmenu="event.preventDefault();event.stopPropagation();showNoteCtx(event,'${it.id}')">${esc(it.text)}</div>`
+        ?`<div class="cal-pill ${it.cls}" onclick="event.stopPropagation();show('notes')" oncontextmenu="event.preventDefault();event.stopPropagation();showNoteCtx(event,'${it.nid}')">${esc(it.text)}</div>`
         :`<div class="cal-pill ${it.cls}" onclick="event.stopPropagation();showEvtPopover(event,'${it.dk}',${it.idx})" oncontextmenu="event.preventDefault();event.stopPropagation();showCtxMenu(event,'${it.dk}',${it.idx})">${esc(it.text)}</div>`
       ).join('')}
-      ${ov>0?`<div class="cal-overflow" onclick="event.stopPropagation();showAddPop(event,'${dk2}','09:00','10:00')">+${ov} more</div>`:''}
+      ${ov>0?`<div class="cal-overflow">+${ov} more</div>`:''}
     </div>`;
   }
   document.getElementById('cal-body').innerHTML=`
@@ -1268,37 +1296,78 @@ function renderMonth(){
     </div>`;
 }
 
-// ── ADD EVENT POPOVER (drag or dblclick) ──
+// ── ADD EVENT POPOVER (Notion-style) ──
 function showAddPop(e,dk,start,end){
   closeAllCal();
+  const d=new Date(dk+'T12:00:00');
+  const dateLabel=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+  const dur=start&&end?calcDur(start,end):'';
   const pop=document.createElement('div');
-  pop.className='cal-add-pop';pop.id='cal-add-pop';
-  // position near event
-  const x=Math.min(e.clientX,window.innerWidth-320),y=Math.min(e.clientY,window.innerHeight-160);
+  pop.className='cal-add-pop';pop.id='cal-add-pop';pop.dataset.dk=dk;
+  const x=Math.min(e.clientX,window.innerWidth-360),y=Math.min(e.clientY,window.innerHeight-380);
   pop.style.cssText=`left:${x}px;top:${y}px`;
   pop.innerHTML=`
-    <input id="cal-add-inp" placeholder="Event title" onkeydown="if(event.key==='Enter')calCommitAdd();if(event.key==='Escape')closeAllCal()"/>
-    <div class="cal-add-pop-times">
-      <input type="time" id="cal-add-start" value="${start||'09:00'}"/>
-      <span>–</span>
-      <input type="time" id="cal-add-end" value="${end||'10:00'}"/>
+    <div class="cap-head">
+      <input class="cap-title" id="cap-title-inp" placeholder="Title" onkeydown="if(event.key==='Enter')capSave();if(event.key==='Escape')closeAllCal()"/>
     </div>
-    <div class="cal-add-pop-footer">
-      <button class="btn" onclick="closeAllCal()">Cancel</button>
-      <button class="btn pri" onclick="calCommitAdd()">Add event</button>
+    <div class="cap-body">
+      <div class="cap-row">
+        <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+        <div class="cap-time-wrap">
+          <input class="cap-time" type="time" id="cap-start" value="${start||'09:00'}"/>
+          <span style="color:var(--subtle)">→</span>
+          <input class="cap-time" type="time" id="cap-end" value="${end||'10:00'}"/>
+          <span id="cap-dur" style="font-size:12px;color:var(--subtle)">${dur}</span>
+        </div>
+      </div>
+      <div class="cap-row">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 1v4M11 1v4M2 7h12"/></svg>
+        <input class="cap-date-inp" type="date" id="cap-date" value="${dk}"/>
+        <label class="cap-allday"><input type="checkbox" id="cap-allday" onchange="capToggleAllDay(this.checked)"/> All-day</label>
+      </div>
+      <div class="cap-sep"></div>
+      <div class="cap-field" onclick="document.getElementById('cap-desc').focus()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:15px;height:15px;flex-shrink:0;opacity:.5;margin-top:2px"><path d="M2 4h12M2 8h8M2 12h10"/></svg>
+        <textarea class="cap-desc" id="cap-desc" placeholder="Description" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="cap-footer">
+      <button class="cap-cancel" onclick="closeAllCal()">Cancel</button>
+      <button class="cap-save" onclick="capSave()">Save</button>
     </div>`;
-  pop.dataset.dk=dk;
   document.body.appendChild(pop);
-  setTimeout(()=>document.getElementById('cal-add-inp').focus(),30);
+  // update duration live
+  ['cap-start','cap-end'].forEach(id=>{
+    document.getElementById(id).addEventListener('change',()=>{
+      const dur2=calcDur(document.getElementById('cap-start').value,document.getElementById('cap-end').value);
+      document.getElementById('cap-dur').textContent=dur2;
+    });
+  });
+  setTimeout(()=>document.getElementById('cap-title-inp').focus(),30);
 }
-function calCommitAdd(){
+
+function calcDur(start,end){
+  const[sh,sm]=start.split(':').map(Number);const[eh,em]=end.split(':').map(Number);
+  const mins=(eh*60+em)-(sh*60+sm);if(mins<=0)return'';
+  if(mins<60)return mins+'min';if(mins%60===0)return(mins/60)+'h';return Math.floor(mins/60)+'h '+mins%60+'min';
+}
+
+function capToggleAllDay(on){
+  document.getElementById('cap-start').style.display=on?'none':'';
+  document.getElementById('cap-end').style.display=on?'none':'';
+  document.getElementById('cap-dur').style.display=on?'none':'';
+}
+
+function capSave(){
   const pop=document.getElementById('cal-add-pop');if(!pop)return;
-  const dk=pop.dataset.dk;
-  const val=document.getElementById('cal-add-inp').value.trim();if(!val){closeAllCal();return;}
-  const start=document.getElementById('cal-add-start').value;
-  const end=document.getElementById('cal-add-end').value;
+  const val=document.getElementById('cap-title-inp').value.trim();if(!val){closeAllCal();return;}
+  const dk=document.getElementById('cap-date').value||pop.dataset.dk;
+  const allDay=document.getElementById('cap-allday').checked;
+  const start=allDay?null:document.getElementById('cap-start').value;
+  const end=allDay?null:document.getElementById('cap-end').value;
+  const desc=document.getElementById('cap-desc').value.trim();
   if(!calEvts[dk])calEvts[dk]=[];
-  calEvts[dk].push({title:val,start,end});
+  calEvts[dk].push({title:val,start,end,desc,allDay});
   save();closeAllCal();renderCal();
   pushToNotion(val,dk,start,end);
 }
@@ -1309,12 +1378,15 @@ function showEvtPopover(e,dk,idx){
   const evt=calEvts[dk]?.[idx];if(!evt)return;
   const pop=document.createElement('div');
   pop.className='cal-popover';pop.id='cal-evt-pop';
-  const x=Math.min(e.clientX+10,window.innerWidth-340),y=Math.min(e.clientY-10,window.innerHeight-220);
+  const x=Math.min(e.clientX+10,window.innerWidth-360),y=Math.min(e.clientY-10,window.innerHeight-260);
   pop.style.cssText=`left:${x}px;top:${y}px`;
   pop.innerHTML=`
     <div class="cal-pop-head">
-      <input class="cal-pop-title-inp" id="pop-title" value="${esc(evt.title||evt)}" placeholder="Event title"/>
-      <button class="cal-pop-close" onclick="closeAllCal()">✕</button>
+      <input class="cal-pop-title-inp" id="pop-title" value="${esc(evt.title||'')}"/>
+      <div class="cal-pop-actions">
+        <button class="cal-pop-action-btn" onclick="calDelEvt('${dk}',${idx})" title="Delete">🗑</button>
+        <button class="cal-pop-action-btn" onclick="closeAllCal()" title="Close">✕</button>
+      </div>
     </div>
     <div class="cal-pop-body">
       <div class="cal-pop-row">
@@ -1322,11 +1394,12 @@ function showEvtPopover(e,dk,idx){
         <input class="cal-pop-date" type="date" id="pop-date" value="${dk}"/>
       </div>
       <div class="cal-pop-row">
-        <span class="cal-pop-label">Start</span>
+        <span class="cal-pop-label">Time</span>
         <input class="cal-pop-time" type="time" id="pop-start" value="${evt.start||''}"/>
-        <span style="color:var(--muted);font-size:12px">–</span>
+        <span style="color:var(--subtle);font-size:12px;margin:0 2px">–</span>
         <input class="cal-pop-time" type="time" id="pop-end" value="${evt.end||''}"/>
       </div>
+      ${evt.desc?`<div class="cal-pop-row"><span class="cal-pop-label">Note</span><span style="font-size:13px;color:var(--muted)">${esc(evt.desc)}</span></div>`:''}
     </div>
     <div class="cal-pop-footer">
       <button class="cal-pop-del" onclick="calDelEvt('${dk}',${idx})">🗑 Delete</button>
@@ -1335,6 +1408,7 @@ function showEvtPopover(e,dk,idx){
   document.body.appendChild(pop);
   setTimeout(()=>document.getElementById('pop-title').focus(),30);
 }
+
 function calSaveEvt(dk,idx){
   const evt=calEvts[dk]?.[idx];if(!evt)return;
   const newTitle=document.getElementById('pop-title').value.trim();
@@ -1343,17 +1417,14 @@ function calSaveEvt(dk,idx){
   const newEnd=document.getElementById('pop-end').value;
   if(newTitle)evt.title=newTitle;
   evt.start=newStart;evt.end=newEnd;
-  // handle date change
-  if(newDate!==dk){
+  if(newDate&&newDate!==dk){
     calEvts[dk].splice(idx,1);
     if(!calEvts[newDate])calEvts[newDate]=[];
     calEvts[newDate].push(evt);
   }
   save();closeAllCal();renderCal();
 }
-function calDelEvt(dk,idx){
-  calEvts[dk].splice(idx,1);save();closeAllCal();renderCal();
-}
+function calDelEvt(dk,idx){calEvts[dk].splice(idx,1);save();closeAllCal();renderCal();}
 
 // ── CONTEXT MENUS ──
 function showCtxMenu(e,dk,idx){
@@ -1361,10 +1432,7 @@ function showCtxMenu(e,dk,idx){
   const evt=calEvts[dk]?.[idx];if(!evt)return;
   spawnCtx(e,[
     {icon:'✏️',label:'Edit event',action:()=>showEvtPopover(e,dk,idx)},
-    {icon:'📋',label:'Duplicate',action:()=>{
-      const copy=Object.assign({},evt,{title:(evt.title||evt)+' (copy)'});
-      calEvts[dk].push(copy);save();renderCal();
-    }},
+    {icon:'📋',label:'Duplicate',action:()=>{const cp={...evt,title:(evt.title||'')+' (copy)'};calEvts[dk].push(cp);save();renderCal();}},
     {sep:true},
     {icon:'🗑',label:'Delete event',danger:true,action:()=>{calEvts[dk].splice(idx,1);save();renderCal();}}
   ]);
@@ -1372,11 +1440,11 @@ function showCtxMenu(e,dk,idx){
 function showDayCtx(e,dk){
   closeAllCal();
   spawnCtx(e,[
-    {icon:'➕',label:'New event here',action:()=>showAddPop(e,dk,'09:00','10:00')},
-    {icon:'📝',label:'New note here',action:()=>{
-      const n={id:Date.now(),title:'Note for '+dk,body:'',tags:[],topic:'',quick:false,
+    {icon:'➕',label:'New event',action:()=>showAddPop(e,dk,'09:00','10:00')},
+    {icon:'📝',label:'New note',action:()=>{
+      const n2={id:Date.now(),title:'',body:'',tags:[],topic:'',quick:true,
         date:new Date(dk+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),dateKey:dk};
-      notes.unshift(n);save();renderNotes();renderTopics();updateCounts();show('notes');
+      notes.unshift(n2);save();updateCounts();renderTopics();show('notes');
     }},
   ]);
 }
@@ -1389,15 +1457,15 @@ function showNoteCtx(e,nid){
 }
 function spawnCtx(e,items){
   const m=document.createElement('div');m.className='cal-ctx-menu';m.id='cal-ctx';
-  const x=Math.min(e.clientX,window.innerWidth-200),y=Math.min(e.clientY,window.innerHeight-items.length*40);
+  const x=Math.min(e.clientX,window.innerWidth-210),y=Math.min(e.clientY,window.innerHeight-items.length*38);
   m.style.cssText=`left:${x}px;top:${y}px`;
   items.forEach(it=>{
     if(it.sep){m.insertAdjacentHTML('beforeend','<div class="cal-ctx-sep"></div>');return;}
-    const d=document.createElement('div');
-    d.className='cal-ctx-item'+(it.danger?' danger':'');
-    d.innerHTML=`<span class="cal-ctx-icon">${it.icon}</span>${esc(it.label)}`;
-    d.onclick=()=>{closeAllCal();it.action();};
-    m.appendChild(d);
+    const d2=document.createElement('div');
+    d2.className='cal-ctx-item'+(it.danger?' danger':'');
+    d2.innerHTML=`<span class="cal-ctx-icon">${it.icon}</span>${esc(it.label)}`;
+    d2.onclick=()=>{closeAllCal();it.action();};
+    m.appendChild(d2);
   });
   document.body.appendChild(m);
 }
@@ -1409,13 +1477,13 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllCal();});
 
-function calAdd(){calCommitAdd();}
+// legacy compat
+function calAdd(){capSave();}
 function calDel(dk,i){calEvts[dk].splice(i,1);save();renderCal();}
-// legacy modal functions (kept for compat)
-function calOpenModal(dk,h){showAddPop({clientX:400,clientY:300},dk,h!==undefined?String(h).padStart(2,'0')+':00':'09:00',h!==undefined?String(h+1).padStart(2,'0')+':00':'10:00');}
-function closeCalModal(){closeAllCal();}
+function calOpenModal(dk,h){showAddPop({clientX:400,clientY:300},dk,h!==undefined?pad(h)+':00':'09:00',h!==undefined?pad(h+1)+':00':'10:00');}
+function closeCalModal(){}
 function calRenderModal(){}
-function calModalAdd(){calCommitAdd();}
+function calModalAdd(){capSave();}
 
 // ── GRAPH ──
 function renderGraph(){
