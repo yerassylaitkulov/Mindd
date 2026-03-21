@@ -239,15 +239,14 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 
 /* WEEK GRID */
 .cal-week-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:8px;transition:opacity .2s}
-.cal-week-head{display:flex;flex-shrink:0;background:#0d0d0b;border-bottom:1px solid var(--border)}
+.cal-week-head{display:flex;flex-shrink:0;background:#0d0d0b;border-bottom:1px solid var(--border);box-sizing:border-box}
 .cal-week-gutter{width:58px;flex-shrink:0;padding:6px 0 4px;display:flex;align-items:flex-end;justify-content:center;border-right:1px solid var(--border-light)}
 .cal-week-gutter-tz{font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;text-align:center}
-.cal-week-head-cell{flex:1;padding:8px 10px 6px;border-right:1px solid var(--border-light);user-select:none;min-width:0}
-.cal-week-head-cell:last-child{border-right:none}
-.cal-wdow{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
-.cal-wdn{font-size:20px;font-weight:300;color:var(--muted);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.cal-week-head-cell{flex:1;padding:8px 6px 6px;border:none;user-select:none;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;box-sizing:border-box}
+.cal-wdow{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;width:100%}
+.cal-wdn{font-size:20px;font-weight:300;color:var(--muted);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin:0 auto}
 .cal-wdn.is-today{background:#c8303a;color:#fff;font-weight:700}
-.cal-week-scroll{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.cal-week-scroll{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;scrollbar-width:thin;scrollbar-color:var(--border) transparent;scrollbar-gutter:stable}
 .cal-week-scroll::-webkit-scrollbar{width:5px}
 .cal-week-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .cal-gutter-col{width:58px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.1);box-sizing:border-box}
@@ -268,6 +267,7 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-evt-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:inherit;line-height:1.2;flex-shrink:1;min-width:0}
 .cal-evt-time{font-size:10px;opacity:.85;line-height:1.15;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
 .cal-evt-resize{position:absolute;bottom:0;left:0;right:0;height:6px;cursor:s-resize;z-index:11}
+.cal-evt-draft{opacity:.92;box-shadow:0 0 0 1px rgba(255,255,255,.18);pointer-events:none;z-index:25}
 /* drag preview floating */
 .cal-evt-drag-preview{position:fixed;pointer-events:none;z-index:9999;border-radius:5px;padding:4px 8px;font-size:12px;line-height:1.35;border-left:3px solid;opacity:.95;box-shadow:0 4px 20px rgba(0,0,0,.5);min-width:120px;-webkit-font-smoothing:antialiased;transform:translateZ(0)}
 /* now line */
@@ -1423,9 +1423,14 @@ function renderWeek(){
   setTimeout(()=>{
     const sc=document.getElementById('cal-wscroll');
     if(sc)sc.scrollTop=Math.floor((9*60+30)/15)*calSlotH;
+    syncCalHeaderScrollbar();
     initCalSwipe();
     initCalDrag();
   },30);
+  if(!window._calHeaderSyncBound){
+    window._calHeaderSyncBound=true;
+    window.addEventListener('resize',()=>syncCalHeaderScrollbar());
+  }
 }
 
 // ── HORIZONTAL SWIPE (smooth infinite) ──
@@ -1766,16 +1771,16 @@ function buildPop(e,dk,evt,start,end,isEdit){
       <div class="cap-row" id="cap-time-row">
         <span class="cap-row-icon">🕐</span>
         <div class="cap-time-wrap">
-          <input class="cap-time" type="time" id="cap-start" value="${start||'09:00'}" oninput="document.getElementById('cap-dur').textContent=calcDur(this.value,document.getElementById('cap-end').value)"/>
+          <input class="cap-time" type="time" id="cap-start" value="${start||'09:00'}"/>
           <span style="color:var(--subtle)">→</span>
-          <input class="cap-time" type="time" id="cap-end" value="${end||'10:00'}" oninput="document.getElementById('cap-dur').textContent=calcDur(document.getElementById('cap-start').value,this.value)"/>
+          <input class="cap-time" type="time" id="cap-end" value="${end||'10:00'}"/>
           <span class="cap-dur" id="cap-dur">${dur}</span>
         </div>
       </div>
       <div class="cap-row">
         <span class="cap-row-icon">📅</span>
         <input class="cap-date-inp" type="date" id="cap-date" value="${dk}"/>
-        <label class="cap-allday-lbl"><input type="checkbox" id="cap-allday" ${evt?.allDay?'checked':''} onchange="if(this.checked)document.getElementById('cap-time-row').style.display='none';else document.getElementById('cap-time-row').style.display='';"/> All-day</label>
+        <label class="cap-allday-lbl"><input type="checkbox" id="cap-allday" ${evt?.allDay?'checked':''}/> All-day</label>
       </div>
       <div class="cap-row">
         <span class="cap-row-icon">🔁</span>
@@ -1820,10 +1825,71 @@ function buildPop(e,dk,evt,start,end,isEdit){
   pop.dataset.color=evt?.color||'blue';
   document.body.appendChild(pop);
   setTimeout(()=>document.getElementById('cap-title').focus(),30);
+  if(!isEdit)wireCapDraft();
+}
+function syncCalHeaderScrollbar(){
+  const w=document.getElementById('cal-wscroll');
+  const head=document.querySelector('.cal-week-head');
+  if(!w||!head)return;
+  const sw=Math.max(0,w.offsetWidth-w.clientWidth);
+  head.style.paddingRight=sw+'px';
+}
+function removeCapDraft(){
+  document.getElementById('cap-draft-evt')?.remove();
+}
+function updateCapDraft(){
+  const pop=document.getElementById('cap-pop');
+  if(!pop||pop.dataset.edit==='1'){removeCapDraft();return;}
+  removeCapDraft();
+  const allDay=document.getElementById('cap-allday')?.checked;
+  if(allDay)return;
+  const dk=document.getElementById('cap-date')?.value||pop.dataset.dk;
+  const start=document.getElementById('cap-start')?.value;
+  const end=document.getElementById('cap-end')?.value;
+  if(!dk||!start||!end)return;
+  const col=document.getElementById('cal-col-'+dk);
+  if(!col)return;
+  const sh=timeToMin(start),eh=timeToMin(end);
+  if(eh<=sh)return;
+  const top=sh/15*calSlotH;
+  const hpx=Math.max(calSlotH,(eh-sh)/15*calSlotH);
+  const raw=(document.getElementById('cap-title')?.value||'').trim();
+  const title=raw||'(New event)';
+  const div=document.createElement('div');
+  div.id='cap-draft-evt';
+  div.className='cal-evt cal-evt-draft';
+  div.style.cssText=`top:${top}px;height:${hpx}px;${evtStyle({color:pop.dataset.color||'blue'})};pointer-events:none`;
+  div.innerHTML=`<div class="cal-evt-title">${esc(title)}</div>${hpx>calSlotH?`<div class="cal-evt-time">${fmtTime(start)}${end?' – '+fmtTime(end):''}</div>`:''}`;
+  col.appendChild(div);
+}
+function wireCapDraft(){
+  const pop=document.getElementById('cap-pop');
+  if(!pop||pop.dataset.edit==='1')return;
+  const upd=()=>{
+    const d=document.getElementById('cap-dur');
+    const a=document.getElementById('cap-start'),b=document.getElementById('cap-end');
+    if(d&&a&&b)d.textContent=calcDur(a.value,b.value);
+    updateCapDraft();
+  };
+  ['cap-title','cap-start','cap-end','cap-date'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.addEventListener('input',upd);el.addEventListener('change',upd);}
+  });
+  const ad=document.getElementById('cap-allday');
+  if(ad){
+    ad.addEventListener('change',()=>{
+      if(ad.checked)document.getElementById('cap-time-row').style.display='none';
+      else document.getElementById('cap-time-row').style.display='';
+      upd();
+    });
+  }
+  syncCalHeaderScrollbar();
+  setTimeout(upd,0);
 }
 function capSetColor(id,el){
   document.querySelectorAll('#cap-colors .cap-color-dot').forEach(d=>d.classList.remove('sel'));
   el.classList.add('sel');document.getElementById('cap-pop').dataset.color=id;
+  updateCapDraft();
 }
 function capSave(){
   const pop=document.getElementById('cap-pop');if(!pop)return;
@@ -2013,6 +2079,7 @@ function spawnCtx(e,items){
   document.body.appendChild(m);
 }
 function closeAllCal(keepPop){
+  removeCapDraft();
   if(!keepPop){['cap-pop'].forEach(id=>{document.getElementById(id)?.remove();});}
   ['cal-ctx','repeat-dd'].forEach(id=>{document.getElementById(id)?.remove();});
 }
