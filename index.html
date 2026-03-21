@@ -1152,7 +1152,7 @@ function fAns(ok){if(ok)flashScore.c++;else flashScore.w++;flashIdx++;flashFlipp
 
 // ── CALENDAR ──
 let calView='week';
-const CAL_FIXED_SLOT_H=16;
+const CAL_FIXED_SLOT_H=9;
 let calSlotH=CAL_FIXED_SLOT_H; // fixed calendar scale
 let evtMoveState=null; // {dk,idx,durationMin,hasMoved,targetDk,targetMin}
 
@@ -1424,14 +1424,7 @@ function renderWeek(){
   }
   setTimeout(()=>{
     const sc=document.getElementById('cal-wscroll');
-    if(sc){
-      if(hasTimed){
-        const smartTop=Math.max(0,Math.floor((Math.max(0,minEvt-60))/15)*calSlotH);
-        sc.scrollTop=smartTop;
-      }else{
-        sc.scrollTop=8*4*calSlotH-calSlotH*2;
-      }
-    }
+    if(sc)sc.scrollTop=Math.floor((9*60+30)/15)*calSlotH;
     initCalSwipe();
     initCalDrag();
   },30);
@@ -1549,8 +1542,7 @@ function _cPtrUp(e){
   if(cDragGhost){cDragGhost.remove();cDragGhost=null;}
   cDragDk=null;cDragStartMin=null;cDragEndMin=null;cDragActive=false;cDragPointerId=null;cDragMoved=false;
   if(sm===null||em===null||em<=sm)return;
-  if(!moved){showAddPop(e,dk,minToStr(sm),minToStr(em));return;}
-  quickCreateEvent(dk,minToStr(sm),minToStr(em));
+  showAddPop(e,dk,minToStr(sm),minToStr(em));
 }
 
 function updateCDragGhost(){
@@ -1568,32 +1560,6 @@ function cDragEndGlobal(){}
 function _cDragDocUp(){}
 function _cDragDocMove(){}
 
-function quickCreateEvent(dk,start,end){
-  const title=prompt('Event title:', '');
-  if(title===null)return;
-  const val=title.trim();
-  if(!val)return;
-  if(!calEvts[dk])calEvts[dk]=[];
-  calEvts[dk].push({
-    title:val,
-    start,
-    end,
-    allDay:false,
-    location:'',
-    desc:'',
-    remind:'',
-    color:'blue',
-    repeat:'none',
-    repeatEvery:1,
-    repeatDays:[],
-    repeatEnds:'never',
-    repeatEndDate:'',
-    repeatAfter:4
-  });
-  save();
-  renderCal();
-}
-
 function evtDragStart(e,dk,idx){
   if(e.button!==0)return;
   const evt=calEvts[dk]?.[idx];
@@ -1602,7 +1568,12 @@ function evtDragStart(e,dk,idx){
   e.stopPropagation();
   const s=timeToMin(evt.start);
   const en=evt.end?timeToMin(evt.end):Math.min(24*60,s+60);
-  evtMoveState={dk,idx,durationMin:Math.max(15,en-s),hasMoved:false,targetDk:dk,targetMin:s};
+  const pv=document.createElement('div');
+  pv.className='cal-evt-drag-preview';
+  pv.style.cssText=evtStyle(evt);
+  pv.innerHTML=`<div class="cal-evt-title">${esc(evt.title||'')}</div><div class="cal-evt-time">${fmtTime(evt.start)}${evt.end?' – '+fmtTime(evt.end):''}</div>`;
+  document.body.appendChild(pv);
+  evtMoveState={dk,idx,durationMin:Math.max(15,en-s),hasMoved:false,targetDk:dk,targetMin:s,preview:pv,title:evt.title||''};
   document.addEventListener('mousemove',evtDragMove);
   document.addEventListener('mouseup',evtDragEnd);
 }
@@ -1617,6 +1588,14 @@ function evtDragMove(e){
   if(Number.isNaN(min))return;
   evtMoveState.targetDk=slot.dataset.dk;
   evtMoveState.targetMin=min;
+  const pv=evtMoveState.preview;
+  if(pv){
+    pv.style.left=(e.clientX+12)+'px';
+    pv.style.top=(e.clientY+12)+'px';
+    const s=minToStr(evtMoveState.targetMin);
+    const e2=minToStr(Math.min(24*60,evtMoveState.targetMin+evtMoveState.durationMin));
+    pv.innerHTML=`<div class="cal-evt-title">${esc(evtMoveState.title)}</div><div class="cal-evt-time">${fmtTime(s)} – ${fmtTime(e2)}</div>`;
+  }
 }
 function evtDragEnd(e){
   if(!evtMoveState)return;
@@ -1624,6 +1603,7 @@ function evtDragEnd(e){
   document.removeEventListener('mouseup',evtDragEnd);
   const st=evtMoveState;
   evtMoveState=null;
+  if(st.preview)st.preview.remove();
   if(!st.hasMoved)return;
   const src=calEvts[st.dk]?.[st.idx];
   if(!src)return;
