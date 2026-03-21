@@ -252,11 +252,11 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 /* drag ghost */
 .cal-drag-ghost{position:absolute;left:3px;right:3px;border-radius:5px;z-index:50;pointer-events:none;padding:4px 7px;font-size:11px;font-weight:500;min-height:10px;border-left:3px solid}
 /* events */
-.cal-evt{position:absolute;left:3px;right:3px;border-radius:5px;padding:4px 8px;font-size:12px;line-height:1.4;overflow:hidden;cursor:grab;z-index:10;border-left:3px solid transparent;user-select:none}
+.cal-evt{position:absolute;left:3px;right:3px;border-radius:5px;padding:2px 5px;font-size:10.5px;line-height:1.25;overflow:hidden;cursor:grab;z-index:10;border-left:3px solid transparent;user-select:none}
 .cal-evt:hover{filter:brightness(1.12)}
 .cal-evt.dragging{opacity:.35;cursor:grabbing}
-.cal-evt-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
-.cal-evt-time{font-size:10.5px;opacity:.8;margin-top:1px}
+.cal-evt-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.cal-evt-time{font-size:9.5px;opacity:.8;margin-top:1px}
 .cal-evt-resize{position:absolute;bottom:0;left:0;right:0;height:6px;cursor:s-resize;z-index:11}
 /* drag preview floating */
 .cal-evt-drag-preview{position:fixed;pointer-events:none;z-index:9999;border-radius:5px;padding:4px 8px;font-size:12px;line-height:1.4;border-left:3px solid;opacity:.85;box-shadow:0 4px 20px rgba(0,0,0,.5);min-width:120px}
@@ -1130,7 +1130,8 @@ function fAns(ok){if(ok)flashScore.c++;else flashScore.w++;flashIdx++;flashFlipp
 
 // ── CALENDAR ──
 let calView='week';
-let calSlotH=32; // px per 15min slot — zoom control
+const CAL_BASE_SLOT_H=8;
+let calSlotH=CAL_BASE_SLOT_H; // px per 15min slot — zoom control (overview-friendly default)
 let calZoom=100; // percentage label
 
 // drag-to-create state
@@ -1159,8 +1160,8 @@ function getColor(id){return EVT_COLORS.find(c=>c.id===id)||EVT_COLORS[0];}
 function evtStyle(evt){const col=getColor(evt.color||'blue');return`background:${col.bg};border-left-color:${col.border};color:${col.text}`;}
 
 // ── ZOOM ──
-function calZoomIn(){calSlotH=Math.min(calSlotH+8,80);calZoom=Math.round(calSlotH/32*100);document.getElementById('cal-zoom-lbl').textContent=calZoom+'%';renderCal();}
-function calZoomOut(){calSlotH=Math.max(calSlotH-8,4);calZoom=Math.round(calSlotH/32*100);document.getElementById('cal-zoom-lbl').textContent=calZoom+'%';renderCal();}
+function calZoomIn(){calSlotH=Math.min(calSlotH+4,64);calZoom=Math.round(calSlotH/CAL_BASE_SLOT_H*100);document.getElementById('cal-zoom-lbl').textContent=calZoom+'%';renderCal();}
+function calZoomOut(){calSlotH=Math.max(calSlotH-4,2);calZoom=Math.round(calSlotH/CAL_BASE_SLOT_H*100);document.getElementById('cal-zoom-lbl').textContent=calZoom+'%';renderCal();}
 
 // ── NAV ──
 function setCalView(v){
@@ -1351,7 +1352,7 @@ function renderWeek(){
   }
   setTimeout(()=>{
     const sc=document.getElementById('cal-wscroll');
-    if(sc)sc.scrollTop=8*4*calSlotH-calSlotH*2;
+    if(sc)sc.scrollTop=0;
     initCalSwipe();
     initCalDrag();
   },30);
