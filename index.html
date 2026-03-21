@@ -199,104 +199,127 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .fdone h2{font-family:'Instrument Serif',serif;font-size:26px;font-style:italic;margin-bottom:8px;color:var(--ink)}
 .fdone p{color:var(--muted);font-size:14px;margin-bottom:20px}
 
-/* ── CALENDAR (Week/Month view) ── */
+/* ── CALENDAR ── */
 .cal-outer{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0}
-.cal-header{display:flex;align-items:center;gap:8px;padding:0 0 12px;flex-shrink:0}
-.cal-month-label{font-family:'Instrument Serif',serif;font-size:20px;font-style:italic;color:var(--ink);min-width:160px}
+.cal-header{display:flex;align-items:center;gap:8px;padding:0 0 10px;flex-shrink:0}
+.cal-month-label{font-size:15px;font-weight:600;color:var(--ink);min-width:140px;letter-spacing:-.01em}
 .cal-nav-grp{display:flex;gap:2px}
-.cal-nav-btn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid var(--border);background:none;border-radius:var(--rs);cursor:pointer;color:var(--muted);transition:all .12s}
-.cal-nav-btn:hover{background:var(--surface);color:var(--ink)}
-.cal-today-btn{padding:4px 12px;font-size:12px;border:1px solid var(--border);background:none;border-radius:var(--rs);cursor:pointer;color:var(--muted);transition:all .12s;font-family:'Geist',sans-serif}
-.cal-today-btn:hover{background:var(--surface);color:var(--ink)}
-.cal-view-toggle{display:flex;border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;margin-left:auto}
-.notion-sync-btn{display:flex;align-items:center;gap:6px;padding:5px 12px;font-size:12px;border:1px solid var(--border);background:none;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .15s;white-space:nowrap}
-.notion-sync-btn:hover{border-color:var(--gold-d);color:var(--gold)}
-.notion-sync-btn.syncing{border-color:var(--blue);color:var(--blue);animation:pulse-sync 1s infinite}
-.notion-sync-btn.ok{border-color:var(--green);color:var(--green)}
-.notion-sync-btn.err{border-color:var(--red);color:var(--red)}
-
-.gcal-btn{display:flex;align-items:center;gap:6px;padding:5px 12px;font-size:12px;border:1px solid var(--border);background:none;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .15s;white-space:nowrap}
+.cal-nav-btn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);transition:all .12s}
+.cal-nav-btn:hover{background:var(--surface2);color:var(--ink)}
+.cal-today-btn{padding:4px 12px;font-size:12px;font-weight:500;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);transition:all .12s;font-family:'Geist',sans-serif}
+.cal-today-btn:hover{background:var(--surface2);color:var(--ink)}
+.cal-view-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.cal-vbtn{padding:4px 10px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s}
+.cal-vbtn.active{background:var(--surface2);color:var(--ink);font-weight:500}
+.gcal-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:12px;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s;white-space:nowrap;margin-left:auto}
 .gcal-btn:hover{border-color:#4285f4;color:#4285f4}
 .gcal-btn.connected{border-color:var(--green);color:var(--green)}
-.gcal-btn.syncing{border-color:#4285f4;color:#4285f4;animation:pulse-sync 1s infinite}
+.gcal-btn.syncing{border-color:#4285f4;color:#4285f4;animation:cal-pulse 1s infinite}
 .gcal-btn.err{border-color:var(--red);color:var(--red)}
-
+.notion-sync-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:12px;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s;white-space:nowrap}
+.notion-sync-btn:hover{border-color:var(--gold-d);color:var(--gold)}
+@keyframes cal-pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:.5}}
-.cal-vbtn{padding:4px 12px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s}
-.cal-vbtn.active{background:var(--surface);color:var(--ink)}
 
-/* WEEK VIEW */
-.cal-week-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:var(--r)}
-.cal-week-header{display:grid;flex-shrink:0;border-bottom:1px solid var(--border);background:var(--surface)}
-.cal-week-header-cell{padding:8px 10px;border-right:1px solid var(--border-light)}
-.cal-week-header-cell:last-child{border-right:none}
-.cal-week-dow{font-size:10px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-.cal-week-dn{font-size:22px;font-weight:300;color:var(--muted);margin-top:2px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%}
-.cal-week-dn.is-today{background:var(--gold-d);color:#fff}
-.cal-week-body{flex:1;overflow-y:auto;display:grid;position:relative;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-.cal-time-col{width:52px;flex-shrink:0}
-.cal-time-label{height:48px;display:flex;align-items:flex-start;justify-content:flex-end;padding:0 8px 0 0;font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:-6px}
-.cal-time-label:first-child{color:transparent}
+/* WEEK GRID */
+.cal-week-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.cal-week-head{display:flex;flex-shrink:0;border-bottom:1px solid var(--border)}
+.cal-week-gutter{width:52px;flex-shrink:0;border-right:1px solid var(--border-light)}
+.cal-week-head-cell{flex:1;padding:8px 10px;border-right:1px solid var(--border-light);cursor:pointer;transition:background .12s}
+.cal-week-head-cell:last-child{border-right:none}
+.cal-week-head-cell:hover{background:var(--surface2)}
+.cal-wdow{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cal-wdn{font-size:20px;font-weight:300;color:var(--muted);margin-top:3px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .12s}
+.cal-wdn.is-today{background:var(--gold-d);color:#fff;font-weight:600}
+.cal-week-scroll{flex:1;overflow-y:auto;display:flex;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.cal-week-scroll::-webkit-scrollbar{width:6px}
+.cal-week-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.cal-gutter-col{width:52px;flex-shrink:0}
+.cal-gutter-lbl{height:48px;display:flex;align-items:flex-start;justify-content:flex-end;padding:0 8px;font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:-6px;user-select:none}
 .cal-day-col{flex:1;border-left:1px solid var(--border-light);position:relative;min-width:0}
-.cal-day-col.is-today{background:rgba(200,135,58,.03)}
-.cal-hour-line{height:48px;border-bottom:1px solid var(--border-light);position:relative;cursor:pointer}
-.cal-hour-line:hover::after{content:'+ Add event';position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--muted);pointer-events:none}
-.cal-week-event{position:absolute;left:2px;right:2px;border-radius:4px;padding:3px 6px;font-size:11px;line-height:1.4;overflow:hidden;cursor:pointer;transition:filter .1s;z-index:10}
-.cal-week-event:hover{filter:brightness(1.2)}
-.cal-week-event.type-event{background:rgba(200,135,58,.25);border-left:3px solid var(--gold-d);color:var(--gold)}
-.cal-week-event.type-note{background:rgba(90,143,232,.2);border-left:3px solid var(--blue);color:var(--blue)}
-.cal-week-event.type-quick{background:rgba(90,175,122,.2);border-left:3px solid var(--green);color:var(--green)}
-.cal-week-event-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cal-week-event-time{font-size:10px;opacity:.75;font-family:'Geist Mono',monospace}
-.cal-now-line{position:absolute;left:0;right:0;height:2px;background:var(--red);z-index:20;pointer-events:none}
-.cal-now-dot{position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--red)}
+.cal-day-col.is-today{background:rgba(200,135,58,.025)}
+.cal-slot{height:48px;border-bottom:1px solid rgba(255,255,255,.04);position:relative;cursor:crosshair}
+.cal-slot:hover .cal-slot-hint{opacity:1}
+.cal-slot-hint{position:absolute;inset:0;display:flex;align-items:center;padding-left:8px;font-size:11px;color:var(--subtle);opacity:0;pointer-events:none;transition:opacity .1s}
+.cal-slot.half-hour{border-bottom:1px dashed rgba(255,255,255,.03)}
 
-/* MONTH VIEW */
-.cal-month-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:var(--r)}
-.cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
-.cal-dow{padding:7px 10px;font-size:10px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-family:'Geist',sans-serif}
-.cal-cells{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr;overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-.cal-cell{border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light);padding:6px 8px;cursor:pointer;display:flex;flex-direction:column;gap:3px;min-height:90px;position:relative}
+/* drag-to-create ghost */
+.cal-drag-ghost{position:absolute;left:2px;right:2px;background:rgba(200,135,58,.35);border:1px solid var(--gold-d);border-radius:4px;z-index:50;pointer-events:none;padding:3px 6px;font-size:11px;color:var(--gold);font-weight:500}
+
+/* events */
+.cal-evt{position:absolute;left:2px;right:2px;border-radius:4px;padding:3px 7px;font-size:11px;line-height:1.45;overflow:hidden;cursor:pointer;transition:filter .1s,box-shadow .1s;z-index:10;border-left:3px solid transparent}
+.cal-evt:hover{filter:brightness(1.15);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.cal-evt.gcal{background:rgba(66,133,244,.22);border-left-color:#4285f4;color:#7ab0f5}
+.cal-evt.local{background:rgba(200,135,58,.22);border-left-color:var(--gold-d);color:var(--gold)}
+.cal-evt.note-evt{background:rgba(90,143,232,.18);border-left-color:var(--blue);color:var(--blue)}
+.cal-evt-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-evt-time{font-size:10px;opacity:.75;font-family:'Geist Mono',monospace;margin-top:1px}
+/* resize handle */
+.cal-evt-resize{position:absolute;bottom:0;left:0;right:0;height:6px;cursor:s-resize;background:transparent}
+.cal-evt-resize:hover{background:rgba(255,255,255,.15);border-radius:0 0 4px 4px}
+
+/* now line */
+.cal-now-line{position:absolute;left:0;right:0;height:2px;background:#e85a5a;z-index:30;pointer-events:none}
+.cal-now-dot{position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#e85a5a}
+
+/* MONTH GRID */
+.cal-month-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);flex-shrink:0}
+.cal-dow{padding:7px 10px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-family:'Geist',sans-serif}
+.cal-cells{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr;overflow-y:auto;flex:1}
+.cal-cell{border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light);padding:5px 6px;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:80px;position:relative;transition:background .1s}
 .cal-cell:hover{background:rgba(255,255,255,.03)}
-.cal-cell:hover .cal-cell-add{opacity:1}
-.cal-cell.other-month{background:rgba(0,0,0,.12)}
+.cal-cell.other-month{background:rgba(0,0,0,.1)}
 .cal-cell.other-month .cal-dn{color:var(--subtle)}
-.cal-cell.is-today{background:rgba(200,135,58,.05)}
+.cal-cell.is-today{background:rgba(200,135,58,.04)}
 .cal-cell.is-sel{box-shadow:inset 0 0 0 2px var(--gold-d)}
-.cal-dn{font-size:12px;font-weight:500;color:var(--muted);width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0}
-.cal-cell.is-today .cal-dn{background:var(--gold-d);color:#fff;font-weight:600}
-.cal-event{font-size:11px;padding:2px 7px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:filter .1s;line-height:1.6}
-.cal-event:hover{filter:brightness(1.15)}
-.cal-event.type-note{background:rgba(90,143,232,.18);color:var(--blue);border-left:2px solid var(--blue)}
-.cal-event.type-event{background:rgba(200,135,58,.18);color:var(--gold);border-left:2px solid var(--gold-d)}
-.cal-event.type-quick{background:rgba(90,175,122,.18);color:var(--green);border-left:2px solid var(--green)}
-.cal-overflow{font-size:10px;color:var(--muted);padding:1px 4px;cursor:pointer}
-.cal-cell-add{position:absolute;top:5px;right:6px;font-size:16px;color:var(--muted);opacity:0;transition:opacity .12s;cursor:pointer;line-height:1;background:none;border:none;padding:0}
+.cal-dn{font-size:11.5px;font-weight:500;color:var(--muted);width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0;transition:background .1s}
+.cal-cell.is-today .cal-dn{background:var(--gold-d);color:#fff;font-weight:700}
+.cal-pill{font-size:11px;padding:1px 6px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:1.6;border-left:2px solid transparent}
+.cal-pill.gcal{background:rgba(66,133,244,.18);color:#7ab0f5;border-left-color:#4285f4}
+.cal-pill.local{background:rgba(200,135,58,.18);color:var(--gold);border-left-color:var(--gold-d)}
+.cal-pill.note-evt{background:rgba(90,143,232,.15);color:var(--blue);border-left-color:var(--blue)}
+.cal-overflow{font-size:10px;color:var(--muted);padding:1px 4px;cursor:pointer;transition:color .1s}
+.cal-overflow:hover{color:var(--ink)}
 
-/* MODAL */
-.cal-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2000;display:flex;align-items:center;justify-content:center;animation:fi .15s ease}
-@keyframes fi{from{opacity:0}to{opacity:1}}
-.cal-modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;width:360px;box-shadow:0 12px 48px rgba(0,0,0,.5)}
-.cal-modal-title{font-family:'Instrument Serif',serif;font-size:18px;font-style:italic;color:var(--ink);margin-bottom:4px}
-.cal-modal-date{font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:14px}
-.cal-modal-time-row{display:flex;gap:6px;margin-bottom:10px;align-items:center}
-.cal-modal-time-row label{font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace}
-.cal-modal-time-inp{padding:5px 8px;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);outline:none;color:var(--ink);font-family:'Geist Mono',monospace;width:70px}
-.cal-modal-time-inp:focus{border-color:var(--gold-d)}
-.cal-modal-events{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;max-height:180px;overflow-y:auto}
-.cal-modal-evt{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:var(--rs);font-size:13px;gap:8px}
-.cal-modal-evt.type-note{background:rgba(90,143,232,.12);color:var(--blue)}
-.cal-modal-evt.type-event{background:rgba(200,135,58,.12);color:var(--gold)}
-.cal-modal-evt.type-quick{background:rgba(90,175,122,.12);color:var(--green)}
-.cal-modal-evt-info{flex:1;min-width:0}
-.cal-modal-evt-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cal-modal-evt-time{font-size:10px;opacity:.7;font-family:'Geist Mono',monospace}
-.cal-modal-evt-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0;transition:color .12s;flex-shrink:0}
-.cal-modal-evt-del:hover{color:var(--red)}
-.cal-modal-add{display:flex;gap:6px;margin-bottom:8px}
-.cal-modal-add input{flex:1;padding:8px 10px;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);outline:none;color:var(--ink);font-family:'Geist',sans-serif}
-.cal-modal-add input:focus{border-color:var(--gold-d)}
-.cal-modal-footer{display:flex;justify-content:flex-end;gap:6px;margin-top:8px}
+/* RIGHT-CLICK CONTEXT MENU */
+.cal-ctx-menu{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.4);z-index:5000;min-width:180px;padding:4px;animation:ctx-in .1s ease}
+@keyframes ctx-in{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.cal-ctx-item{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:13px;color:var(--ink);cursor:pointer;border-radius:5px;transition:background .1s;font-family:'Geist',sans-serif}
+.cal-ctx-item:hover{background:var(--surface2)}
+.cal-ctx-item.danger{color:var(--red)}
+.cal-ctx-item.danger:hover{background:var(--red-bg)}
+.cal-ctx-sep{height:1px;background:var(--border);margin:3px 0}
+.cal-ctx-icon{width:16px;text-align:center;font-size:13px;flex-shrink:0}
+
+/* EVENT EDIT POPOVER */
+.cal-popover{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:4000;width:320px;padding:0;overflow:hidden;animation:ctx-in .15s ease}
+.cal-pop-head{padding:14px 16px 0;display:flex;align-items:center;justify-content:space-between}
+.cal-pop-title-inp{font-size:15px;font-weight:600;color:var(--ink);background:none;border:none;outline:none;flex:1;font-family:'Geist',sans-serif}
+.cal-pop-title-inp::placeholder{color:var(--subtle)}
+.cal-pop-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;border-radius:4px;transition:all .1s}
+.cal-pop-close:hover{background:var(--surface2);color:var(--ink)}
+.cal-pop-body{padding:8px 16px 14px}
+.cal-pop-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cal-pop-label{font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;width:36px;flex-shrink:0}
+.cal-pop-time{padding:4px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;outline:none;color:var(--ink);font-family:'Geist Mono',monospace;width:80px;cursor:pointer}
+.cal-pop-time:focus{border-color:var(--gold-d)}
+.cal-pop-date{padding:4px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;outline:none;color:var(--ink);font-family:'Geist',sans-serif;cursor:pointer}
+.cal-pop-date:focus{border-color:var(--gold-d)}
+.cal-pop-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.cal-pop-del{background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif;transition:color .1s;padding:4px 8px;border-radius:4px}
+.cal-pop-del:hover{color:var(--red);background:var(--red-bg)}
+.cal-pop-save{padding:5px 14px;font-size:12px;font-weight:500;background:var(--gold-d);color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:'Geist',sans-serif;transition:background .1s}
+.cal-pop-save:hover{background:var(--gold)}
+
+/* ADD EVENT POPOVER (new) */
+.cal-add-pop{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:4000;width:300px;padding:14px 16px;animation:ctx-in .15s ease}
+.cal-add-pop input{width:100%;font-size:14px;font-weight:500;color:var(--ink);background:none;border:none;outline:none;font-family:'Geist',sans-serif;margin-bottom:10px}
+.cal-add-pop input::placeholder{color:var(--subtle)}
+.cal-add-pop-times{display:flex;gap:6px;align-items:center;margin-bottom:10px;font-size:12px;color:var(--muted)}
+.cal-add-pop-times input[type=time]{padding:4px 8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;outline:none;color:var(--ink);font-family:'Geist Mono',monospace;width:78px}
+.cal-add-pop-times input[type=time]:focus{border-color:var(--gold-d)}
+.cal-add-pop-footer{display:flex;justify-content:flex-end;gap:6px}
 
 /* ── GRAPH ── */
 .graph-wrap{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);position:relative;overflow:hidden}
@@ -489,38 +512,17 @@ canvas#gc{width:100%;height:100%;display:block}
         <div class="cal-header">
           <div class="cal-month-label" id="cal-month-label"></div>
           <div class="cal-nav-grp">
-            <button class="cal-nav-btn" onclick="calNav(-1)" title="Previous">‹</button>
-            <button class="cal-nav-btn" onclick="calNav(1)"  title="Next">›</button>
+            <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+            <button class="cal-nav-btn" onclick="calNav(1)">›</button>
           </div>
           <button class="cal-today-btn" onclick="calGoToday()">Today</button>
-          <button class="gcal-btn" id="gcal-btn" onclick="gcalConnect()" title="Sync Google Calendar">📅 Connect Google Calendar</button>
           <div class="cal-view-toggle">
             <button class="cal-vbtn active" id="cvbtn-week" onclick="setCalView('week')">Week</button>
-            <button class="cal-vbtn"        id="cvbtn-month" onclick="setCalView('month')">Month</button>
+            <button class="cal-vbtn" id="cvbtn-month" onclick="setCalView('month')">Month</button>
           </div>
+          <button class="gcal-btn" id="gcal-btn" onclick="gcalConnect()">📅 Sync Google Cal</button>
         </div>
         <div id="cal-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0"></div>
-      </div>
-    </div>
-    <!-- CALENDAR MODAL -->
-    <div class="cal-modal-overlay" id="cal-modal" style="display:none" onclick="if(event.target===this)closeCalModal()">
-      <div class="cal-modal">
-        <div class="cal-modal-title" id="cal-modal-title"></div>
-        <div class="cal-modal-date" id="cal-modal-date-lbl"></div>
-        <div class="cal-modal-time-row">
-          <label>Start</label>
-          <input class="cal-modal-time-inp" type="time" id="cal-evt-start" value="09:00"/>
-          <label>End</label>
-          <input class="cal-modal-time-inp" type="time" id="cal-evt-end" value="10:00"/>
-        </div>
-        <div class="cal-modal-events" id="cal-modal-events"></div>
-        <div class="cal-modal-add">
-          <input id="cal-modal-inp" placeholder="Event title…" onkeydown="if(event.key==='Enter')calModalAdd()"/>
-        </div>
-        <div class="cal-modal-footer">
-          <button class="btn" onclick="closeCalModal()">Close</button>
-          <button class="btn pri" onclick="calModalAdd()">+ Add event</button>
-        </div>
       </div>
     </div>
 
@@ -1062,10 +1064,9 @@ function flipCard(){flashFlipped=true;renderFlash()}
 function fAns(ok){if(ok)flashScore.c++;else flashScore.w++;flashIdx++;flashFlipped=false;renderFlash()}
 
 // ── CALENDAR ──
-// ── CALENDAR ──
-let calView = 'week'; // 'week' or 'month'
-// calYear, calMonth, selDate already declared above
-// calEvts already declared
+let calView='week';
+let calDragState=null; // {dk, startSlot, endSlot, ghost}
+let editingEvt=null;   // {dk, idx}
 
 function setCalView(v){
   calView=v;
@@ -1073,230 +1074,348 @@ function setCalView(v){
   document.getElementById('cvbtn-month').classList.toggle('active',v==='month');
   renderCal();
 }
-
 function calNav(dir){
-  if(calView==='week'){
-    // move by 7 days
-    const d=new Date(selDate+'T12:00:00');
-    d.setDate(d.getDate()+dir*7);
-    selDate=dkey(d);calYear=d.getFullYear();calMonth=d.getMonth();
-  } else {
-    calMonth+=dir;
-    if(calMonth<0){calMonth=11;calYear--}
-    if(calMonth>11){calMonth=0;calYear++}
-  }
+  if(calView==='week'){const d=new Date(selDate+'T12:00:00');d.setDate(d.getDate()+dir*7);selDate=dkey(d);calYear=d.getFullYear();calMonth=d.getMonth();}
+  else{calMonth+=dir;if(calMonth<0){calMonth=11;calYear--}if(calMonth>11){calMonth=0;calYear++}}
   renderCal();
 }
+function calGoToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();selDate=dkey(n);renderCal();}
+function renderCal(){calView==='week'?renderWeek():renderMonth();}
 
-function calGoToday(){
-  const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();selDate=dkey(n);renderCal();
-}
-
-function renderCal(){
-  if(calView==='week') renderWeek();
-  else renderMonth();
-}
-
-/* ── WEEK VIEW ── */
+// ── WEEK VIEW ──
 function renderWeek(){
   const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const today=dkey(new Date());
-
-  // get start of week (Sunday) containing selDate
   const sel=new Date(selDate+'T12:00:00');
-  const startOfWeek=new Date(sel);
-  startOfWeek.setDate(sel.getDate()-sel.getDay());
+  const sow=new Date(sel);sow.setDate(sel.getDate()-sel.getDay());
+  const wds=[];for(let i=0;i<7;i++){const d=new Date(sow);d.setDate(sow.getDate()+i);wds.push(d);}
+  const f=wds[0],l=wds[6];
+  document.getElementById('cal-month-label').textContent=
+    f.getMonth()===l.getMonth()?MONTHS[f.getMonth()]+' '+f.getFullYear():MONTHS[f.getMonth()]+' – '+MONTHS[l.getMonth()]+' '+l.getFullYear();
 
-  const weekDates=[];
-  for(let i=0;i<7;i++){
-    const d=new Date(startOfWeek);d.setDate(startOfWeek.getDate()+i);
-    weekDates.push(d);
-  }
-
-  const firstD=weekDates[0], lastD=weekDates[6];
-  const label=firstD.getMonth()===lastD.getMonth()
-    ? MONTHS[firstD.getMonth()]+' '+firstD.getFullYear()
-    : MONTHS[firstD.getMonth()]+' – '+MONTHS[lastD.getMonth()]+' '+lastD.getFullYear();
-  document.getElementById('cal-month-label').textContent=label;
-
-  // header columns: time gutter + 7 days
-  const cols='52px '+weekDates.map(()=>'1fr').join(' ');
-
-  let headerHtml=`<div style="width:52px;border-right:1px solid var(--border-light);flex-shrink:0"></div>`;
-  weekDates.forEach(d=>{
-    const dk2=dkey(d);
-    const isT=dk2===today;
-    headerHtml+=`<div class="cal-week-header-cell">
-      <div class="cal-week-dow">${DAYS[d.getDay()]}</div>
-      <div class="cal-week-dn ${isT?'is-today':''}">${d.getDate()}</div>
+  let headHtml=`<div class="cal-week-gutter"></div>`;
+  wds.forEach(d=>{
+    const dk2=dkey(d);const isT=dk2===today;
+    headHtml+=`<div class="cal-week-head-cell" onclick="selDate='${dk2}';renderCal()">
+      <div class="cal-wdow">${DAYS[d.getDay()]}</div>
+      <div class="cal-wdn ${isT?'is-today':''}">${d.getDate()}</div>
     </div>`;
   });
 
-  // Build time rows (0–23)
-  let bodyHtml='';
-  // time gutter
-  bodyHtml+=`<div class="cal-time-col">`;
+  let gutterHtml='';
   for(let h=0;h<24;h++){
     const lbl=h===0?'':h<12?h+'AM':h===12?'12PM':(h-12)+'PM';
-    bodyHtml+=`<div class="cal-time-label">${lbl}</div>`;
+    gutterHtml+=`<div class="cal-gutter-lbl">${lbl}</div>`;
   }
-  bodyHtml+=`</div>`;
 
-  // day columns
-  weekDates.forEach(d=>{
-    const dk2=dkey(d);
-    const isT=dk2===today;
-    bodyHtml+=`<div class="cal-day-col ${isT?'is-today':''}" id="cal-col-${dk2}">`;
+  let colsHtml='';
+  wds.forEach(d=>{
+    const dk2=dkey(d);const isT=dk2===today;
+    let slots='';
     for(let h=0;h<24;h++){
-      bodyHtml+=`<div class="cal-hour-line" onclick="calOpenModal('${dk2}',${h})"></div>`;
+      slots+=`<div class="cal-slot" data-dk="${dk2}" data-h="${h}"
+        onmousedown="calDragStart(event,'${dk2}',${h})"
+        onmousemove="calDragMove(event,${h})"
+      ><span class="cal-slot-hint">${h<12?h+'AM':h===12?'12PM':(h-12)+'PM'}</span></div>`;
     }
-    // place events
-    const dayEvts=calEvts[dk2]||[];
-    dayEvts.forEach((evt,i)=>{
-      if(!evt.start)return; // no time = all-day, skip for now
+    // events
+    let evtsHtml='';
+    (calEvts[dk2]||[]).forEach((evt,i)=>{
+      if(!evt.start)return;
       const[sh,sm]=evt.start.split(':').map(Number);
       const[eh,em]=evt.end?evt.end.split(':').map(Number):[sh+1,sm];
-      const top=sh*48+sm*(48/60);
-      const height=Math.max(24,(eh-sh)*48+(em-sm)*(48/60));
-      bodyHtml+=`<div class="cal-week-event type-event" style="top:${top}px;height:${height}px" onclick="event.stopPropagation();calOpenModal('${dk2}')" title="${esc(evt.title||evt)}">
-        <div class="cal-week-event-title">${esc(evt.title||evt)}</div>
-        <div class="cal-week-event-time">${evt.start}${evt.end?' – '+evt.end:''}</div>
+      const top=sh*48+sm*.8;
+      const h2=Math.max(22,(eh-sh)*48+(em-sm)*.8);
+      const cls=evt.fromGcal?'gcal':'local';
+      evtsHtml+=`<div class="cal-evt ${cls}" style="top:${top}px;height:${h2}px"
+        data-dk="${dk2}" data-idx="${i}"
+        onclick="event.stopPropagation();showEvtPopover(event,'${dk2}',${i})"
+        oncontextmenu="event.preventDefault();event.stopPropagation();showCtxMenu(event,'${dk2}',${i})"
+      >
+        <div class="cal-evt-title">${esc(evt.title||evt)}</div>
+        <div class="cal-evt-time">${evt.start}${evt.end?' – '+evt.end:''}</div>
+        <div class="cal-evt-resize" onmousedown="event.stopPropagation();calResizeStart(event,'${dk2}',${i})"></div>
       </div>`;
     });
-    // notes (no time, show at top as small strips)
-    const dayNotes=notes.filter(n=>n.dateKey===dk2);
-    dayNotes.forEach((n,i)=>{
-      bodyHtml+=`<div class="cal-week-event type-${n.quick?'quick':'note'}" style="top:${i*22}px;height:20px;left:2px;right:2px" onclick="event.stopPropagation();show('notes')" title="${esc(n.title)}">
-        <div class="cal-week-event-title">${esc(n.title||'(note)')}</div>
+    // notes as events
+    notes.filter(n=>n.dateKey===dk2).forEach((n,i)=>{
+      evtsHtml+=`<div class="cal-evt note-evt" style="top:${i*24}px;height:22px"
+        data-dk="${dk2}"
+        onclick="event.stopPropagation();show('notes')"
+        oncontextmenu="event.preventDefault();event.stopPropagation();showNoteCtx(event,'${n.id}')"
+      >
+        <div class="cal-evt-title">${esc(n.title||'(note)')}</div>
       </div>`;
     });
-    bodyHtml+=`</div>`;
+    colsHtml+=`<div class="cal-day-col ${isT?'is-today':''}" id="cal-col-${dk2}" onmouseup="calDragEnd(event,'${dk2}')">${slots}${evtsHtml}</div>`;
   });
 
-  const body=document.getElementById('cal-body');
-  body.innerHTML=`
+  document.getElementById('cal-body').innerHTML=`
     <div class="cal-week-wrap">
-      <div class="cal-week-header" style="display:flex">${headerHtml}</div>
-      <div class="cal-week-body" style="display:flex;overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--border) transparent" id="cal-week-scroll">
-        ${bodyHtml}
+      <div class="cal-week-head">${headHtml}</div>
+      <div class="cal-week-scroll" id="cal-week-scroll" onmouseup="calDragEndGlobal(event)" onmouseleave="calDragEndGlobal(event)">
+        <div class="cal-gutter-col">${gutterHtml}</div>
+        ${colsHtml}
       </div>
     </div>`;
 
-  // draw current time line
-  const nowD=new Date();
-  const nowDk=dkey(nowD);
+  // now line
+  const nowD=new Date();const nowDk=dkey(nowD);
   const col=document.getElementById('cal-col-'+nowDk);
   if(col){
-    const top=nowD.getHours()*48+(nowD.getMinutes()*(48/60));
-    const line=document.createElement('div');
-    line.className='cal-now-line';line.style.top=top+'px';
-    const dot=document.createElement('div');dot.className='cal-now-dot';
-    line.appendChild(dot);col.appendChild(line);
+    const top=nowD.getHours()*48+nowD.getMinutes()*.8;
+    col.insertAdjacentHTML('beforeend',`<div class="cal-now-line" style="top:${top}px"><div class="cal-now-dot"></div></div>`);
   }
-
-  // scroll to 8am
-  setTimeout(()=>{const sc=document.getElementById('cal-week-scroll');if(sc)sc.scrollTop=8*48-40},50);
+  setTimeout(()=>{const sc=document.getElementById('cal-week-scroll');if(sc)sc.scrollTop=8*48-40;},50);
 }
 
-/* ── MONTH VIEW ── */
+// ── DRAG TO CREATE ──
+let calDragDk=null,calDragStart2=null,calDragEnd2=null,calGhost=null;
+
+function calDragStart(e,dk,h){
+  if(e.button!==0)return;
+  e.preventDefault();
+  calDragDk=dk;calDragStart2=h;calDragEnd2=h;
+  const col=document.getElementById('cal-col-'+dk);
+  calGhost=document.createElement('div');
+  calGhost.className='cal-drag-ghost';
+  calGhost.style.top=(h*48)+'px';calGhost.style.height='48px';
+  calGhost.textContent='New event';
+  col.appendChild(calGhost);
+}
+function calDragMove(e,h){
+  if(!calDragDk||!calGhost)return;
+  calDragEnd2=Math.max(h,calDragStart2);
+  calGhost.style.top=(calDragStart2*48)+'px';
+  calGhost.style.height=((calDragEnd2-calDragStart2+1)*48)+'px';
+  const s=calDragStart2<12?calDragStart2+'AM':calDragStart2===12?'12PM':(calDragStart2-12)+'PM';
+  const e2=(calDragEnd2+1)<12?(calDragEnd2+1)+'AM':(calDragEnd2+1)===12?'12PM':((calDragEnd2+1)-12)+'PM';
+  calGhost.textContent=s+' – '+e2;
+}
+function calDragEnd(e,dk){
+  if(!calDragDk||calDragDk!==dk)return;
+  calDragEndGlobal(e);
+}
+function calDragEndGlobal(e){
+  if(!calDragDk)return;
+  const dk=calDragDk;
+  const h1=calDragStart2,h2=calDragEnd2;
+  if(calGhost)calGhost.remove();
+  calDragDk=null;calDragStart2=null;calDragEnd2=null;calGhost=null;
+  const start=String(h1).padStart(2,'0')+':00';
+  const end=String(h2+1).padStart(2,'0')+':00';
+  showAddPop(e,dk,start,end);
+}
+
+// ── RESIZE ──
+let resizeState=null;
+function calResizeStart(e,dk,idx){
+  e.preventDefault();
+  resizeState={dk,idx,startY:e.clientY};
+  const onMove=ev=>{
+    if(!resizeState)return;
+    const dy=ev.clientY-resizeState.startY;
+    const slots=Math.round(dy/48);
+    if(slots===0)return;
+    const evt=calEvts[resizeState.dk]?.[resizeState.idx];
+    if(!evt||!evt.end)return;
+    const[eh,em]=evt.end.split(':').map(Number);
+    let newH=Math.max(eh+slots,0);newH=Math.min(newH,23);
+    evt.end=String(newH).padStart(2,'0')+':'+String(em).padStart(2,'0');
+    save();renderCal();
+    resizeState.startY=ev.clientY;
+  };
+  const onUp=()=>{resizeState=null;document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+
+// ── MONTH VIEW ──
 function renderMonth(){
   const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const today=dkey(new Date());
   document.getElementById('cal-month-label').textContent=MONTHS[calMonth]+' '+calYear;
-
-  const firstDay=new Date(calYear,calMonth,1).getDay();
-  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
-  const daysInPrev=new Date(calYear,calMonth,0).getDate();
-  const totalCells=Math.ceil((firstDay+daysInMonth)/7)*7;
-
+  const fd=new Date(calYear,calMonth,1).getDay(),dm=new Date(calYear,calMonth+1,0).getDate(),dp=new Date(calYear,calMonth,0).getDate();
+  const tot=Math.ceil((fd+dm)/7)*7;
   let cells='';
-  for(let i=0;i<totalCells;i++){
+  for(let i=0;i<tot;i++){
     let day,dk2,isOther=false;
-    if(i<firstDay){
-      day=daysInPrev-firstDay+i+1;
-      const pm=calMonth===0?12:calMonth,py=calMonth===0?calYear-1:calYear;
-      dk2=`${py}-${String(pm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;isOther=true;
-    } else if(i>=firstDay+daysInMonth){
-      day=i-firstDay-daysInMonth+1;
-      const nm=calMonth===11?1:calMonth+2,ny=calMonth===11?calYear+1:calYear;
-      dk2=`${ny}-${String(nm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;isOther=true;
-    } else {
-      day=i-firstDay+1;
-      dk2=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    }
-    const isT=dk2===today, isSel=dk2===selDate;
-    const dayEvts=(calEvts[dk2]||[]).map(e=>({text:e.title||e,type:'event'}));
-    const dayNotes=notes.filter(n=>n.dateKey===dk2).map(n=>({text:n.title||'(note)',type:n.quick?'quick':'note'}));
-    const all=[...dayEvts,...dayNotes];
-    const shown=all.slice(0,3),ov=all.length-3;
-    cells+=`<div class="cal-cell ${isOther?'other-month':''} ${isT?'is-today':''} ${isSel?'is-sel':''}" onclick="calOpenModal('${dk2}')">
+    if(i<fd){day=dp-fd+i+1;const pm=calMonth===0?12:calMonth,py=calMonth===0?calYear-1:calYear;dk2=`${py}-${String(pm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;isOther=true;}
+    else if(i>=fd+dm){day=i-fd-dm+1;const nm=calMonth===11?1:calMonth+2,ny=calMonth===11?calYear+1:calYear;dk2=`${ny}-${String(nm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;isOther=true;}
+    else{day=i-fd+1;dk2=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;}
+    const isT=dk2===today,isSel=dk2===selDate;
+    const evts=(calEvts[dk2]||[]).map((e,i)=>({text:e.title||e,cls:e.fromGcal?'gcal':'local',idx:i,dk:dk2}));
+    const nts=notes.filter(n=>n.dateKey===dk2).map(n=>({text:n.title||'(note)',cls:'note-evt',isNote:true,id:n.id}));
+    const all=[...evts,...nts];const shown=all.slice(0,3),ov=all.length-3;
+    cells+=`<div class="cal-cell ${isOther?'other-month':''} ${isT?'is-today':''} ${isSel?'is-sel':''}"
+      onclick="selDate='${dk2}';renderCal()"
+      ondblclick="showAddPop(event,'${dk2}','09:00','10:00')"
+      oncontextmenu="event.preventDefault();showDayCtx(event,'${dk2}')"
+    >
       <div class="cal-dn">${day}</div>
-      ${shown.map(it=>`<div class="cal-event type-${it.type}">${esc(it.text)}</div>`).join('')}
-      ${ov>0?`<div class="cal-overflow">+${ov} more</div>`:''}
-      <button class="cal-cell-add" onclick="event.stopPropagation();calOpenModal('${dk2}')">+</button>
+      ${shown.map(it=>it.isNote
+        ?`<div class="cal-pill ${it.cls}" onclick="event.stopPropagation();show('notes')" oncontextmenu="event.preventDefault();event.stopPropagation();showNoteCtx(event,'${it.id}')">${esc(it.text)}</div>`
+        :`<div class="cal-pill ${it.cls}" onclick="event.stopPropagation();showEvtPopover(event,'${it.dk}',${it.idx})" oncontextmenu="event.preventDefault();event.stopPropagation();showCtxMenu(event,'${it.dk}',${it.idx})">${esc(it.text)}</div>`
+      ).join('')}
+      ${ov>0?`<div class="cal-overflow" onclick="event.stopPropagation();showAddPop(event,'${dk2}','09:00','10:00')">+${ov} more</div>`:''}
     </div>`;
   }
-
   document.getElementById('cal-body').innerHTML=`
     <div class="cal-month-wrap">
-      <div class="cal-dow-row">
-        ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
-      </div>
+      <div class="cal-dow-row">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}</div>
       <div class="cal-cells">${cells}</div>
     </div>`;
 }
 
-/* ── MODAL ── */
-function calOpenModal(dk2, hour){
-  selDate=dk2;
-  const d=new Date(dk2+'T12:00:00');
-  document.getElementById('cal-modal-title').textContent=
-    d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('cal-modal-date-lbl').textContent=dk2;
-  if(hour!==undefined){
-    document.getElementById('cal-evt-start').value=String(hour).padStart(2,'0')+':00';
-    document.getElementById('cal-evt-end').value=String(hour+1).padStart(2,'0')+':00';
+// ── ADD EVENT POPOVER (drag or dblclick) ──
+function showAddPop(e,dk,start,end){
+  closeAllCal();
+  const pop=document.createElement('div');
+  pop.className='cal-add-pop';pop.id='cal-add-pop';
+  // position near event
+  const x=Math.min(e.clientX,window.innerWidth-320),y=Math.min(e.clientY,window.innerHeight-160);
+  pop.style.cssText=`left:${x}px;top:${y}px`;
+  pop.innerHTML=`
+    <input id="cal-add-inp" placeholder="Event title" onkeydown="if(event.key==='Enter')calCommitAdd();if(event.key==='Escape')closeAllCal()"/>
+    <div class="cal-add-pop-times">
+      <input type="time" id="cal-add-start" value="${start||'09:00'}"/>
+      <span>–</span>
+      <input type="time" id="cal-add-end" value="${end||'10:00'}"/>
+    </div>
+    <div class="cal-add-pop-footer">
+      <button class="btn" onclick="closeAllCal()">Cancel</button>
+      <button class="btn pri" onclick="calCommitAdd()">Add event</button>
+    </div>`;
+  pop.dataset.dk=dk;
+  document.body.appendChild(pop);
+  setTimeout(()=>document.getElementById('cal-add-inp').focus(),30);
+}
+function calCommitAdd(){
+  const pop=document.getElementById('cal-add-pop');if(!pop)return;
+  const dk=pop.dataset.dk;
+  const val=document.getElementById('cal-add-inp').value.trim();if(!val){closeAllCal();return;}
+  const start=document.getElementById('cal-add-start').value;
+  const end=document.getElementById('cal-add-end').value;
+  if(!calEvts[dk])calEvts[dk]=[];
+  calEvts[dk].push({title:val,start,end});
+  save();closeAllCal();renderCal();
+  pushToNotion(val,dk,start,end);
+}
+
+// ── EVENT EDIT POPOVER ──
+function showEvtPopover(e,dk,idx){
+  closeAllCal();
+  const evt=calEvts[dk]?.[idx];if(!evt)return;
+  const pop=document.createElement('div');
+  pop.className='cal-popover';pop.id='cal-evt-pop';
+  const x=Math.min(e.clientX+10,window.innerWidth-340),y=Math.min(e.clientY-10,window.innerHeight-220);
+  pop.style.cssText=`left:${x}px;top:${y}px`;
+  pop.innerHTML=`
+    <div class="cal-pop-head">
+      <input class="cal-pop-title-inp" id="pop-title" value="${esc(evt.title||evt)}" placeholder="Event title"/>
+      <button class="cal-pop-close" onclick="closeAllCal()">✕</button>
+    </div>
+    <div class="cal-pop-body">
+      <div class="cal-pop-row">
+        <span class="cal-pop-label">Date</span>
+        <input class="cal-pop-date" type="date" id="pop-date" value="${dk}"/>
+      </div>
+      <div class="cal-pop-row">
+        <span class="cal-pop-label">Start</span>
+        <input class="cal-pop-time" type="time" id="pop-start" value="${evt.start||''}"/>
+        <span style="color:var(--muted);font-size:12px">–</span>
+        <input class="cal-pop-time" type="time" id="pop-end" value="${evt.end||''}"/>
+      </div>
+    </div>
+    <div class="cal-pop-footer">
+      <button class="cal-pop-del" onclick="calDelEvt('${dk}',${idx})">🗑 Delete</button>
+      <button class="cal-pop-save" onclick="calSaveEvt('${dk}',${idx})">Save</button>
+    </div>`;
+  document.body.appendChild(pop);
+  setTimeout(()=>document.getElementById('pop-title').focus(),30);
+}
+function calSaveEvt(dk,idx){
+  const evt=calEvts[dk]?.[idx];if(!evt)return;
+  const newTitle=document.getElementById('pop-title').value.trim();
+  const newDate=document.getElementById('pop-date').value;
+  const newStart=document.getElementById('pop-start').value;
+  const newEnd=document.getElementById('pop-end').value;
+  if(newTitle)evt.title=newTitle;
+  evt.start=newStart;evt.end=newEnd;
+  // handle date change
+  if(newDate!==dk){
+    calEvts[dk].splice(idx,1);
+    if(!calEvts[newDate])calEvts[newDate]=[];
+    calEvts[newDate].push(evt);
   }
-  document.getElementById('cal-modal-inp').value='';
-  calRenderModal();
-  document.getElementById('cal-modal').style.display='flex';
-  setTimeout(()=>document.getElementById('cal-modal-inp').focus(),50);
+  save();closeAllCal();renderCal();
 }
-function closeCalModal(){document.getElementById('cal-modal').style.display='none'}
-function calRenderModal(){
-  const evts=calEvts[selDate]||[];
-  const dayNotes=notes.filter(n=>n.dateKey===selDate);
-  document.getElementById('cal-modal-events').innerHTML=[
-    ...evts.map((e,i)=>{
-      const title=e.title||e;
-      const time=e.start?(e.start+(e.end?' – '+e.end:'')):'';
-      return `<div class="cal-modal-evt type-event">
-        <div class="cal-modal-evt-info">
-          <div class="cal-modal-evt-title">${esc(title)}</div>
-          ${time?`<div class="cal-modal-evt-time">${time}</div>`:''}
-        </div>
-        <button class="cal-modal-evt-del" onclick="calDel('${selDate}',${i})">✕</button>
-      </div>`;
-    }),
-    ...dayNotes.map(n=>`<div class="cal-modal-evt type-${n.quick?'quick':'note'}" style="cursor:pointer" onclick="closeCalModal();show('notes')">
-      <div class="cal-modal-evt-info"><div class="cal-modal-evt-title">${esc(n.title)||'(note)'}</div></div>
-    </div>`)
-  ].join('')||`<div style="color:var(--subtle);font-size:13px">No events — add one below</div>`;
+function calDelEvt(dk,idx){
+  calEvts[dk].splice(idx,1);save();closeAllCal();renderCal();
 }
-function calModalAdd(){
-  const inp=document.getElementById('cal-modal-inp');
-  const val=inp.value.trim();if(!val)return;
-  const start=document.getElementById('cal-evt-start').value;
-  const end=document.getElementById('cal-evt-end').value;
-  if(!calEvts[selDate])calEvts[selDate]=[];
-  calEvts[selDate].push({title:val,start,end});
-  save();inp.value='';calRenderModal();renderCal();
-  // push to Notion in background
-  pushToNotion(val, selDate, start, end);
+
+// ── CONTEXT MENUS ──
+function showCtxMenu(e,dk,idx){
+  closeAllCal();
+  const evt=calEvts[dk]?.[idx];if(!evt)return;
+  spawnCtx(e,[
+    {icon:'✏️',label:'Edit event',action:()=>showEvtPopover(e,dk,idx)},
+    {icon:'📋',label:'Duplicate',action:()=>{
+      const copy=Object.assign({},evt,{title:(evt.title||evt)+' (copy)'});
+      calEvts[dk].push(copy);save();renderCal();
+    }},
+    {sep:true},
+    {icon:'🗑',label:'Delete event',danger:true,action:()=>{calEvts[dk].splice(idx,1);save();renderCal();}}
+  ]);
 }
-function calAdd(){calModalAdd()}
-function calDel(dk2,i){calEvts[dk2].splice(i,1);save();calRenderModal();renderCal()}
+function showDayCtx(e,dk){
+  closeAllCal();
+  spawnCtx(e,[
+    {icon:'➕',label:'New event here',action:()=>showAddPop(e,dk,'09:00','10:00')},
+    {icon:'📝',label:'New note here',action:()=>{
+      const n={id:Date.now(),title:'Note for '+dk,body:'',tags:[],topic:'',quick:false,
+        date:new Date(dk+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),dateKey:dk};
+      notes.unshift(n);save();renderNotes();renderTopics();updateCounts();show('notes');
+    }},
+  ]);
+}
+function showNoteCtx(e,nid){
+  closeAllCal();
+  spawnCtx(e,[
+    {icon:'📝',label:'Open note',action:()=>show('notes')},
+    {icon:'🗑',label:'Delete note',danger:true,action:()=>{notes=notes.filter(n=>n.id!==nid);save();renderNotes();renderTopics();updateCounts();renderCal();}}
+  ]);
+}
+function spawnCtx(e,items){
+  const m=document.createElement('div');m.className='cal-ctx-menu';m.id='cal-ctx';
+  const x=Math.min(e.clientX,window.innerWidth-200),y=Math.min(e.clientY,window.innerHeight-items.length*40);
+  m.style.cssText=`left:${x}px;top:${y}px`;
+  items.forEach(it=>{
+    if(it.sep){m.insertAdjacentHTML('beforeend','<div class="cal-ctx-sep"></div>');return;}
+    const d=document.createElement('div');
+    d.className='cal-ctx-item'+(it.danger?' danger':'');
+    d.innerHTML=`<span class="cal-ctx-icon">${it.icon}</span>${esc(it.label)}`;
+    d.onclick=()=>{closeAllCal();it.action();};
+    m.appendChild(d);
+  });
+  document.body.appendChild(m);
+}
+function closeAllCal(){
+  ['cal-ctx','cal-evt-pop','cal-add-pop'].forEach(id=>{const el=document.getElementById(id);if(el)el.remove();});
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.cal-ctx-menu')&&!e.target.closest('.cal-popover')&&!e.target.closest('.cal-add-pop'))closeAllCal();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllCal();});
+
+function calAdd(){calCommitAdd();}
+function calDel(dk,i){calEvts[dk].splice(i,1);save();renderCal();}
+// legacy modal functions (kept for compat)
+function calOpenModal(dk,h){showAddPop({clientX:400,clientY:300},dk,h!==undefined?String(h).padStart(2,'0')+':00':'09:00',h!==undefined?String(h+1).padStart(2,'0')+':00':'10:00');}
+function closeCalModal(){closeAllCal();}
+function calRenderModal(){}
+function calModalAdd(){calCommitAdd();}
 
 // ── GRAPH ──
 function renderGraph(){
