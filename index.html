@@ -1193,6 +1193,7 @@ function calcDur(s,e){
   if(mins<60)return mins+'min';if(mins%60===0)return(mins/60)+'h';return Math.floor(mins/60)+'h '+mins%60+'min';
 }
 function minToStr(m){return pad(Math.floor(m/60))+':'+pad(m%60);}
+function timeToMin(t){if(!t)return 0;const[h,m]=t.split(':').map(Number);return h*60+m;}
 
 // ── RECURRENCE EXPANSION ──
 function getRecurDates(evt,originDk,dates){
@@ -1327,7 +1328,6 @@ function renderWeek(){
     <div class="cal-week-wrap" id="cal-week-wrap">
       <div class="cal-week-head">${headHtml}</div>
       <div class="cal-week-scroll" id="cal-wscroll"
-        onwheel="calHandleWheel(event)"
         onmouseleave="cDragEndGlobal(event)"
       >
         <div class="cal-gutter-col">${gutterHtml}</div>
@@ -1337,13 +1337,7 @@ function renderWeek(){
 
   // touchpad swipe
   const scroll=document.getElementById('cal-wscroll');
-  // document-level mouseup for drag-to-create (touchpad releases outside slot)
-  const _calMouseUp=e=>{if(cDragActive)cDragEndGlobal(e);};
-  // remove previous listener to avoid duplicates
-  document.removeEventListener('mouseup',document._calMouseUp||null);
-  document._calMouseUp=_calMouseUp;
-  document.addEventListener('mouseup',_calMouseUp);
-
+  scroll.addEventListener('wheel',calHandleWheel,{passive:false});
   scroll.addEventListener('touchstart',e=>{swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;},{passive:true});
   scroll.addEventListener('touchend',e=>{
     if(swipeStartX===null)return;
@@ -1366,23 +1360,24 @@ function renderWeek(){
 // ── TOUCHPAD / WHEEL SWIPE ──
 let wheelAccum=0,wheelTimer=null;
 function calHandleWheel(e){
-  // suppress horizontal nav if dragging an event
-  if(evtDragState)return;
-  if(Math.abs(e.deltaX)>Math.abs(e.deltaY)){
+  if(evtDragState||cDragActive)return;
+  // horizontal two-finger swipe on touchpad
+  if(Math.abs(e.deltaX)>Math.abs(e.deltaY)*0.5&&Math.abs(e.deltaX)>5){
     e.preventDefault();
     wheelAccum+=e.deltaX;
     clearTimeout(wheelTimer);
     wheelTimer=setTimeout(()=>{
-      if(Math.abs(wheelAccum)>120){calNav(wheelAccum>0?1:-1);}
-      wheelAccum=0;
-    },150);
+      if(Math.abs(wheelAccum)>60){
+        calNav(wheelAccum>0?1:-1);
+        wheelAccum=0;
+      }
+    },100);
   }
 }
 
 // ── DRAG TO CREATE ──
 function cDragStart(e,dk,startMin){
   if(e.button!==0)return;
-  // don't start create-drag if we're about to move an event
   if(e.target.closest('.cal-evt'))return;
   e.preventDefault();
   cDragDk=dk;cDragStartMin=startMin;cDragEndMin=startMin+15;cDragActive=true;
@@ -1394,6 +1389,17 @@ function cDragStart(e,dk,startMin){
   cDragGhost.style.cssText=`background:${col2.bg};border-left:3px solid ${col2.border};color:${col2.text}`;
   updateCDragGhost();
   col.appendChild(cDragGhost);
+  // attach doc-level listeners so touchpad release always fires
+  document.addEventListener('mouseup',_cDragDocUp);
+  document.addEventListener('mousemove',_cDragDocMove);
+}
+function _cDragDocUp(e){cDragEndGlobal(e);}
+function _cDragDocMove(e){
+  if(!cDragActive)return;
+  // find slot under cursor
+  const els=document.elementsFromPoint(e.clientX,e.clientY);
+  const slot=els.find(el=>el.classList.contains('cal-slot')&&el.dataset.min!==undefined&&el.dataset.dk===cDragDk);
+  if(slot)cDragMove(e,parseInt(slot.dataset.min));
 }
 function cDragMove(e,curMin){
   if(!cDragActive||!cDragGhost)return;
@@ -1410,10 +1416,12 @@ function updateCDragGhost(){
 function cDragEnd(e,dk){if(cDragActive&&cDragDk===dk)cDragEndGlobal(e);}
 function cDragEndGlobal(e){
   if(!cDragActive)return;
+  document.removeEventListener('mouseup',_cDragDocUp);
+  document.removeEventListener('mousemove',_cDragDocMove);
   const dk=cDragDk,sm=cDragStartMin,em=cDragEndMin;
   if(cDragGhost){cDragGhost.remove();cDragGhost=null;}
   cDragDk=null;cDragStartMin=null;cDragEndMin=null;cDragActive=false;
-  if(sm===null||em===null)return;
+  if(sm===null||em===null||em<=sm)return;
   showAddPop(e,dk,minToStr(sm),minToStr(em));
 }
 
@@ -1463,10 +1471,7 @@ function evtDragMove(e){
     evtDragState.curDk=slotEl.dataset.dk;
     evtDragState.curMin=newStartMin;
     // duration
-    const[sh,sm]=evt.start.split(':').map(Number);
-    const origStart=sh*60+sm;
-    const dur=evt.end?
-      (evt.end.split(':').map(Number).reduce((a,b,i)=>i===0?a*60+b:a)-origStart):60;
+    const dur=evt.end?Math.max(15,timeToMin(evt.end)-timeToMin(evt.start)):60;
     const newEnd=Math.min(newStartMin+Math.max(dur,15),24*60-1);
     preview.querySelector('div:last-child').textContent=
       fmtTime(minToStr(newStartMin))+(dur>0?' – '+fmtTime(minToStr(newEnd)):'');
@@ -1498,11 +1503,8 @@ function evtDragEndGlobal(e){
 
   if(!moved)return; // was just a click, let onclick handle
 
-  // calculate new times
-  const[sh,sm]=evt.start.split(':').map(Number);
-  const origStartMin=sh*60+sm;
-  const dur=evt.end?
-    ((evt.end.split(':').map(Number).reduce((a,b,i)=>i===0?a*60+b:a))-origStartMin):60;
+  // calculate new times — preserve exact duration
+  const dur=evt.end?Math.max(15,timeToMin(evt.end)-timeToMin(evt.start)):60;
   const newStartMin=Math.max(0,Math.min(curMin,24*60-15));
   const newEndMin=Math.min(newStartMin+dur,24*60-1);
   const newStart=minToStr(newStartMin);
