@@ -264,7 +264,7 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-slot:hover{background:rgba(255,255,255,.05)}
 .cal-slot{border-top:1px solid transparent}
 .cal-slot.hour-start{border-top:1px solid rgba(255,255,255,.09)}
-.cal-slot.half-hour{border-top:1px solid rgba(255,255,255,.04)}
+.cal-slot.half-hour{border-top-color:transparent}
 .cal-slot.quarter{border-top-color:transparent}
 /* drag ghost */
 .cal-drag-ghost{position:absolute;left:3px;right:3px;border-radius:5px;z-index:50;pointer-events:none;padding:4px 7px;font-size:11px;font-weight:500;min-height:10px;border-left:3px solid}
@@ -1682,11 +1682,24 @@ function evtDragEnd(e){
   const nextStart=Math.max(0,Math.min(24*60-15,st.targetMin));
   const nextEnd=Math.max(nextStart+15,Math.min(24*60,nextStart+st.durationMin));
   const movedEvt={...src,start:minToStr(nextStart),end:minToStr(nextEnd)};
-  calEvts[st.dk].splice(st.idx,1);
-  if(!calEvts[st.targetDk])calEvts[st.targetDk]=[];
-  calEvts[st.targetDk].push(movedEvt);
-  save();
-  renderCal();
+  const applyMove=()=>{
+    calEvts[st.dk].splice(st.idx,1);
+    if(!calEvts[st.targetDk])calEvts[st.targetDk]=[];
+    calEvts[st.targetDk].push(movedEvt);
+    save();
+    renderCal();
+  };
+  const isRecur=(src.repeat||'none')!=='none';
+  if(isRecur){
+    showRecurDialog(
+      src.title||'',
+      {start:src.start,end:src.end},
+      {start:movedEvt.start,end:movedEvt.end},
+      ()=>applyMove()
+    );
+    return;
+  }
+  applyMove();
 }
 
 // ── RESIZE ──
