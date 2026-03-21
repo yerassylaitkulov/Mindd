@@ -257,7 +257,8 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-week-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .cal-gutter-col{width:58px;flex-shrink:0}
 .cal-gutter-lbl{display:flex;align-items:flex-start;justify-content:flex-end;padding-right:8px;font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:0;user-select:none}
-.cal-day-col{flex:1;border-left:1px solid rgba(255,255,255,.08);position:relative;min-width:0;background:var(--bg)}
+.cal-day-col{flex:1;border-left:none;position:relative;min-width:0;background:var(--bg)}
+.cal-day-col::before{content:'';position:absolute;left:0;top:0;bottom:0;width:1px;background:rgba(255,255,255,.1);pointer-events:none;z-index:40}
 .cal-day-col.is-today{background:#0f0e0c}
 .cal-slot{position:relative;cursor:crosshair;transition:background .06s}
 .cal-slot:hover{background:rgba(255,255,255,.05)}
@@ -1168,6 +1169,7 @@ const CAL_ZOOM_BASE=32;
 const CAL_ZOOM_MIN=2;
 const CAL_ZOOM_MAX=96;
 const CAL_ZOOM_STEP=2;
+let evtMoveState=null; // {dk,idx,durationMin,hasMoved,targetDk,targetMin}
 
 // drag-to-create state
 // drag-event-move state
@@ -1357,6 +1359,31 @@ function renderWeek(){
     });
   });
 
+  let minEvt=24*60,maxEvt=0,hasTimed=false;
+  wds.forEach(d=>{
+    const dk2=dkey(d);
+    (calEvts[dk2]||[]).forEach(evt=>{
+      if(!evt.start)return;
+      const s=timeToMin(evt.start),e=evt.end?timeToMin(evt.end):Math.min(24*60,s+60);
+      minEvt=Math.min(minEvt,s);maxEvt=Math.max(maxEvt,e);hasTimed=true;
+    });
+    (recurMap[dk2]||[]).forEach(evt=>{
+      if(!evt.start)return;
+      const s=timeToMin(evt.start),e=evt.end?timeToMin(evt.end):Math.min(24*60,s+60);
+      minEvt=Math.min(minEvt,s);maxEvt=Math.max(maxEvt,e);hasTimed=true;
+    });
+  });
+  if(hasTimed){
+    const bodyEl=document.getElementById('cal-body');
+    const approxAvail=Math.max(220,(bodyEl?.clientHeight||700)-48);
+    const padMin=Math.max(0,minEvt-60);
+    const padMax=Math.min(24*60,maxEvt+45);
+    const slots=Math.max(8,Math.ceil((padMax-padMin)/15));
+    const fitH=Math.floor(approxAvail/slots);
+    calSlotH=Math.max(CAL_ZOOM_MIN,Math.min(CAL_ZOOM_MAX,fitH));
+    _updateCalZoomLabel();
+  }
+
   let colsHtml='';
   wds.forEach(d=>{
     const dk2=dkey(d);const isT=dk2===today;
@@ -1397,6 +1424,7 @@ function renderWeek(){
       const top=(sh*60+sm)/15*calSlotH;
       const hpx=Math.max(calSlotH,((eh*60+em)-(sh*60+sm))/15*calSlotH);
       evtHtml+=`<div class="cal-evt" style="top:${top}px;height:${hpx}px;${evtStyle(evt)};opacity:.8"
+        onmousedown="evtDragStart(event,'${evt._oDk}',${evt._oIdx})"
         onclick="event.stopPropagation();showEvtPop(event,'${evt._oDk}',${evt._oIdx})"
         oncontextmenu="event.preventDefault();event.stopPropagation();showCtxMenu(event,'${evt._oDk}',${evt._oIdx})"
       >
@@ -1448,7 +1476,14 @@ function renderWeek(){
   }
   setTimeout(()=>{
     const sc=document.getElementById('cal-wscroll');
-    if(sc)sc.scrollTop=8*4*calSlotH-calSlotH*2;
+    if(sc){
+      if(hasTimed){
+        const smartTop=Math.max(0,Math.floor((Math.max(0,minEvt-60))/15)*calSlotH);
+        sc.scrollTop=smartTop;
+      }else{
+        sc.scrollTop=8*4*calSlotH-calSlotH*2;
+      }
+    }
     initCalSwipe();
     initCalDrag();
   },30);
@@ -1567,25 +1602,7 @@ function _cPtrUp(e){
   cDragDk=null;cDragStartMin=null;cDragEndMin=null;cDragActive=false;cDragPointerId=null;cDragMoved=false;
   if(sm===null||em===null||em<=sm)return;
   if(!moved){showAddPop(e,dk,minToStr(sm),minToStr(em));return;}
-  if(!calEvts[dk])calEvts[dk]=[];
-  calEvts[dk].push({
-    title:'New event',
-    start:minToStr(sm),
-    end:minToStr(em),
-    allDay:false,
-    location:'',
-    desc:'',
-    remind:'',
-    color:'blue',
-    repeat:'none',
-    repeatEvery:1,
-    repeatDays:[],
-    repeatEnds:'never',
-    repeatEndDate:'',
-    repeatAfter:4
-  });
-  save();
-  renderCal();
+  quickCreateEvent(dk,minToStr(sm),minToStr(em));
 }
 
 function updateCDragGhost(){
@@ -1602,6 +1619,75 @@ function cDragEnd(){}
 function cDragEndGlobal(){}
 function _cDragDocUp(){}
 function _cDragDocMove(){}
+
+function quickCreateEvent(dk,start,end){
+  const title=prompt('Event title:', '');
+  if(title===null)return;
+  const val=title.trim();
+  if(!val)return;
+  if(!calEvts[dk])calEvts[dk]=[];
+  calEvts[dk].push({
+    title:val,
+    start,
+    end,
+    allDay:false,
+    location:'',
+    desc:'',
+    remind:'',
+    color:'blue',
+    repeat:'none',
+    repeatEvery:1,
+    repeatDays:[],
+    repeatEnds:'never',
+    repeatEndDate:'',
+    repeatAfter:4
+  });
+  save();
+  renderCal();
+}
+
+function evtDragStart(e,dk,idx){
+  if(e.button!==0)return;
+  const evt=calEvts[dk]?.[idx];
+  if(!evt||!evt.start)return;
+  e.preventDefault();
+  e.stopPropagation();
+  const s=timeToMin(evt.start);
+  const en=evt.end?timeToMin(evt.end):Math.min(24*60,s+60);
+  evtMoveState={dk,idx,durationMin:Math.max(15,en-s),hasMoved:false,targetDk:dk,targetMin:s};
+  document.addEventListener('mousemove',evtDragMove);
+  document.addEventListener('mouseup',evtDragEnd);
+}
+function evtDragMove(e){
+  if(!evtMoveState)return;
+  const dx=Math.abs(e.movementX||0),dy=Math.abs(e.movementY||0);
+  if(dx+dy>0)evtMoveState.hasMoved=true;
+  const els=document.elementsFromPoint(e.clientX,e.clientY);
+  const slot=els.find(el=>el.classList?.contains('cal-slot')&&el.dataset.dk&&el.dataset.min!==undefined);
+  if(!slot)return;
+  const min=parseInt(slot.dataset.min,10);
+  if(Number.isNaN(min))return;
+  evtMoveState.targetDk=slot.dataset.dk;
+  evtMoveState.targetMin=min;
+}
+function evtDragEnd(e){
+  if(!evtMoveState)return;
+  document.removeEventListener('mousemove',evtDragMove);
+  document.removeEventListener('mouseup',evtDragEnd);
+  const st=evtMoveState;
+  evtMoveState=null;
+  if(!st.hasMoved)return;
+  const src=calEvts[st.dk]?.[st.idx];
+  if(!src)return;
+  const nextStart=Math.max(0,Math.min(24*60-15,st.targetMin));
+  const nextEnd=Math.max(nextStart+15,Math.min(24*60,nextStart+st.durationMin));
+  const movedEvt={...src,start:minToStr(nextStart),end:minToStr(nextEnd)};
+  calEvts[st.dk].splice(st.idx,1);
+  if(!calEvts[st.targetDk])calEvts[st.targetDk]=[];
+  calEvts[st.targetDk].push(movedEvt);
+  save();
+  renderCal();
+}
 
 // ── RESIZE ──
 
