@@ -1465,19 +1465,18 @@ function initCalSwipe(){
 }
 
 let _swipeOffset=0, _swipeAnimating=false;
+const SWIPE_PX_PER_DAY=100; // px of horizontal scroll = 1 day shift
+
 function onCalWheel(e){
   if(evtDragState||cDragActive)return;
   const ax=Math.abs(e.deltaX), ay=Math.abs(e.deltaY);
-  // Trackpads usually provide deltaX for horizontal swipe.
-  // Classic mouse wheels can navigate horizontally with Shift+wheel (deltaY).
   let swipeDelta=0;
-  if(ax>=8 && ax>=ay*0.4){
+  if(ax>=4 && ax>=ay*0.35){
     swipeDelta=e.deltaX;
-  }else if(e.shiftKey && ay>=8){
+  }else if(e.shiftKey && ay>=4){
     swipeDelta=e.deltaY;
   }else{
-    // Keep normal vertical scroll in the week grid.
-    return;
+    return; // vertical — let it scroll normally
   }
   e.preventDefault();
   e.stopPropagation();
@@ -1487,15 +1486,29 @@ function onCalWheel(e){
     requestAnimationFrame(_swipeFlush);
   }
 }
+
 function _swipeFlush(){
   _swipeAnimating=false;
-  if(Math.abs(_swipeOffset)>180){
-    calNav(_swipeOffset>0?1:-1);
-    _swipeOffset=0;
-  } else if(Math.abs(_swipeOffset)>0){
-    // keep accumulating for another frame
+  // How many whole days does the accumulated offset represent?
+  const days=Math.trunc(_swipeOffset/SWIPE_PX_PER_DAY);
+  if(days!==0){
+    // Shift selDate by that many days
+    const d=new Date(selDate+'T12:00:00');
+    d.setDate(d.getDate()+days);
+    selDate=dkey(d);
+    calYear=d.getFullYear();
+    calMonth=d.getMonth();
+    renderCal();
+    // Carry remainder so fast flicks keep accumulating
+    _swipeOffset=_swipeOffset - days*SWIPE_PX_PER_DAY;
+  }
+  // Decay remainder so a slow partial swipe doesn't drift forever
+  if(Math.abs(_swipeOffset)>2){
+    _swipeOffset*=0.75;
     _swipeAnimating=true;
     requestAnimationFrame(_swipeFlush);
+  }else{
+    _swipeOffset=0;
   }
 }
 
