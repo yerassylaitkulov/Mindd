@@ -226,11 +226,6 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-view-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
 .cal-vbtn{padding:3px 12px;font-size:13px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .1s}
 .cal-vbtn.active{background:var(--surface2);color:var(--ink);font-weight:500}
-/* zoom control */
-.cal-zoom-wrap{display:flex;align-items:center;gap:6px;margin-left:auto}
-.cal-zoom-btn{width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid var(--border);background:none;border-radius:4px;cursor:pointer;color:var(--muted);transition:all .1s;line-height:1}
-.cal-zoom-btn:hover{background:var(--surface2);color:var(--ink)}
-.cal-zoom-lbl{font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;min-width:28px;text-align:center}
 .gcal-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:12px;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s;white-space:nowrap}
 .gcal-btn:hover{border-color:#4285f4;color:#4285f4}
 .gcal-btn.connected{border-color:#0f9d58;color:#0f9d58}
@@ -610,12 +605,6 @@ canvas#gc{width:100%;height:100%;display:block}
             <div class="cal-view-toggle">
               <button class="cal-vbtn active" id="cvbtn-week" onclick="setCalView('week')">Week</button>
               <button class="cal-vbtn" id="cvbtn-month" onclick="setCalView('month')">Month</button>
-            </div>
-            <div class="cal-zoom-wrap">
-              <button class="cal-zoom-btn" onclick="calZoomOut()" title="Zoom out">−</button>
-              <span class="cal-zoom-lbl" id="cal-zoom-lbl">50%</span>
-              <button class="cal-zoom-btn" onclick="calZoomIn()" title="Zoom in">+</button>
-              <button class="cal-zoom-btn" onclick="calZoomFit()" title="Fit full day">Fit</button>
             </div>
             <button class="gcal-btn" id="gcal-btn" onclick="gcalConnect()">📅 Sync Google Cal</button>
           </div>
@@ -1163,12 +1152,8 @@ function fAns(ok){if(ok)flashScore.c++;else flashScore.w++;flashIdx++;flashFlipp
 
 // ── CALENDAR ──
 let calView='week';
-let calSlotH=16; // px per 15min slot — default denser week scale
-let calZoom=50; // percentage label
-const CAL_ZOOM_BASE=32;
-const CAL_ZOOM_MIN=2;
-const CAL_ZOOM_MAX=96;
-const CAL_ZOOM_STEP=2;
+const CAL_FIXED_SLOT_H=16;
+let calSlotH=CAL_FIXED_SLOT_H; // fixed calendar scale
 let evtMoveState=null; // {dk,idx,durationMin,hasMoved,targetDk,targetMin}
 
 // drag-to-create state
@@ -1195,33 +1180,6 @@ const EVT_COLORS=[
 ];
 function getColor(id){return EVT_COLORS.find(c=>c.id===id)||EVT_COLORS[0];}
 function evtStyle(evt){const col=getColor(evt.color||'blue');return`background:${col.bg};border-left-color:${col.border};color:${col.text}`;}
-
-// ── ZOOM ──
-function _updateCalZoomLabel(){
-  calZoom=Math.round(calSlotH/CAL_ZOOM_BASE*100);
-  const z=document.getElementById('cal-zoom-lbl');
-  if(z)z.textContent=calZoom+'%';
-}
-function calZoomIn(){
-  calSlotH=Math.min(calSlotH+CAL_ZOOM_STEP,CAL_ZOOM_MAX);
-  _updateCalZoomLabel();
-  renderCal();
-}
-function calZoomOut(){
-  calSlotH=Math.max(calSlotH-CAL_ZOOM_STEP,CAL_ZOOM_MIN);
-  _updateCalZoomLabel();
-  renderCal();
-}
-function calZoomFit(){
-  if(calView!=='week')setCalView('week');
-  const body=document.getElementById('cal-body');
-  const head=document.querySelector('.cal-week-head');
-  if(!body)return;
-  const available=Math.max(96, body.clientHeight-(head?head.offsetHeight:0)-4);
-  calSlotH=Math.max(CAL_ZOOM_MIN,Math.min(CAL_ZOOM_MAX,Math.floor(available/96)));
-  _updateCalZoomLabel();
-  renderCal();
-}
 
 // ── NAV ──
 function setCalView(v){
@@ -1274,7 +1232,7 @@ function calMiniPick(dk,y,m){
   document.getElementById('cvbtn-month').classList.remove('active');
   renderCal();
 }
-function renderCal(){_updateCalZoomLabel();renderMiniCal();calView==='week'?renderWeek():renderMonth();}
+function renderCal(){renderMiniCal();calView==='week'?renderWeek():renderMonth();}
 
 // helpers
 function pad(n){return String(n).padStart(2,'0')}
@@ -1320,6 +1278,7 @@ function getRecurDates(evt,originDk,dates){
 
 // ── WEEK VIEW ──
 function renderWeek(){
+  calSlotH=CAL_FIXED_SLOT_H;
   const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const today=dkey(new Date());
@@ -1373,17 +1332,6 @@ function renderWeek(){
       minEvt=Math.min(minEvt,s);maxEvt=Math.max(maxEvt,e);hasTimed=true;
     });
   });
-  if(hasTimed){
-    const bodyEl=document.getElementById('cal-body');
-    const approxAvail=Math.max(220,(bodyEl?.clientHeight||700)-48);
-    const padMin=Math.max(0,minEvt-60);
-    const padMax=Math.min(24*60,maxEvt+45);
-    const slots=Math.max(8,Math.ceil((padMax-padMin)/15));
-    const fitH=Math.floor(approxAvail/slots);
-    calSlotH=Math.max(CAL_ZOOM_MIN,Math.min(CAL_ZOOM_MAX,fitH));
-    _updateCalZoomLabel();
-  }
-
   let colsHtml='';
   wds.forEach(d=>{
     const dk2=dkey(d);const isT=dk2===today;
@@ -2093,10 +2041,6 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){document.getElementById('repeat-modal-overlay')?.remove();document.getElementById('recur-dialog-overlay')?.remove();closeAllCal();}
   // Ctrl+scroll zoom
 });
-document.addEventListener('wheel',e=>{
-  if(e.ctrlKey){e.preventDefault();if(e.deltaY<0)calZoomIn();else calZoomOut();}
-},{passive:false});
-
 // legacy compat
 function calAdd(){capSave();}
 function calDel(dk,i){calEvts[dk].splice(i,1);save();renderCal();}
