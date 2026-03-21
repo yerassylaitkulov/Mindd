@@ -249,15 +249,18 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-week-scroll{flex:1;overflow-y:auto;overflow-x:auto;display:flex;scrollbar-width:thin;scrollbar-color:var(--border) transparent;scrollbar-gutter:stable;min-width:0}
 .cal-week-scroll::-webkit-scrollbar{width:5px}
 .cal-week-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.cal-gutter-col{width:58px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.1);box-sizing:border-box}
+.cal-gutter-col{width:58px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06);box-sizing:border-box}
 .cal-gutter-lbl{display:flex;align-items:flex-start;justify-content:flex-end;padding-right:8px;font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:0;user-select:none}
+.cal-gutter-lbl.gl-hour{color:var(--subtle)}
+.cal-gutter-lbl.gl-half{color:rgba(107,103,96,.5);font-size:8px}
+.cal-gutter-lbl.gl-quarter{color:rgba(107,103,96,.3);font-size:7.5px}
 .cal-day-col{flex:1;position:relative;min-width:80px;background:var(--bg);border-left:none;box-sizing:border-box}
-.cal-day-col+.cal-day-col{border-left:1px solid rgba(255,255,255,.1)}
+.cal-day-col+.cal-day-col{border-left:1px solid rgba(255,255,255,.05)}
 .cal-day-col.is-today{background:#0f0e0c}
-.cal-slot{position:relative;cursor:crosshair;transition:background .06s;box-sizing:border-box;border-top:1px solid transparent;margin:0}
-.cal-slot:hover{background:rgba(255,255,255,.05)}
-.cal-slot.hour-start{border-top-color:rgba(255,255,255,.1)}
-.cal-slot.half-hour,.cal-slot.quarter{border-top-color:transparent}
+.cal-slot{position:relative;cursor:crosshair;box-sizing:border-box;border:none;margin:0}
+.cal-slot:hover{background:rgba(255,255,255,.04)}
+.cal-slot.hour-start{border-top:1px solid rgba(255,255,255,.08)}
+.cal-slot.half-hour,.cal-slot.quarter{border:none}
 /* drag ghost */
 .cal-drag-ghost{position:absolute;left:3px;right:3px;border-radius:5px;z-index:50;pointer-events:none;padding:4px 7px;font-size:11px;font-weight:500;min-height:10px;border-left:3px solid}
 /* events */
@@ -1296,12 +1299,23 @@ function renderWeek(){
     </div>`;
   });
 
-  // gutter labels — one per hour
+  // gutter labels — per 15-min slot; sub-hour labels replace grid borders
+  const hourPx=calSlotH*4;
   let gutterHtml='';
-  for(let h=0;h<24;h++){
-    const lbl=h===0?'':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM';
-    // 4 slots × calSlotH px each = 1 hour
-    gutterHtml+=`<div class="cal-gutter-lbl" style="height:${calSlotH*4}px">${lbl}</div>`;
+  for(let s=0;s<96;s++){
+    const h=Math.floor(s/4), q=s%4;
+    let lbl='', cls='';
+    if(q===0){
+      lbl=h===0?'':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM';
+      cls='gl-hour';
+    } else if(q===2 && hourPx>=36){
+      lbl=':30';
+      cls='gl-half';
+    } else if((q===1||q===3) && hourPx>=72){
+      lbl=q===1?':15':':45';
+      cls='gl-quarter';
+    }
+    gutterHtml+=`<div class="cal-gutter-lbl ${cls}" style="height:${calSlotH}px">${lbl}</div>`;
   }
 
   // build recurring overlay map for this week
