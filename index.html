@@ -1373,12 +1373,20 @@ let _swipeOffset=0, _swipeAnimating=false;
 function onCalWheel(e){
   if(evtDragState||cDragActive)return;
   const ax=Math.abs(e.deltaX), ay=Math.abs(e.deltaY);
-  // only intercept clearly horizontal swipes
-  if(ax < 8 && ay > ax)return;
-  if(ax < ay*0.4)return;
+  // Trackpads usually provide deltaX for horizontal swipe.
+  // Classic mouse wheels can navigate horizontally with Shift+wheel (deltaY).
+  let swipeDelta=0;
+  if(ax>=8 && ax>=ay*0.4){
+    swipeDelta=e.deltaX;
+  }else if(e.shiftKey && ay>=8){
+    swipeDelta=e.deltaY;
+  }else{
+    // Keep normal vertical scroll in the week grid.
+    return;
+  }
   e.preventDefault();
   e.stopPropagation();
-  _swipeOffset += e.deltaX;
+  _swipeOffset += swipeDelta;
   if(!_swipeAnimating){
     _swipeAnimating=true;
     requestAnimationFrame(_swipeFlush);
