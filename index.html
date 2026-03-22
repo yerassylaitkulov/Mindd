@@ -496,6 +496,8 @@ canvas#gc{width:100%;height:100%;display:block}
 .sg-cell.editing{outline:2px solid #0f9d58;background:#050e05;caret-color:#0f9d58}
 /* formula cells — text-align right for numbers */
 .sg-cell.num{text-align:right}
+.sg-frozen-row{position:sticky;top:0;z-index:25}
+.sg-frozen-col{position:sticky;left:40px;z-index:22}
 .sheets-tabs-row{display:flex;align-items:center;gap:2px;padding:4px 10px;border-top:1px solid var(--border);flex-shrink:0;background:#0a0a08;overflow-x:auto;scrollbar-width:none}
 .sheets-tabs-row::-webkit-scrollbar{display:none}
 .sg-tab{padding:4px 14px;font-size:12px;font-family:'Geist',sans-serif;color:var(--muted);cursor:pointer;border-radius:4px 4px 0 0;border:1px solid transparent;border-bottom:none;transition:all .1s;white-space:nowrap}
@@ -3709,6 +3711,64 @@ function _renderFileList() {
 }
 
 // ── OPEN FILE ──
+// ── CELL FORMAT HELPERS ──
+function _rgbToHex(c) {
+  if (!c) return null;
+  const r = Math.round((c.red||0)*255), g = Math.round((c.green||0)*255), b = Math.round((c.blue||0)*255);
+  return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+function _parseCellFmt(cell) {
+  const fmt = cell?.effectiveFormat || {};
+  const uefmt = cell?.userEnteredFormat || {};
+  const tf = fmt.textFormat || {};
+  const bg = fmt.backgroundColor;
+  const fg = tf.foregroundColor;
+  const hAlign = fmt.horizontalAlignment; // LEFT RIGHT CENTER
+  const vAlign = fmt.verticalAlignment;   // TOP MIDDLE BOTTOM
+  const numFmt = fmt.numberFormat?.type;  // CURRENCY, DATE, etc
+  const borders = fmt.borders;
+  const wrap = fmt.wrapStrategy; // WRAP OVERFLOW CLIP
+  return {
+    bg:      bg  ? _rgbToHex(bg)  : null,
+    fg:      fg  ? _rgbToHex(fg)  : null,
+    bold:    tf.bold    || false,
+    italic:  tf.italic  || false,
+    strike:  tf.strikethrough || false,
+    under:   tf.underline || false,
+    fontSize: tf.fontSize || null,
+    fontFamily: tf.fontFamily || null,
+    hAlign:  hAlign || 'LEFT',
+    numFmt:  numFmt || null,
+    wrap:    wrap || 'OVERFLOW',
+    borders: borders || null,
+    bTop:    borders?.top?.style    && borders.top.style    !== 'NONE' ? _rgbToHex(borders.top.color)    || '#444' : null,
+    bBot:    borders?.bottom?.style && borders.bottom.style !== 'NONE' ? _rgbToHex(borders.bottom.color) || '#444' : null,
+    bLeft:   borders?.left?.style   && borders.left.style   !== 'NONE' ? _rgbToHex(borders.left.color)   || '#444' : null,
+    bRight:  borders?.right?.style  && borders.right.style  !== 'NONE' ? _rgbToHex(borders.right.color)  || '#444' : null,
+  };
+}
+
+function _cellInlineStyle(fmt) {
+  if (!fmt) return '';
+  let s = '';
+  if (fmt.bg && fmt.bg !== '#ffffff' && fmt.bg !== '#000000') s += `background:${fmt.bg};`;
+  if (fmt.fg && fmt.fg !== '#000000') s += `color:${fmt.fg};`;
+  if (fmt.bold)   s += 'font-weight:700;';
+  if (fmt.italic) s += 'font-style:italic;';
+  if (fmt.strike) s += 'text-decoration:line-through;';
+  if (fmt.under)  s += 'text-decoration:underline;';
+  if (fmt.fontSize) s += `font-size:${fmt.fontSize}px;`;
+  if (fmt.fontFamily) s += `font-family:'${fmt.fontFamily}',sans-serif;`;
+  if (fmt.hAlign === 'CENTER') s += 'text-align:center;';
+  else if (fmt.hAlign === 'RIGHT') s += 'text-align:right;';
+  if (fmt.bTop)   s += `border-top:1px solid ${fmt.bTop}!important;`;
+  if (fmt.bBot)   s += `border-bottom:1px solid ${fmt.bBot}!important;`;
+  if (fmt.bLeft)  s += `border-left:1px solid ${fmt.bLeft}!important;`;
+  if (fmt.bRight) s += `border-right:1px solid ${fmt.bRight}!important;`;
+  return s;
+}
+
 async function _sheetsOpenFile(id, name) {
   document.getElementById('sheets-empty').style.display = 'none';
   document.getElementById('sheets-editor').style.display = 'flex';
@@ -3716,20 +3776,47 @@ async function _sheetsOpenFile(id, name) {
   try {
     const meta = await _sheetsReq('GET', `/${id}?includeGridData=true`);
     if (!meta) return;
+
+    // Also get column widths and row heights
     const sheets = (meta.sheets || []).map(sh => {
       const rows = sh.data?.[0]?.rowData || [];
-      const maxCols = Math.max(20, ...rows.map(r => (r.values||[]).length));
+      const colMeta = sh.data?.[0]?.columnMetadata || [];
+      const rowMeta = sh.data?.[0]?.rowMetadata   || [];
+      const maxCols = Math.max(26, ...rows.map(r => (r.values||[]).length));
       const maxRows = Math.max(50, rows.length + 5);
-      // Build 2D array
+
+      // Per-column widths (px)
+      const colWidths = Array.from({length: maxCols}, (_, ci) =>
+        colMeta[ci]?.pixelSize || 100
+      );
+      // Per-row heights (px)
+      const rowHeights = Array.from({length: maxRows}, (_, ri) =>
+        rowMeta[ri]?.pixelSize || 21
+      );
+
+      // Cell data: store {v: displayValue, fmt: parsedFormat, raw: userEnteredValue}
       const data = Array.from({length: maxRows}, (_, ri) => {
         const rowVals = rows[ri]?.values || [];
         return Array.from({length: maxCols}, (_, ci) => {
           const cell = rowVals[ci] || {};
-          return cell.formattedValue ?? cell.userEnteredValue?.stringValue ?? cell.userEnteredValue?.numberValue?.toString() ?? '';
+          const uev = cell.userEnteredValue;
+          const raw = uev?.formulaValue ?? uev?.stringValue ?? uev?.numberValue?.toString() ?? uev?.boolValue?.toString() ?? '';
+          const display = cell.formattedValue ?? raw;
+          return { v: display, raw, fmt: _parseCellFmt(cell) };
         });
       });
-      return { id: sh.properties.sheetId, name: sh.properties.title, data };
+
+      return {
+        id: sh.properties.sheetId,
+        name: sh.properties.title,
+        data,
+        colWidths,
+        rowHeights,
+        frozenRows: sh.properties.gridProperties?.frozenRowCount || 0,
+        frozenCols: sh.properties.gridProperties?.frozenColumnCount || 0,
+      };
     });
+
     _activeFile = { id, name, sheets, dirty: false };
     _activeSheet = 0;
     _renderSheetTabs();
@@ -3743,35 +3830,48 @@ function _renderGrid() {
   if (!_activeFile) return;
   const sh = _activeFile.sheets[_activeSheet];
   const data = sh.data;
-  const rows = data.length, cols = data[0]?.length || 20;
+  const rows = data.length, cols = data[0]?.length || 26;
+  const colWidths  = sh.colWidths  || [];
+  const rowHeights = sh.rowHeights || [];
+  const frozenRows = sh.frozenRows || 0;
+  const frozenCols = sh.frozenCols || 0;
 
-  // Build col letters
-  const colLetter = c => c < 26 ? String.fromCharCode(65+c) : String.fromCharCode(65+Math.floor(c/26)-1)+String.fromCharCode(65+c%26);
+  const colLetter = c => c < 26
+    ? String.fromCharCode(65+c)
+    : String.fromCharCode(65+Math.floor(c/26)-1)+String.fromCharCode(65+c%26);
 
-  let html = '';
-  // Set grid-template-columns
-  const colW = 100;
   const gridEl = document.getElementById('sheets-grid');
-  gridEl.style.gridTemplateColumns = `40px repeat(${cols}, ${colW}px)`;
+  const colDefs = Array.from({length:cols}, (_,c) => (colWidths[c]||100)+'px').join(' ');
+  gridEl.style.gridTemplateColumns = `40px ${colDefs}`;
 
-  // Corner
-  html += '<div class="sg-corner"></div>';
+  let html = '<div class="sg-corner"></div>';
+
   // Col headers
-  for (let c = 0; c < cols; c++) html += `<div class="sg-col-hd" data-col="${c}">${colLetter(c)}</div>`;
+  for (let c = 0; c < cols; c++) {
+    const w = colWidths[c] || 100;
+    html += `<div class="sg-col-hd${c<frozenCols?' sg-frozen-col':''}" data-col="${c}" style="min-width:${w}px;width:${w}px">${colLetter(c)}</div>`;
+  }
 
-  // Rows
+  // Rows + cells
   for (let r = 0; r < rows; r++) {
-    html += `<div class="sg-row-hd" data-row="${r}">${r+1}</div>`;
+    const rh = rowHeights[r] || 21;
+    const frozen = r < frozenRows;
+    html += `<div class="sg-row-hd${frozen?' sg-frozen-row':''}" data-row="${r}" style="height:${rh}px;line-height:${rh}px">${r+1}</div>`;
     for (let c = 0; c < cols; c++) {
-      const val = data[r][c] ?? '';
-      const isNum = val !== '' && !isNaN(val) && val.trim() !== '';
+      const cell = data[r]?.[c] ?? {v:'', fmt:null};
+      const val  = typeof cell === 'string' ? cell : (cell.v ?? '');
+      const fmt  = typeof cell === 'object' ? cell.fmt : null;
+      const isNum = fmt?.hAlign === 'RIGHT' || (val !== '' && !isNaN(val) && val.trim() !== '' && fmt?.hAlign !== 'LEFT' && fmt?.hAlign !== 'CENTER');
       const active = _selCell.r===r && _selCell.c===c;
-      html += `<div class="sg-cell${isNum?' num':''}${active?' active':''}"
+      const fmtStyle = _cellInlineStyle(fmt) + `height:${rh}px;line-height:${rh}px;min-width:${colWidths[c]||100}px;`;
+      html += `<div class="sg-cell${isNum&&!fmt?.hAlign?' num':''}${active?' active':''}${frozen?' sg-frozen-row':''}"
         data-r="${r}" data-c="${c}"
         tabindex="0"
+        style="${fmtStyle}"
         onclick="_sgClick(${r},${c})"
         ondblclick="_sgEdit(${r},${c})"
         onkeydown="_sgKey(event,${r},${c})"
+        title="${esc(val)}"
       >${esc(val)}</div>`;
     }
   }
@@ -3785,7 +3885,10 @@ function _updateFormulaBar() {
   const {r, c} = _selCell;
   const colLetter = c => c < 26 ? String.fromCharCode(65+c) : String.fromCharCode(65+Math.floor(c/26)-1)+String.fromCharCode(65+c%26);
   document.getElementById('sheets-cell-ref').textContent = colLetter(c) + (r+1);
-  document.getElementById('sheets-formula-input').value = sh.data[r]?.[c] ?? '';
+  const cell = sh.data[r]?.[c];
+  // Show raw formula/value in formula bar
+  const raw = typeof cell === 'object' ? (cell.raw ?? cell.v ?? '') : (cell ?? '');
+  document.getElementById('sheets-formula-input').value = raw;
 }
 
 // ── CELL INTERACTION ──
@@ -3821,15 +3924,14 @@ function _sgCommit() {
   const val = cell.textContent;
   cell.contentEditable = 'false';
   cell.classList.remove('editing');
-  // Store in data
+  // Preserve existing fmt, update value
   while (_activeFile.sheets[_activeSheet].data.length <= r) _activeFile.sheets[_activeSheet].data.push([]);
-  while (_activeFile.sheets[_activeSheet].data[r].length <= c) _activeFile.sheets[_activeSheet].data[r].push('');
-  _activeFile.sheets[_activeSheet].data[r][c] = val;
+  const existing = _activeFile.sheets[_activeSheet].data[r]?.[c];
+  const fmt = typeof existing === 'object' ? existing.fmt : null;
+  while (_activeFile.sheets[_activeSheet].data[r].length <= c) _activeFile.sheets[_activeSheet].data[r].push({v:'',raw:'',fmt:null});
+  _activeFile.sheets[_activeSheet].data[r][c] = { v: val, raw: val, fmt };
   _activeFile.dirty = true;
   document.getElementById('sheets-save-btn').style.color = '#e8a55a';
-  // Update number class
-  const isNum = val !== '' && !isNaN(val) && val.trim() !== '';
-  cell.classList.toggle('num', isNum);
 }
 
 function _sgKey(e, r, c) {
@@ -3942,7 +4044,10 @@ async function sheetsSave() {
     const data = [];
     _activeFile.sheets.forEach((sh, si) => {
       const range = `'${sh.name}'!A1`;
-      const values = sh.data.map(row => [...row]);
+      // Extract raw values from cell objects
+      const values = sh.data.map(row => row.map(cell =>
+        typeof cell === 'object' ? (cell.raw ?? cell.v ?? '') : (cell ?? '')
+      ));
       // Trim trailing empty rows
       while (values.length && values[values.length-1].every(c=>c==='')) values.pop();
       if (values.length) data.push({ range, values });
