@@ -1668,6 +1668,7 @@ function evtDragEnd(e){
     if(!calEvts[st.targetDk])calEvts[st.targetDk]=[];
     calEvts[st.targetDk].push(movedEvt);
     gcalUpdateEvent(movedEvt, st.targetDk);
+    notionUpdateEvent(movedEvt, st.targetDk);
     save();
     renderCal();
   };
@@ -1702,6 +1703,7 @@ function cResizeStart(e,dk,idx){
     document.removeEventListener('mousemove',onMove);
     document.removeEventListener('mouseup',onUp2);
     gcalUpdateEvent(evt,dk);
+    notionUpdateEvent(evt,dk);
   };
   document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp2);
 }
@@ -1966,20 +1968,25 @@ function capSave(){
       } else {
         calEvts[origDk][_pIdx]=newEvt;
       }
-      // preserve gcalId so update works
+      // preserve gcalId and notionId so update hits the right records
       if(oldEvt?.gcalId) newEvt.gcalId=oldEvt.gcalId;
+      if(oldEvt?.notionId) newEvt.notionId=oldEvt.notionId;
       gcalUpdateEvent(newEvt, dk);
+      notionUpdateEvent(newEvt, dk);
     } else {
       if(!calEvts[dk])calEvts[dk]=[];
       calEvts[dk].push(newEvt);
-      pushToNotion(val,dk,start,end);
       gcalCreateEvent(newEvt, dk);
+      pushToNotion(val,dk,start,end);
     }
     save();closeAllCal();renderCal();
   };
   const isRecur=isEdit&&_pIdx!==null&&(calEvts[origDk]?.[_pIdx]?.repeat||'none')!=='none';
   if(isRecur){
     const oldEvt=calEvts[origDk][_pIdx];
+    // Carry over external IDs so doSave can sync correctly
+    if(oldEvt?.gcalId && !newEvt.gcalId) newEvt.gcalId=oldEvt.gcalId;
+    if(oldEvt?.notionId && !newEvt.notionId) newEvt.notionId=oldEvt.notionId;
     showRecurDialog(val,{start:oldEvt.start,end:oldEvt.end},{start,end},doSave);
   } else doSave('this');
 }
@@ -1989,7 +1996,9 @@ function capDelete(){
     const isRecur=(evt?.repeat||'none')!=='none';
     if(isRecur){
       showRecurDialog(evt.title||'',{start:evt.start,end:evt.end},{start:evt.start,end:evt.end},(scope)=>{
+        calSnapshot();
         gcalDeleteEvent(evt?.gcalId);
+        notionDeleteEvent(evt?.notionId);
         calEvts[_pDk].splice(_pIdx,1);
         save();closeAllCal();renderCal();
       });
@@ -1997,6 +2006,7 @@ function capDelete(){
       calSnapshot();
       const delEvt=calEvts[_pDk][_pIdx];
       gcalDeleteEvent(delEvt?.gcalId);
+      notionDeleteEvent(delEvt?.notionId);
       calEvts[_pDk].splice(_pIdx,1);save();closeAllCal();renderCal();
     }
   }
@@ -2005,6 +2015,7 @@ function calDelEvt(dk,idx){
   calSnapshot();
   const delEvt=calEvts[dk]?.[idx];
   gcalDeleteEvent(delEvt?.gcalId);
+  notionDeleteEvent(delEvt?.notionId);
   calEvts[dk].splice(idx,1);save();closeAllCal();renderCal();
 }
 
@@ -2115,12 +2126,31 @@ function showCtxMenu(e,dk,idx){
   const evt=calEvts[dk]?.[idx];if(!evt)return;
   spawnCtx(e,[
     {icon:'✏️',label:'Edit event',action:()=>showEvtPop(e,dk,idx)},
-    {icon:'📋',label:'Duplicate',action:()=>{const cp={...evt,title:(evt.title||'')+' (copy)'};if(!calEvts[dk])calEvts[dk]=[];calEvts[dk].push(cp);save();renderCal();}},
+    {icon:'📋',label:'Duplicate',action:()=>{
+  calSnapshot();
+  const cp={...evt,title:(evt.title||'')+' (copy)',gcalId:undefined,notionId:undefined};
+  if(!calEvts[dk])calEvts[dk]=[];
+  calEvts[dk].push(cp);
+  gcalCreateEvent(cp,dk);
+  pushToNotion(cp.title,dk,cp.start,cp.end);
+  save();renderCal();
+}},
     {sep:true},
     {icon:'🗑',label:'Delete event',danger:true,action:()=>{
       const isRecur=(evt.repeat||'none')!=='none';
-      if(isRecur)showRecurDialog(evt.title||'',{start:evt.start,end:evt.end},{start:evt.start,end:evt.end},(scope)=>{calEvts[dk].splice(idx,1);save();renderCal();});
-      else{calEvts[dk].splice(idx,1);save();renderCal();}
+      if(isRecur){
+        showRecurDialog(evt.title||'',{start:evt.start,end:evt.end},{start:evt.start,end:evt.end},(scope)=>{
+          calSnapshot();
+          gcalDeleteEvent(evt.gcalId);
+          notionDeleteEvent(evt.notionId);
+          calEvts[dk].splice(idx,1);save();renderCal();
+        });
+      } else {
+        calSnapshot();
+        gcalDeleteEvent(evt.gcalId);
+        notionDeleteEvent(evt.notionId);
+        calEvts[dk].splice(idx,1);save();renderCal();
+      }
     }}
   ]);
 }
@@ -2656,29 +2686,64 @@ function gcalBuildBody(evt, dk) {
   };
 }
 
+// ── CREATE ──
 async function gcalCreateEvent(evt, dk) {
   if (!gcalToken) return;
   try {
     const data = await gcalRequest('POST', '/calendars/primary/events', gcalBuildBody(evt, dk));
-    if (data && data.id) {
-      evt.gcalId = data.id;
-      save();
-    }
+    if (data && data.id) { evt.gcalId = data.id; save(); }
   } catch(e) { console.warn('gcalCreate failed', e); }
 }
 
+// ── UPDATE ──
 async function gcalUpdateEvent(evt, dk) {
-  if (!gcalToken || !evt.gcalId) return;
+  if (!gcalToken) return;
   try {
-    await gcalRequest('PUT', '/calendars/primary/events/' + evt.gcalId, gcalBuildBody(evt, dk));
+    if (evt.gcalId) {
+      // Event already exists in GCal — update it
+      await gcalRequest('PUT', '/calendars/primary/events/' + evt.gcalId, gcalBuildBody(evt, dk));
+    } else {
+      // Event was created locally without GCal — create it now and store the id
+      const data = await gcalRequest('POST', '/calendars/primary/events', gcalBuildBody(evt, dk));
+      if (data && data.id) { evt.gcalId = data.id; save(); }
+    }
   } catch(e) { console.warn('gcalUpdate failed', e); }
 }
 
+// ── DELETE ──
 async function gcalDeleteEvent(gcalId) {
-  if (!gcalToken || !gcalId) return;
+  if (!gcalToken) return;
+  if (!gcalId) return; // no GCal counterpart — nothing to delete there
   try {
     await gcalRequest('DELETE', '/calendars/primary/events/' + gcalId);
   } catch(e) { console.warn('gcalDelete failed', e); }
+}
+
+// ── NOTION DELETE / UPDATE ──
+async function notionDeleteEvent(notionId) {
+  if (!notionId) return;
+  try {
+    await fetch(NOTION_PROXY + '/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: notionId })
+    });
+  } catch(e) { console.warn('notionDelete failed', e); }
+}
+
+async function notionUpdateEvent(evt, dk) {
+  if (!evt.notionId) {
+    // Not in Notion yet — push it
+    pushToNotion(evt.title, dk, evt.start, evt.end);
+    return;
+  }
+  try {
+    await fetch(NOTION_PROXY + '/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: evt.notionId, title: evt.title, day: dk, start: evt.start, end: evt.end })
+    });
+  } catch(e) { console.warn('notionUpdate failed', e); }
 }
 
 
