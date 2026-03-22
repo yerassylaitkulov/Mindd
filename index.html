@@ -246,11 +246,14 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-wdow{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;width:100%}
 .cal-wdn{font-size:20px;font-weight:300;color:var(--muted);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin:0 auto}
 .cal-wdn.is-today{background:#c8303a;color:#fff;font-weight:700}
-.cal-week-scroll{flex:1;overflow-y:auto;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;min-width:0}
-.cal-week-inner{display:flex;flex-direction:column;min-width:calc(58px + 7 * 80px)}
-.cal-week-body-row{display:flex;flex:1}
-.cal-week-scroll::-webkit-scrollbar{width:5px}
+.cal-week-scroll{flex:1;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:var(--border) transparent;min-width:0;display:flex;flex-direction:column}
+.cal-week-inner{display:flex;flex-direction:column;min-width:calc(58px + 7 * 80px);flex:1}
+.cal-week-vscroll{flex:1;overflow-y:auto;overflow-x:visible;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.cal-week-body-row{display:flex}
+.cal-week-scroll::-webkit-scrollbar{height:5px}
 .cal-week-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.cal-week-vscroll::-webkit-scrollbar{width:5px}
+.cal-week-vscroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .cal-gutter-col{width:58px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06);box-sizing:border-box}
 .cal-gutter-lbl{display:flex;align-items:flex-start;justify-content:flex-end;padding-right:8px;font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:0;user-select:none}
 .cal-gutter-lbl.gl-hour{color:var(--subtle)}
@@ -1412,9 +1415,11 @@ function renderWeek(){
       <div class="cal-week-scroll" id="cal-wscroll" onmouseleave="">
         <div class="cal-week-inner">
           <div class="cal-week-head">${headHtml}</div>
-          <div class="cal-week-body-row">
-            <div class="cal-gutter-col">${gutterHtml}</div>
-            ${colsHtml}
+          <div class="cal-week-vscroll" id="cal-wvscroll">
+            <div class="cal-week-body-row">
+              <div class="cal-gutter-col">${gutterHtml}</div>
+              ${colsHtml}
+            </div>
           </div>
         </div>
       </div>
@@ -1440,7 +1445,7 @@ function renderWeek(){
   }
   setTimeout(()=>{
     const sc=document.getElementById('cal-wscroll');
-    if(sc)sc.scrollTop=Math.floor((9*60+30)/15)*calSlotH;
+    const vsc=document.getElementById('cal-wvscroll');if(vsc)vsc.scrollTop=Math.floor((9*60+30)/15)*calSlotH;
     syncCalHeaderScrollbar();
     initCalSwipe();
     initCalDrag();
@@ -1457,8 +1462,7 @@ function renderWeek(){
 let _calSwipeAC=null;
 function initCalSwipe(){
   const wrap = document.getElementById('cal-week-wrap');
-  const scroll = document.getElementById('cal-wscroll');
-  if(!wrap||!scroll)return;
+  if(!wrap)return;
   if(_calSwipeAC)_calSwipeAC.abort();
   _calSwipeAC=new AbortController();
   wrap.addEventListener('wheel', onCalWheel, {passive:false, signal:_calSwipeAC.signal});
@@ -1516,7 +1520,7 @@ function _swipeFlush(){
 let cDragDk=null,cDragStartMin=null,cDragEndMin=null,cDragGhost=null,cDragActive=false,cDragPointerId=null,cDragMoved=false,cDragSlotEl=null;
 
 function initCalDrag(){
-  const scroll=document.getElementById('cal-wscroll');
+  const scroll=document.getElementById('cal-wvscroll')||document.getElementById('cal-wscroll');
   if(!scroll)return;
   scroll.addEventListener('pointerdown', _cPtrDown);
 }
@@ -1659,7 +1663,7 @@ function evtDragEnd(e){
   const nextStart=Math.max(0,Math.min(24*60-15,st.targetMin));
   const nextEnd=Math.max(nextStart+15,Math.min(24*60,nextStart+st.durationMin));
   const movedEvt={...src,start:minToStr(nextStart),end:minToStr(nextEnd)};
-  const applyMove=()=>{
+  const applyMove=()=>{ calSnapshot();
     calEvts[st.dk].splice(st.idx,1);
     if(!calEvts[st.targetDk])calEvts[st.targetDk]=[];
     calEvts[st.targetDk].push(movedEvt);
@@ -1952,7 +1956,7 @@ function capSave(){
     repeatEnds:_pRepeatEnds,repeatEndDate:_pRepeatEndDate,repeatAfter:_pRepeatAfter};
   const isEdit=pop.dataset.edit==='1';
   const origDk=pop.dataset.dk;
-  const doSave=(scope)=>{
+  const doSave=(scope)=>{ calSnapshot();
     if(isEdit&&_pIdx!==null){
       const oldEvt=calEvts[origDk]?.[_pIdx];
       if(dk!==origDk){
@@ -1990,6 +1994,7 @@ function capDelete(){
         save();closeAllCal();renderCal();
       });
     } else {
+      calSnapshot();
       const delEvt=calEvts[_pDk][_pIdx];
       gcalDeleteEvent(delEvt?.gcalId);
       calEvts[_pDk].splice(_pIdx,1);save();closeAllCal();renderCal();
@@ -1997,6 +2002,7 @@ function capDelete(){
   }
 }
 function calDelEvt(dk,idx){
+  calSnapshot();
   const delEvt=calEvts[dk]?.[idx];
   gcalDeleteEvent(delEvt?.gcalId);
   calEvts[dk].splice(idx,1);save();closeAllCal();renderCal();
@@ -2007,14 +2013,21 @@ function repeatLabel(r,every,days,dk){
   const d=new Date((dk||selDate)+'T12:00:00');
   const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
   const dom=d.getDate();const mon=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   if(!r||r==='none')return'Does not repeat';
   if(r==='daily')return'Every day';
   if(r==='weekday')return'Every weekday (Mon – Fri)';
-  if(r==='weekly')return'Every week on '+dow;
+  if(r==='weekly')return every>1?'Every '+every+' weeks on '+dow:'Every week on '+dow;
   if(r==='biweekly')return'Every 2 weeks on '+dow;
   if(r==='monthly')return'Every month on the '+dom+'th';
   if(r==='yearly')return'Every year on '+mon;
-  if(r==='custom')return'Custom';
+  if(r==='custom'){
+    if(days&&days.length){
+      const names=days.slice().sort((a,b)=>a-b).map(i=>dayNames[i]).join(', ');
+      return every>1?'Every '+every+' weeks on '+names:'Every '+names;
+    }
+    return'Custom';
+  }
   return'Repeats';
 }
 function showRepeatDd(e){
@@ -2667,6 +2680,90 @@ async function gcalDeleteEvent(gcalId) {
     await gcalRequest('DELETE', '/calendars/primary/events/' + gcalId);
   } catch(e) { console.warn('gcalDelete failed', e); }
 }
+
+
+// ── KEYBOARD SHORTCUTS ──
+(function(){
+  // Undo stack — stores snapshots of calEvts before each mutation
+  const MAX_UNDO = 30;
+  window._undoStack = [];
+  window._redoStack = [];
+
+  window.calSnapshot = function(){
+    window._undoStack.push(JSON.stringify(calEvts));
+    if(window._undoStack.length > MAX_UNDO) window._undoStack.shift();
+    window._redoStack = []; // new action clears redo
+  };
+
+  function calUndo(){
+    if(!window._undoStack.length) return;
+    window._redoStack.push(JSON.stringify(calEvts));
+    const prev = JSON.parse(window._undoStack.pop());
+    Object.keys(calEvts).forEach(k=>delete calEvts[k]);
+    Object.assign(calEvts, prev);
+    save(); renderCal();
+  }
+  function calRedo(){
+    if(!window._redoStack.length) return;
+    window._undoStack.push(JSON.stringify(calEvts));
+    const next = JSON.parse(window._redoStack.pop());
+    Object.keys(calEvts).forEach(k=>delete calEvts[k]);
+    Object.assign(calEvts, next);
+    save(); renderCal();
+  }
+
+  document.addEventListener('keydown', function(e){
+    const tag = document.activeElement?.tagName?.toLowerCase();
+    const editable = document.activeElement?.isContentEditable;
+    const inInput = tag==='input'||tag==='textarea'||tag==='select'||editable;
+
+    // Ctrl/Cmd+Z — undo
+    if((e.ctrlKey||e.metaKey) && e.key==='z' && !e.shiftKey){
+      if(!inInput){ e.preventDefault(); calUndo(); return; }
+    }
+    // Ctrl/Cmd+Shift+Z or Ctrl+Y — redo
+    if(((e.ctrlKey||e.metaKey) && e.key==='z' && e.shiftKey)||
+       ((e.ctrlKey||e.metaKey) && e.key==='y')){
+      if(!inInput){ e.preventDefault(); calRedo(); return; }
+    }
+
+    // Skip all other shortcuts when typing in an input
+    if(inInput) return;
+
+    // Escape — close any open popover/menu
+    if(e.key==='Escape'){ closeAllCal(); return; }
+
+    // Arrow left/right — navigate days
+    if(e.key==='ArrowLeft'){
+      e.preventDefault();
+      const d=new Date(selDate+'T12:00:00'); d.setDate(d.getDate()-1);
+      selDate=dkey(d); calYear=d.getFullYear(); calMonth=d.getMonth(); renderCal(); return;
+    }
+    if(e.key==='ArrowRight'){
+      e.preventDefault();
+      const d=new Date(selDate+'T12:00:00'); d.setDate(d.getDate()+1);
+      selDate=dkey(d); calYear=d.getFullYear(); calMonth=d.getMonth(); renderCal(); return;
+    }
+    // Arrow up/down — scroll the time grid
+    if(e.key==='ArrowUp'){
+      e.preventDefault();
+      const v=document.getElementById('cal-wvscroll'); if(v) v.scrollTop-=calSlotH*4; return;
+    }
+    if(e.key==='ArrowDown'){
+      e.preventDefault();
+      const v=document.getElementById('cal-wvscroll'); if(v) v.scrollTop+=calSlotH*4; return;
+    }
+
+    // T — go to today
+    if(e.key==='t'||e.key==='T'){ calGoToday(); return; }
+
+    // Delete / Backspace — delete selected/last hovered event
+    if(e.key==='Delete'||e.key==='Backspace'){
+      const pop=document.getElementById('cap-pop');
+      if(pop && pop.dataset.edit==='1'){ capDelete(); return; }
+    }
+  });
+})();
 
 // ── INIT ──
 renderTagSel();
