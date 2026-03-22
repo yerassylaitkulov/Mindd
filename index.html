@@ -254,8 +254,8 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-week-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .cal-week-vscroll::-webkit-scrollbar{width:5px}
 .cal-week-vscroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.cal-week-gutter-stub{width:58px;flex-shrink:0;position:sticky;left:0;z-index:20;background:#0d0d0b}
-.cal-gutter-col{width:58px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06);box-sizing:border-box;position:sticky;left:0;z-index:15;background:var(--bg)}
+.cal-week-gutter-stub{width:58px;flex-shrink:0;position:sticky;left:0;z-index:20;background:#0d0d0b;border-right:1px solid var(--border)}
+.cal-gutter-col{width:58px;flex-shrink:0;border-right:1px solid var(--border);box-sizing:border-box;position:sticky;left:0;z-index:15;background:var(--bg)}
 .cal-gutter-lbl{display:flex;align-items:flex-start;justify-content:flex-end;padding-right:8px;font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:0;user-select:none}
 .cal-gutter-lbl.gl-hour{color:var(--subtle)}
 .cal-gutter-lbl.gl-half{color:rgba(107,103,96,.5);font-size:8px}
@@ -1426,7 +1426,7 @@ function renderWeek(){
 
   // Scroll to selDate horizontally and 9:30am vertically
   setTimeout(()=>{
-    calScrollToDate(selDate, false);
+    calScrollToDate(selDate, false); // today lands right after gutter
     const vsc=document.getElementById('cal-wvscroll');if(vsc)vsc.scrollTop=Math.floor((9*60+30)/15)*calSlotH;
     // Update month label on horizontal scroll
     const sc2=document.getElementById('cal-wscroll');
@@ -1483,8 +1483,11 @@ function calScrollToDate(dk, animate){
   const anchor = new Date(_stripAnchor+'T12:00:00');
   const target = new Date(dk+'T12:00:00');
   const diffDays = Math.round((target-anchor)/86400000);
-  const gutterW = 58;
-  const targetScrollLeft = gutterW + diffDays * CAL_DAY_W;
+  // targetScrollLeft puts the cell's LEFT EDGE at viewport x=0.
+  // We want it at x=0 (the sticky gutter already occupies 0..57, so the
+  // cell will be naturally pushed to x=58 by the stub in the flex row).
+  // Correct: scrollLeft = diffDays * CAL_DAY_W (no gutterW offset — gutter is sticky, not scrolled)
+  const targetScrollLeft = diffDays * CAL_DAY_W;
   if(animate){
     sc.scrollTo({left: targetScrollLeft, behavior:'smooth'});
   } else {
@@ -1495,8 +1498,7 @@ function calScrollToDate(dk, animate){
 function calUpdateSelFromScroll(){
   const sc = document.getElementById('cal-wscroll');
   if(!sc||!_stripAnchor) return;
-  const gutterW = 58;
-  const days = Math.round((sc.scrollLeft - gutterW) / CAL_DAY_W);
+  const days = Math.round(sc.scrollLeft / CAL_DAY_W);
   const anchor = new Date(_stripAnchor+'T12:00:00');
   anchor.setDate(anchor.getDate() + days);
   selDate = dkey(anchor);
@@ -2783,8 +2785,13 @@ async function notionUpdateEvent(evt, dk) {
     const tag = document.activeElement?.tagName?.toLowerCase();
     const editable = document.activeElement?.isContentEditable;
     const inInput = tag==='input'||tag==='textarea'||tag==='select'||editable;
+    const pop = document.getElementById('cap-pop');
+    const popOpen = !!pop;
+    const popIsEdit = pop?.dataset.edit==='1';
 
-    // Ctrl/Cmd+Z — undo
+    // ── Shortcuts that work even inside inputs ──
+
+    // Ctrl/Cmd+Z — undo (calendar only, not when in note editor etc)
     if((e.ctrlKey||e.metaKey) && e.key==='z' && !e.shiftKey){
       if(!inInput){ e.preventDefault(); calUndo(); return; }
     }
@@ -2794,21 +2801,45 @@ async function notionUpdateEvent(evt, dk) {
       if(!inInput){ e.preventDefault(); calRedo(); return; }
     }
 
+    // Escape — always closes popovers/menus, even from inside input
+    if(e.key==='Escape'){
+      if(popOpen){ closeAllCal(); e.preventDefault(); return; }
+      document.getElementById('repeat-modal-overlay')?.remove();
+      document.getElementById('recur-dialog-overlay')?.remove();
+      return;
+    }
+
+    // Enter — confirm/save when popover title field is focused
+    if(e.key==='Enter' && !e.shiftKey && popOpen){
+      if(tag==='input' && document.activeElement?.id==='cap-title'){
+        e.preventDefault(); capSave(); return;
+      }
+    }
+
     // Skip all other shortcuts when typing in an input
     if(inInput) return;
 
-    // Escape — close any open popover/menu
-    if(e.key==='Escape'){ closeAllCal(); return; }
+    // ── Global calendar shortcuts (no input focused) ──
 
-    // Arrow left/right — navigate days
+    // Backspace / Delete — delete event if popover open in edit mode
+    if(e.key==='Backspace'||e.key==='Delete'){
+      if(popOpen && popIsEdit){ e.preventDefault(); capDelete(); return; }
+    }
+
+    // Enter — save if popover open
+    if(e.key==='Enter'){
+      if(popOpen){ e.preventDefault(); capSave(); return; }
+    }
+
+    // Arrow left/right — scroll calendar strip
     if(e.key==='ArrowLeft'){
       e.preventDefault();
       if(calView==='week'){
         const sc=document.getElementById('cal-wscroll');
         if(sc&&_stripAnchor){sc.scrollLeft-=CAL_DAY_W;return;}
       }
-      const d=new Date(selDate+'T12:00:00'); d.setDate(d.getDate()-1);
-      selDate=dkey(d); calYear=d.getFullYear(); calMonth=d.getMonth(); renderCal(); return;
+      const d=new Date(selDate+'T12:00:00');d.setDate(d.getDate()-1);
+      selDate=dkey(d);calYear=d.getFullYear();calMonth=d.getMonth();renderCal();return;
     }
     if(e.key==='ArrowRight'){
       e.preventDefault();
@@ -2816,26 +2847,31 @@ async function notionUpdateEvent(evt, dk) {
         const sc=document.getElementById('cal-wscroll');
         if(sc&&_stripAnchor){sc.scrollLeft+=CAL_DAY_W;return;}
       }
-      const d=new Date(selDate+'T12:00:00'); d.setDate(d.getDate()+1);
-      selDate=dkey(d); calYear=d.getFullYear(); calMonth=d.getMonth(); renderCal(); return;
+      const d=new Date(selDate+'T12:00:00');d.setDate(d.getDate()+1);
+      selDate=dkey(d);calYear=d.getFullYear();calMonth=d.getMonth();renderCal();return;
     }
-    // Arrow up/down — scroll the time grid
+
+    // Arrow up/down — scroll time grid
     if(e.key==='ArrowUp'){
       e.preventDefault();
-      const v=document.getElementById('cal-wvscroll'); if(v) v.scrollTop-=calSlotH*4; return;
+      const v=document.getElementById('cal-wvscroll');if(v)v.scrollTop-=calSlotH*4;return;
     }
     if(e.key==='ArrowDown'){
       e.preventDefault();
-      const v=document.getElementById('cal-wvscroll'); if(v) v.scrollTop+=calSlotH*4; return;
+      const v=document.getElementById('cal-wvscroll');if(v)v.scrollTop+=calSlotH*4;return;
     }
 
-    // T — go to today
+    // T — jump to today
     if(e.key==='t'||e.key==='T'){ calGoToday(); return; }
 
-    // Delete / Backspace — delete selected/last hovered event
-    if(e.key==='Delete'||e.key==='Backspace'){
-      const pop=document.getElementById('cap-pop');
-      if(pop && pop.dataset.edit==='1'){ capDelete(); return; }
+    // W — switch to week view, M — month view
+    if(e.key==='w'||e.key==='W'){
+      if(calView!=='week'){calView='week';document.getElementById('cvbtn-week')?.classList.add('active');document.getElementById('cvbtn-month')?.classList.remove('active');renderCal();}
+      return;
+    }
+    if(e.key==='m'||e.key==='M'){
+      if(calView!=='month'){calView='month';document.getElementById('cvbtn-month')?.classList.add('active');document.getElementById('cvbtn-week')?.classList.remove('active');renderCal();}
+      return;
     }
   });
 })();
