@@ -242,7 +242,7 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-week-head{display:flex;flex-shrink:0;background:#0d0d0b;border-bottom:1px solid var(--border);box-sizing:border-box}
 .cal-week-gutter{width:58px;flex-shrink:0;padding:6px 0 4px;display:flex;align-items:flex-end;justify-content:center;border-right:1px solid var(--border-light);display:none}
 .cal-week-gutter-tz{font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;text-align:center}
-.cal-week-head-cell{width:160px;flex-shrink:0;padding:8px 6px 6px;border:none;user-select:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;box-sizing:border-box}
+.cal-week-head-cell{width:var(--cal-day-w,140px);flex-shrink:0;padding:8px 6px 6px;border:none;user-select:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;box-sizing:border-box}
 .cal-wdow{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;width:100%}
 .cal-wdn{font-size:20px;font-weight:300;color:var(--muted);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin:0 auto}
 .cal-wdn.is-today{background:#c8303a;color:#fff;font-weight:700}
@@ -254,13 +254,13 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-week-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .cal-week-vscroll::-webkit-scrollbar{width:5px}
 .cal-week-vscroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.cal-week-gutter-stub{width:58px;flex-shrink:0;position:sticky;left:0;z-index:20;background:#0d0d0b;border-right:1px solid var(--border)}
+.cal-week-gutter-stub{display:none}
 .cal-gutter-col{width:58px;flex-shrink:0;border-right:1px solid var(--border);box-sizing:border-box;position:sticky;left:0;z-index:15;background:var(--bg)}
 .cal-gutter-lbl{display:flex;align-items:flex-start;justify-content:flex-end;padding-right:8px;font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:0;user-select:none}
 .cal-gutter-lbl.gl-hour{color:var(--subtle)}
 .cal-gutter-lbl.gl-half{color:rgba(107,103,96,.5);font-size:8px}
 .cal-gutter-lbl.gl-quarter{color:rgba(107,103,96,.3);font-size:7.5px}
-.cal-day-col{position:relative;width:160px;flex-shrink:0;background:var(--bg);border-left:none;box-sizing:border-box;contain:layout style}
+.cal-day-col{position:relative;width:var(--cal-day-w,140px);flex-shrink:0;background:var(--bg);border-left:none;box-sizing:border-box;contain:layout style}
 .cal-day-col+.cal-day-col{border-left:1px solid rgba(255,255,255,.05)}
 .cal-day-col.is-today{background:#0f0e0c}
 .cal-slot{position:relative;cursor:crosshair;box-sizing:border-box;border:none;margin:0}
@@ -1294,6 +1294,9 @@ function getRecurDates(evt,originDk,dates){
 // ── WEEK VIEW (continuous horizontal strip) ──
 function renderWeek(){
   calSlotH=CAL_FIXED_SLOT_H;
+  CAL_DAY_W = calcDayW();
+  // Apply dynamic width to CSS
+  document.documentElement.style.setProperty('--cal-day-w', CAL_DAY_W+'px');
   const today=dkey(new Date());
 
   // Build strip anchored to selDate: past + future days
@@ -1332,7 +1335,7 @@ function renderWeek(){
   });
 
   const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  let headHtml=`<div class="cal-week-gutter-stub"></div>`;
+  let headHtml=``;  // no stub — gutter handled by body only
   let colsHtml='';
 
   allDays.forEach(d=>{
@@ -1457,7 +1460,14 @@ function initCalSwipe(){
 
 // Horizontal scroll: native DOM scroll on cal-wscroll
 // selDate tracks which day is at the left edge
-const CAL_DAY_W = 160; // px per day column — must match CSS
+// Day width: fills exactly 7 columns in available space
+function calcDayW(){
+  const calMain = document.querySelector('.cal-main');
+  if(!calMain) return 140;
+  const avail = calMain.clientWidth - 58 - 10; // minus gutter and scrollbar
+  return Math.floor(avail / 7);
+}
+let CAL_DAY_W = 140; // will be recalculated on render
 const CAL_STRIP_PAST = 60;  // days rendered before anchor
 const CAL_STRIP_FUTURE = 90; // days rendered after anchor
 let _stripAnchor = null; // the date the strip was built around
@@ -1828,7 +1838,7 @@ function buildPop(e,dk,evt,start,end,isEdit){
   pop.innerHTML=`
     <div class="cap-head">
       <input class="cap-title" id="cap-title" placeholder="Title" value="${esc(evt?.title||'')}"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();capSave();}if(event.key==='Escape')closeAllCal()"/>
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();capSave();}if(event.key==='Escape')closeAllCal();if(event.key==='Backspace'&&this.value===''){event.preventDefault();capDelete();}" />
       <button class="cap-close" onclick="closeAllCal()">✕</button>
     </div>
     <div class="cap-body">
@@ -1888,8 +1898,16 @@ function buildPop(e,dk,evt,start,end,isEdit){
     </div>`;
   pop.dataset.color=evt?.color||'blue';
   document.body.appendChild(pop);
-  setTimeout(()=>document.getElementById('cap-title').focus(),30);
-  if(!isEdit)wireCapDraft();
+  if(isEdit){
+    // Edit mode: focus the popover container so Backspace immediately deletes
+    pop.setAttribute('tabindex','-1');
+    pop.style.outline='none';
+    setTimeout(()=>pop.focus(),30);
+  } else {
+    // New event: focus title so user can type right away
+    setTimeout(()=>document.getElementById('cap-title').focus(),30);
+    wireCapDraft();
+  }
 }
 function syncCalHeaderScrollbar(){
   // head scrolls with body now — no sync needed
@@ -2800,14 +2818,9 @@ async function notionUpdateEvent(evt, dk) {
       e.preventDefault(); capSave(); return;
     }
 
-    // Backspace/Delete — delete event when popover is open in edit mode.
-    // Allow if: not in an input, OR the focused input is empty (nothing to delete).
-    if((e.key==='Backspace'||e.key==='Delete') && popOpen && popIsEdit){
-      const focused = document.activeElement;
-      const inputEmpty = !focused || !inInput || (focused.value !== undefined && focused.value === '') || focused.value === undefined;
-      if(inputEmpty || !inInput){
-        e.preventDefault(); capDelete(); return;
-      }
+    // Backspace/Delete — delete event when popover open in edit mode and no input is focused
+    if((e.key==='Backspace'||e.key==='Delete') && popOpen && popIsEdit && !inInput){
+      e.preventDefault(); capDelete(); return;
     }
 
     // Skip all other shortcuts when typing in an input
