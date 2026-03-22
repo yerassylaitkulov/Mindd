@@ -518,73 +518,16 @@ canvas#gc{width:100%;height:100%;display:block}
         <div class="view-title">Notes</div>
         <input class="search-inp" id="note-search" placeholder="Search…" oninput="renderNotes()"/>
         <span class="vcount" id="note-count"></span>
+        <button class="btn pri" onclick="newNoteFocus()" style="margin-left:auto">+ New note</button>
       </div>
-      <div class="notes-layout">
-        <div class="notes-right">
-          <div class="nform">
-            <div class="frow">
-              <input class="finp" id="f-title" placeholder="Title (optional)" oninput="draftChanged()"/>
-              <select class="fsel" id="f-topic" oninput="draftChanged()"><option value="">No topic</option></select>
-            </div>
-            <div class="rte-wrap">
-              <div class="rte-bar" id="rte-bar">
-                <div class="rg">
-                  <select class="rsel" id="sel-font" onmousedown="saveSel()" onchange="doFmt('fontName',this.value)" style="width:96px">
-                    <option value="'Times New Roman',Times,serif">Times New Roman</option>
-                    <option value="'Instrument Serif',Georgia,serif">Instrument Serif</option>
-                    <option value="'Georgia',serif">Georgia</option>
-                    <option value="'Geist',sans-serif">Geist</option>
-                    <option value="'Arial',sans-serif">Arial</option>
-                    <option value="'Geist Mono',monospace">Mono</option>
-                  </select>
-                </div>
-                <div class="rg">
-                  <select class="rsel" id="sel-sz" onmousedown="saveSel()" onchange="doFmt('fontSize',this.value)" style="width:44px">
-                    <option value="1">8</option><option value="2">10</option><option value="3" selected>12</option>
-                    <option value="4">14</option><option value="5">18</option><option value="6">24</option><option value="7">36</option>
-                  </select>
-                </div>
-                <div class="rg">
-                  <button class="rb" id="rb-b" onclick="doFmt('bold')"><b>B</b></button>
-                  <button class="rb" id="rb-i" onclick="doFmt('italic')"><i>I</i></button>
-                  <button class="rb" id="rb-u" onclick="doFmt('underline')"><u>U</u></button>
-                  <button class="rb" id="rb-s" onclick="doFmt('strikeThrough')"><s>S</s></button>
-                </div>
-                <div class="rg">
-                  <button class="rb" onclick="doFmt('superscript')">x²</button>
-                  <button class="rb" onclick="doFmt('subscript')">x₂</button>
-                </div>
-                <div class="rg">
-                  <button class="rb" onclick="doFmt('justifyLeft')">⬛</button>
-                  <button class="rb" onclick="doFmt('justifyCenter')">▪</button>
-                  <button class="rb" onclick="doFmt('insertUnorderedList')">•</button>
-                  <button class="rb" onclick="doFmt('insertOrderedList')">1.</button>
-                </div>
-                <div class="rg">
-                  <label style="display:flex;flex-direction:column;align-items:center;cursor:pointer;padding:2px 3px;border:1px solid var(--border);border-radius:3px;height:22px;justify-content:center;gap:1px">
-                    <span style="font-size:10px;line-height:1">A</span>
-                    <span id="tc-bar" style="width:12px;height:2px;border-radius:1px;background:#e8e4dc"></span>
-                    <input type="color" value="#e8e4dc" style="position:absolute;opacity:0;width:0;height:0" oninput="doFmt('foreColor',this.value);document.getElementById('tc-bar').style.background=this.value"/>
-                  </label>
-                  <label style="display:flex;flex-direction:column;align-items:center;cursor:pointer;padding:2px 3px;border:1px solid var(--border);border-radius:3px;height:22px;justify-content:center;gap:1px;margin-left:1px">
-                    <span style="font-size:10px;line-height:1">H</span>
-                    <span id="hc-bar" style="width:12px;height:2px;border-radius:1px;background:#fff176"></span>
-                    <input type="color" value="#fff176" style="position:absolute;opacity:0;width:0;height:0" oninput="doFmt('hiliteColor',this.value);document.getElementById('hc-bar').style.background=this.value"/>
-                  </label>
-                </div>
-                <div class="rg"><button class="rb" onclick="doFmt('removeFormat')">✕</button></div>
-              </div>
-              <div id="f-body" class="rte-body" contenteditable="true" data-ph="Notes, thoughts, ideas…" oninput="draftChanged()" onkeyup="syncBar()" onmouseup="syncBar()" onfocus="enterFocusMode()" oncontextmenu="showNoteCtxToolbar(event)"></div>
-            </div>
-            <div class="ffoot">
-              <div class="chips" id="tag-sel"></div>
-              <span class="fhint" id="fhint"></span>
-              <button class="btn" onclick="clearForm()">clear</button>
-            </div>
-          </div>
-          <div class="cards" id="cards"></div>
-        </div>
-      </div>
+      <!-- hidden form used internally for draft/save machinery -->
+      <input id="f-title" style="display:none"/>
+      <select id="f-topic" style="display:none"><option value="">No topic</option></select>
+      <div id="f-body" style="display:none" contenteditable="true"></div>
+      <div id="rte-bar" style="display:none"></div>
+      <div id="tag-sel" style="display:none"></div>
+      <span id="fhint" style="display:none"></span>
+      <div class="cards" id="cards"></div>
     </div>
 
     <!-- KANBAN -->
@@ -959,7 +902,7 @@ function renderTagSel(){
 }
 
 // ── EDITOR ──
-document.getElementById('rte-bar').addEventListener('mousedown',e=>e.preventDefault());
+document.getElementById('rte-bar')?.addEventListener('mousedown',e=>e.preventDefault());
 function saveSel(){const s=window.getSelection();if(s&&s.rangeCount)savedSel=s.getRangeAt(0).cloneRange()}
 document.addEventListener('selectionchange',()=>{
   const s=window.getSelection();if(!s||!s.rangeCount)return;
@@ -1065,7 +1008,7 @@ function renderNotes(){
   });
   document.getElementById('note-count').textContent=filtered.length+' notes';
   if(!filtered.length){
-    grid.innerHTML=`<div class="empty"><p>${notes.length?'Nothing found.':'Your mind is empty.'}</p><small>${notes.length?'Try a different search.':'Capture a thought above, or write a note in the form.'}</small></div>`;
+    grid.innerHTML=`<div class="empty"><p>${notes.length?'Nothing found.':'Your mind is empty.'}</p><small>${notes.length?'Try a different search.':"Press + New note to start writing."}</small></div>`;
     return;
   }
   grid.innerHTML=filtered.map(n=>{
@@ -1073,20 +1016,16 @@ function renderNotes(){
     const long=txt(n.body).length>280;
     const bd=long&&!isExp?hl(txt(n.body).slice(0,280)+'…',q):hl(n.body||'',q);
     const ti=q?hl(esc(n.title),q):esc(n.title);
-    return `<div class="card ${n.quick?'quick':''}" data-card-id="${n.id}">
+    return `<div class="card ${n.quick?'quick':''}" data-card-id="${n.id}"
+      onclick="editNoteFocus(${n.id})" style="cursor:pointer">
       <div class="card-hd">
-        <div class="card-title" contenteditable="true" data-id="${n.id}" data-field="title"
-             oninput="cardChg(${n.id})" onkeydown="if(event.key==='Enter')event.preventDefault()"
-        >${ti}</div>
-        <button class="card-del" onclick="delNote(${n.id})">✕</button>
+        <div class="card-title">${ti}</div>
+        <button class="card-del" onclick="event.stopPropagation();delNote(${n.id})">✕</button>
       </div>
       ${n.topic?`<span class="card-topic">${esc(n.topic)}</span>`:''}
       <div class="card-meta">${n.date}${n.quick?' · ⚡':''}</div>
-      ${n.body?`<div class="card-body ${clamp&&long&&!isExp?'clamp':''}"
-           contenteditable="true" data-id="${n.id}" data-field="body"
-           oninput="cardChg(${n.id})"
-      >${bd}</div>`:''}
-      ${long?`<button class="more-btn" onclick="toggleExp(${n.id})">${isExp?'show less ↑':'show more ↓'}</button>`:''}
+      ${n.body?`<div class="card-body ${clamp&&long&&!isExp?'clamp':''}">${bd}</div>`:''}
+      ${long?`<button class="more-btn" onclick="event.stopPropagation();toggleExp(${n.id})">${isExp?'show less ↑':'show more ↓'}</button>`:''}
       ${n.tags.length?`<div class="card-tags">${n.tags.map(t=>`<span class="ctag">${esc(t)}</span>`).join('')}</div>`:''}
     </div>`;
   }).join('');
@@ -2927,156 +2866,206 @@ async function notionUpdateEvent(evt, dk) {
 
 // ── NOTE FOCUS MODE ──
 let _focusOverlay = null;
+let _focusNoteId = null; // null = new note, number = editing existing
 
-function enterFocusMode() {
-  if (_focusOverlay) return;
-  const title = document.getElementById('f-title')?.value || '';
-  const bodyHTML = document.getElementById('f-body')?.innerHTML || '';
+// Open focus mode for a NEW note
+function newNoteFocus() {
+  clearForm();
+  _openFocusOverlay(null, '', '');
+}
 
+// Open focus mode to EDIT an existing note card
+function editNoteFocus(id) {
+  const n = notes.find(x => x.id === id);
+  if (!n) return;
+  // Load into hidden form
+  document.getElementById('f-title').value = n.title || '';
+  document.getElementById('f-body').innerHTML = n.body || '';
+  // Set pending so commitDraft updates this note
+  pendingId = id;
+  _openFocusOverlay(id, n.title || '', n.body || '');
+}
+
+function _openFocusOverlay(noteId, titleVal, bodyHTML) {
+  document.getElementById('note-ctx-toolbar')?.remove();
   const ov = document.createElement('div');
   ov.className = 'note-focus-overlay';
   ov.id = 'note-focus-overlay';
   ov.innerHTML = `
     <div class="note-focus-header">
-      <input class="note-focus-title" id="nf-title" placeholder="Title…" value="${bodyHTML ? title.replace(/"/g,'&quot;') : ''}" autocomplete="off" spellcheck="false"/>
-      <button class="note-focus-exit" onclick="exitFocusMode()" title="Exit (Esc)">Done ↩</button>
+      <input class="note-focus-title" id="nf-title" placeholder="Title…" autocomplete="off" spellcheck="true"/>
+      <button class="note-focus-exit" onclick="exitFocusMode()">Done ↩</button>
     </div>
     <div class="note-focus-body" id="nf-body" contenteditable="true" data-ph="Start writing…"
-      oninput="syncFocusToMain()"
-      onkeyup="syncFocusToMain()"
+      onpaste="handleFocusPaste(event)"
       oncontextmenu="showNoteCtxToolbar(event)"
     ></div>`;
   document.body.appendChild(ov);
   _focusOverlay = ov;
+  _focusNoteId = noteId;
 
-  // Copy content into focus body
+  document.getElementById('nf-title').value = titleVal;
   const nfBody = document.getElementById('nf-body');
   nfBody.innerHTML = bodyHTML;
 
-  // Sync title changes back
+  // Sync title live
   document.getElementById('nf-title').addEventListener('input', () => {
-    const ft = document.getElementById('f-title');
-    if (ft) ft.value = document.getElementById('nf-title').value;
+    document.getElementById('f-title').value = document.getElementById('nf-title').value;
     draftChanged();
   });
 
-  // Focus at end of content
-  nfBody.focus();
-  const range = document.createRange();
-  range.selectNodeContents(nfBody);
-  range.collapse(false);
-  const sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-
-  // Escape to exit
-  nfBody.addEventListener('keydown', e => {
-    if (e.key === 'Escape') exitFocusMode();
+  // Sync body live — debounced
+  let _syncTimer;
+  nfBody.addEventListener('input', () => {
+    clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(() => {
+      document.getElementById('f-body').innerHTML = nfBody.innerHTML;
+      draftChanged();
+    }, 200);
   });
-  document.getElementById('nf-title').addEventListener('keydown', e => {
-    if (e.key === 'Escape') exitFocusMode();
-  });
-}
 
-function syncFocusToMain() {
-  const nfBody = document.getElementById('nf-body');
-  const fbody = document.getElementById('f-body');
-  if (nfBody && fbody) fbody.innerHTML = nfBody.innerHTML;
-  draftChanged();
+  // Escape exits
+  ov.addEventListener('keydown', e => { if (e.key === 'Escape') exitFocusMode(); });
+
+  // Focus body at end
+  setTimeout(() => {
+    nfBody.focus();
+    const r = document.createRange(); r.selectNodeContents(nfBody); r.collapse(false);
+    const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  }, 50);
 }
 
 function exitFocusMode() {
   if (!_focusOverlay) return;
-  // Sync title back
-  const nfTitle = document.getElementById('nf-title');
-  const ft = document.getElementById('f-title');
-  if (nfTitle && ft) ft.value = nfTitle.value;
-  syncFocusToMain();
+  // Final sync
+  const nfTitle = document.getElementById('nf-title')?.value || '';
+  const nfBody  = document.getElementById('nf-body')?.innerHTML || '';
+  document.getElementById('f-title').value = nfTitle;
+  document.getElementById('f-body').innerHTML = nfBody;
+  // Force immediate save
+  commitDraft();
   _focusOverlay.remove();
   _focusOverlay = null;
+  _focusNoteId = null;
+  renderNotes();
+}
+
+// Paste handler: strip colors, force white
+function handleFocusPaste(e) {
+  e.preventDefault();
+  const html = e.clipboardData.getData('text/html');
+  const text = e.clipboardData.getData('text/plain');
+  let clean = '';
+  if (html) {
+    // Parse and strip color styles, force white
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    tmp.querySelectorAll('*').forEach(el => {
+      el.style.color = '#e8e4dc';
+      el.style.backgroundColor = '';
+      el.style.background = '';
+      // Remove font-color attributes
+      el.removeAttribute('color');
+    });
+    clean = tmp.innerHTML;
+  } else {
+    clean = `<span style="color:#e8e4dc">${text.replace(/\n/g,'<br>')}</span>`;
+  }
+  document.execCommand('insertHTML', false, clean);
+  // Sync back
+  setTimeout(() => {
+    document.getElementById('f-body').innerHTML = document.getElementById('nf-body')?.innerHTML || '';
+    draftChanged();
+  }, 0);
 }
 
 // ── RIGHT-CLICK FORMATTING TOOLBAR ──
+// Saves selection before showing, restores it before applying command
+let _nctSavedRange = null;
+
 function showNoteCtxToolbar(e) {
   e.preventDefault();
   document.getElementById('note-ctx-toolbar')?.remove();
 
-  // Detect active formats
-  const bold = document.queryCommandState('bold');
-  const italic = document.queryCommandState('italic');
+  // Save the current selection range now, before anything steals focus
+  const sel = window.getSelection();
+  _nctSavedRange = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0).cloneRange() : null;
+
+  const bold      = document.queryCommandState('bold');
+  const italic    = document.queryCommandState('italic');
   const underline = document.queryCommandState('underline');
 
   const tb = document.createElement('div');
   tb.className = 'note-ctx-toolbar';
   tb.id = 'note-ctx-toolbar';
-
-  // Determine which body we're in (focus overlay or normal)
-  const inFocus = !!_focusOverlay;
-
-  function fmtCmd(cmd, val) {
-    // Restore selection then execute
-    if (inFocus) {
-      document.getElementById('nf-body').focus();
-    } else {
-      restoreSel();
-    }
-    document.execCommand(cmd, false, val || null);
-    if (inFocus) syncFocusToMain(); else { syncBar(); draftChanged(); }
-    tb.remove();
-  }
-
   tb.innerHTML = `
-    <button class="nct-btn ${bold?'on':''}" onclick="nctFmt('bold')" title="Bold"><b>B</b></button>
-    <button class="nct-btn ${italic?'on':''}" onclick="nctFmt('italic')" title="Italic"><i>I</i></button>
-    <button class="nct-btn ${underline?'on':''}" onclick="nctFmt('underline')" title="Underline"><u>U</u></button>
-    <button class="nct-btn" onclick="nctFmt('strikeThrough')" title="Strikethrough"><s>S</s></button>
+    <button class="nct-btn ${bold?'on':''}"      onmousedown="nctFmt(event,'bold')"><b>B</b></button>
+    <button class="nct-btn ${italic?'on':''}"    onmousedown="nctFmt(event,'italic')"><i>I</i></button>
+    <button class="nct-btn ${underline?'on':''}" onmousedown="nctFmt(event,'underline')"><u>U</u></button>
+    <button class="nct-btn"                      onmousedown="nctFmt(event,'strikeThrough')"><s>S</s></button>
     <div class="nct-sep"></div>
-    <button class="nct-btn" onclick="nctFmt('insertUnorderedList')" title="Bullet list">•</button>
-    <button class="nct-btn" onclick="nctFmt('insertOrderedList')" title="Numbered list">1.</button>
+    <button class="nct-btn" onmousedown="nctFmt(event,'insertUnorderedList')">•</button>
+    <button class="nct-btn" onmousedown="nctFmt(event,'insertOrderedList')">1.</button>
     <div class="nct-sep"></div>
-    <button class="nct-btn" onclick="nctFmt('justifyLeft')" title="Left">≡</button>
-    <button class="nct-btn" onclick="nctFmt('justifyCenter')" title="Center">≡</button>
+    <button class="nct-btn" onmousedown="nctFmt(event,'justifyLeft')" title="Left">⬛</button>
+    <button class="nct-btn" onmousedown="nctFmt(event,'justifyCenter')" title="Center">▪</button>
     <div class="nct-sep"></div>
-    <button class="nct-btn" onclick="nctFmt('superscript')" title="Superscript">x²</button>
-    <button class="nct-btn" onclick="nctFmt('subscript')" title="Subscript">x₂</button>
+    <button class="nct-btn" onmousedown="nctFmt(event,'superscript')">x²</button>
+    <button class="nct-btn" onmousedown="nctFmt(event,'subscript')">x₂</button>
     <div class="nct-sep"></div>
-    <label class="nct-btn" title="Text color" style="gap:3px">
-      A<input type="color" value="#e8e4dc" style="position:absolute;opacity:0;width:0;height:0"
-        oninput="nctFmt('foreColor',this.value)"/>
-    </label>
-    <label class="nct-btn" title="Highlight" style="gap:3px">
-      H<input type="color" value="#fff176" style="position:absolute;opacity:0;width:0;height:0"
-        oninput="nctFmt('hiliteColor',this.value)"/>
-    </label>
+    <button class="nct-btn" onmousedown="nctPickColor(event,'fore')" title="Text color" style="min-width:36px">A 🎨</button>
+    <button class="nct-btn" onmousedown="nctPickColor(event,'hi')"   title="Highlight"  style="min-width:36px">H ✏️</button>
     <div class="nct-sep"></div>
-    <button class="nct-btn" onclick="nctFmt('removeFormat')" title="Clear format">✕</button>
+    <button class="nct-btn" onmousedown="nctFmt(event,'removeFormat')">✕</button>
   `;
 
-  // Position near cursor
   const x = Math.min(e.clientX, window.innerWidth - 310);
-  const y = Math.min(e.clientY + 4, window.innerHeight - 80);
+  const y = Math.min(e.clientY + 4, window.innerHeight - 60);
   tb.style.cssText = `left:${x}px;top:${y}px`;
   document.body.appendChild(tb);
 
-  // Store selection before toolbar steals focus
-  saveSel();
-  window._nctInFocus = inFocus;
-
-  // Close on outside click
-  const close = ev => { if (!tb.contains(ev.target)) { tb.remove(); document.removeEventListener('mousedown', close); } };
+  const close = ev => {
+    if (!tb.contains(ev.target)) { tb.remove(); document.removeEventListener('mousedown', close); }
+  };
   setTimeout(() => document.addEventListener('mousedown', close), 0);
 }
 
-function nctFmt(cmd, val) {
-  const tb = document.getElementById('note-ctx-toolbar');
-  if (window._nctInFocus) {
-    document.getElementById('nf-body')?.focus();
-  } else {
-    restoreSel();
+function _nctRestoreAndFocus() {
+  const body = document.getElementById('nf-body') || document.getElementById('f-body');
+  if (!body) return;
+  body.focus();
+  if (_nctSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_nctSavedRange);
   }
-  document.execCommand(cmd, false, val || null);
-  if (window._nctInFocus) syncFocusToMain(); else { syncBar(); draftChanged(); }
-  if (!val) tb?.remove(); // keep open for color pickers
+}
+
+function nctFmt(e, cmd) {
+  e.preventDefault(); // prevent button from stealing focus/selection
+  _nctRestoreAndFocus();
+  document.execCommand(cmd, false, null);
+  document.getElementById('f-body').innerHTML = (document.getElementById('nf-body') || document.getElementById('f-body')).innerHTML;
+  draftChanged();
+  document.getElementById('note-ctx-toolbar')?.remove();
+}
+
+function nctPickColor(e, type) {
+  e.preventDefault();
+  // Create hidden color input, trigger it
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = type === 'fore' ? '#e8e4dc' : '#fff176';
+  inp.style.cssText = 'position:fixed;left:-999px;top:-999px;opacity:0';
+  document.body.appendChild(inp);
+  inp.addEventListener('input', () => {
+    _nctRestoreAndFocus();
+    document.execCommand(type === 'fore' ? 'foreColor' : 'hiliteColor', false, inp.value);
+    document.getElementById('f-body').innerHTML = (document.getElementById('nf-body') || document.getElementById('f-body')).innerHTML;
+    draftChanged();
+  });
+  inp.addEventListener('change', () => { inp.remove(); document.getElementById('note-ctx-toolbar')?.remove(); });
+  inp.click();
 }
 
 // ── INIT ──
