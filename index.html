@@ -123,7 +123,7 @@ body{font-family:'Geist',system-ui,sans-serif;background:var(--bg);color:var(--i
 .note-focus-body ol{list-style-type:decimal}
 .note-focus-body p{margin:0.2em 0}
 /* ── SELECTION FLOATING TOOLBAR ── */
-.note-sel-toolbar{position:fixed;z-index:4000;display:flex;flex-direction:column;background:#141210;border:1px solid #2e2b26;border-radius:9px;box-shadow:0 8px 32px rgba(0,0,0,.8);animation:popin .12s ease;user-select:none;overflow:hidden;min-width:480px}
+.note-sel-toolbar{position:fixed;z-index:4000;display:flex;flex-direction:column;background:#141210;border:1px solid #2e2b26;border-radius:9px;box-shadow:0 8px 32px rgba(0,0,0,.8);animation:popin .12s ease;user-select:none;overflow:hidden;min-width:540px}
 .nst-row{display:flex;align-items:center;padding:5px 7px;gap:2px;border-bottom:1px solid #1e1c19}
 .nst-row:last-child{border-bottom:none}
 .nst-btn{min-width:28px;height:26px;padding:0 7px;font-size:12px;background:none;border:1px solid transparent;border-radius:4px;cursor:pointer;color:#e8e4dc;font-family:'Geist',sans-serif;display:flex;align-items:center;justify-content:center;gap:3px;transition:background .1s;position:relative;white-space:nowrap;flex-shrink:0}
@@ -3033,6 +3033,8 @@ function _onDocMousedown(e) {
 
 function _showSelToolbar(rect) {
   _hideSelToolbar();
+  // Save selection NOW before any DOM changes can steal it
+  _saveEditorSel();
   const tb = document.createElement('div');
   tb.id = 'note-sel-toolbar';
   tb.className = 'note-sel-toolbar';
@@ -3046,9 +3048,28 @@ function _showSelToolbar(rect) {
 
   // Row 1: font family + size + basic formatting
   // Row 2: lists, indent, align, color, clear
+  // SVG icon helpers — match Word's icon language
+  const IC = {
+    bold:      `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h8a4 4 0 0 1 0 8H6zm0 8h9a4 4 0 0 1 0 8H6z"/></svg>`,
+    italic:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11 4h6v2h-2.3l-3.4 12H14v2H8v-2h2.3l3.4-12H11z"/></svg>`,
+    underline: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h2v9a4 4 0 0 0 8 0V3h2v9a6 6 0 0 1-12 0V3zM4 21h16v2H4z"/></svg>`,
+    strike:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.2 11C17.7 11.9 18 12.9 18 14a6 6 0 0 1-6 6 6.1 6.1 0 0 1-5.8-4.3l1.9-.6A4.1 4.1 0 0 0 12 18a4 4 0 0 0 4-4c0-.7-.2-1.4-.5-2H2v-2h20v2zM8.5 8A3.9 3.9 0 0 1 8 6a4 4 0 0 1 4-4 5.9 5.9 0 0 1 5.4 3.5l-1.8.8A4 4 0 0 0 12 4a2 2 0 0 0-2 2c0 .7.2 1.4.7 2z"/></svg>`,
+    sup:       `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5.6 10l4.4 4.4L14.4 10l1.4 1.4-4.4 4.4 4.4 4.4-1.4 1.4L10 17.2l-4.4 4.4L4.2 20.2l4.4-4.4-4.4-4.4zm13.9-4.5h2.5V7h-4V4.5l2.5-2.5H17V1h4v1.5z"/></svg>`,
+    sub:       `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5.6 6l4.4 4.4L14.4 6l1.4 1.4-4.4 4.4 4.4 4.4-1.4 1.4L10 13.2 5.6 17.6 4.2 16.2l4.4-4.4-4.4-4.4zm13.9 11.5h2.5V19h-4v-2.5l2.5-2.5H17V13h4v1.5z"/></svg>`,
+    bullet:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="4" cy="6" r="2"/><rect x="8" y="5" width="13" height="2"/><circle cx="4" cy="12" r="2"/><rect x="8" y="11" width="13" height="2"/><circle cx="4" cy="18" r="2"/><rect x="8" y="17" width="13" height="2"/></svg>`,
+    numbered:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h2v4H4V5H3zm1 9h1.5L4 14.5V16H3v-1l2-1.5V13H3zm0 5h2v.5H4v1h2V19H3zm4-13h13v2H8zm0 6h13v2H8zm0 6h13v2H8z"/></svg>`,
+    indent:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3zm0 4h18v2H3zm0 4h18v2H3zm0 4h18v2H3zM3 3l5 4-5 4V3z" transform="translate(0,0)"/><rect x="3" y="4" width="18" height="2"/><rect x="3" y="11" width="18" height="2"/><rect x="3" y="18" width="18" height="2"/><path d="M3 7.5L8 11l-5 3.5z"/><rect x="10" y="7" width="11" height="2"/><rect x="10" y="13" width="11" height="2"/></svg>`,
+    outdent:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2"/><rect x="3" y="11" width="18" height="2"/><rect x="3" y="18" width="18" height="2"/><path d="M8 7.5L3 11l5 3.5z"/><rect x="10" y="7" width="11" height="2"/><rect x="10" y="13" width="11" height="2"/></svg>`,
+    alignL:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2"/><rect x="3" y="9" width="13" height="2"/><rect x="3" y="14" width="18" height="2"/><rect x="3" y="19" width="13" height="2"/></svg>`,
+    alignC:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2"/><rect x="6" y="9" width="12" height="2"/><rect x="3" y="14" width="18" height="2"/><rect x="6" y="19" width="12" height="2"/></svg>`,
+    alignR:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2"/><rect x="8" y="9" width="13" height="2"/><rect x="3" y="14" width="18" height="2"/><rect x="8" y="19" width="13" height="2"/></svg>`,
+    alignJ:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2"/><rect x="3" y="9" width="18" height="2"/><rect x="3" y="14" width="18" height="2"/><rect x="3" y="19" width="18" height="2"/></svg>`,
+    clear:     `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.5 3.5L20.5 5.5 9 17 6 18l1-3zm-13 14l-2 2H18v2H3v-2l2.5-2.5z"/></svg>`,
+  };
+
   tb.innerHTML = `
     <div class="nst-row">
-      <select class="nst-sel" style="width:130px" onmousedown="event.stopPropagation()" onchange="nstFont(event)">
+      <select class="nst-sel" style="width:136px" onmousedown="_saveEditorSel();event.stopPropagation()" onchange="nstFont(event)" title="Font">
         <option value="'Times New Roman',Times,serif"    ${curFont.includes('Times')?'selected':''}>Times New Roman</option>
         <option value="'Instrument Serif',Georgia,serif" ${curFont.includes('Instrument')?'selected':''}>Instrument Serif</option>
         <option value="Georgia,serif"                    ${curFont.includes('Georgia')&&!curFont.includes('Instrument')?'selected':''}>Georgia</option>
@@ -3056,7 +3077,7 @@ function _showSelToolbar(rect) {
         <option value="'Arial',sans-serif"               ${curFont.includes('Arial')?'selected':''}>Arial</option>
         <option value="'Geist Mono',monospace"           ${curFont.includes('Mono')?'selected':''}>Mono</option>
       </select>
-      <select class="nst-sel" style="width:54px;margin-left:4px" onmousedown="event.stopPropagation()" onchange="nstSize(event)">
+      <select class="nst-sel" style="width:52px;margin-left:5px" onmousedown="_saveEditorSel();event.stopPropagation()" onchange="nstSize(event)" title="Font size">
         <option value="1" ${curSize==='1'?'selected':''}>8</option>
         <option value="2" ${curSize==='2'?'selected':''}>10</option>
         <option value="3" ${curSize==='3'?'selected':''}>12</option>
@@ -3066,36 +3087,46 @@ function _showSelToolbar(rect) {
         <option value="7" ${curSize==='7'?'selected':''}>36</option>
       </select>
       <div class="nst-sep"></div>
-      <button class="nst-btn ${bold?'on':''}"      onmousedown="nstFmt(event,'bold')"         ><b>B</b></button>
-      <button class="nst-btn ${italic?'on':''}"    onmousedown="nstFmt(event,'italic')"       ><i>I</i></button>
-      <button class="nst-btn ${underline?'on':''}" onmousedown="nstFmt(event,'underline')"    ><u>U</u></button>
-      <button class="nst-btn ${strike?'on':''}"    onmousedown="nstFmt(event,'strikeThrough')"><s>S</s></button>
+      <button class="nst-btn ${bold?'on':''}"      onmousedown="nstFmt(event,'bold')"          title="Bold (Ctrl+B)">${IC.bold}</button>
+      <button class="nst-btn ${italic?'on':''}"    onmousedown="nstFmt(event,'italic')"        title="Italic (Ctrl+I)">${IC.italic}</button>
+      <button class="nst-btn ${underline?'on':''}" onmousedown="nstFmt(event,'underline')"     title="Underline (Ctrl+U)">${IC.underline}</button>
+      <button class="nst-btn ${strike?'on':''}"    onmousedown="nstFmt(event,'strikeThrough')" title="Strikethrough">${IC.strike}</button>
       <div class="nst-sep"></div>
-      <button class="nst-btn" onmousedown="nstFmt(event,'superscript')" title="Superscript">x²</button>
-      <button class="nst-btn" onmousedown="nstFmt(event,'subscript')"   title="Subscript">x₂</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'superscript')" title="Superscript">${IC.sup}</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'subscript')"   title="Subscript">${IC.sub}</button>
       <div class="nst-sep"></div>
-      <label class="nst-btn" id="nst-fc-lbl" title="Text color" onmousedown="event.preventDefault()">
-        <span style="border-bottom:3px solid #e8e4dc;padding-bottom:1px">A</span>
+      <label class="nst-btn" id="nst-fc-lbl" title="Font Color" onmousedown="event.preventDefault()" style="flex-direction:column;gap:1px;height:32px;padding:3px 7px">
+        <span style="font-weight:700;font-size:13px;font-family:'Times New Roman',serif;line-height:1">A</span>
+        <span id="nst-fc-bar" style="width:14px;height:3px;border-radius:1px;background:#e8e4dc;margin-top:1px"></span>
         <input type="color" value="#e8e4dc" id="nst-fc" tabindex="-1" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none"/>
       </label>
-      <label class="nst-btn" id="nst-hc-lbl" title="Highlight" onmousedown="event.preventDefault()">
-        <span style="background:#fff17660;padding:1px 3px;border-radius:2px;font-size:11px">H</span>
+      <label class="nst-btn" id="nst-hc-lbl" title="Text Highlight Color" onmousedown="event.preventDefault()" style="flex-direction:column;gap:1px;height:32px;padding:3px 7px">
+        <span style="font-size:11px;line-height:1;font-family:'Geist',sans-serif">ab</span>
+        <span id="nst-hc-bar" style="width:14px;height:3px;border-radius:1px;background:#fff176;margin-top:1px"></span>
         <input type="color" value="#fff176" id="nst-hc" tabindex="-1" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none"/>
       </label>
+      <div class="nst-sep"></div>
+      <button class="nst-btn" onmousedown="nstFmt(event,'removeFormat')" title="Clear All Formatting" style="color:#c8303a">${IC.clear}</button>
     </div>
     <div class="nst-row">
-      <button class="nst-btn" onmousedown="nstFmt(event,'insertUnorderedList')" title="Bullet list">• List</button>
-      <button class="nst-btn" onmousedown="nstFmt(event,'insertOrderedList')"   title="Numbered list">1. List</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'insertUnorderedList')" title="Bullets">${IC.bullet}</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'insertOrderedList')"   title="Numbering">${IC.numbered}</button>
       <div class="nst-sep"></div>
-      <button class="nst-btn" onmousedown="nstFmt(event,'indent')"   title="Indent">→</button>
-      <button class="nst-btn" onmousedown="nstFmt(event,'outdent')"  title="Outdent">←</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'outdent')" title="Decrease Indent">${IC.outdent}</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'indent')"  title="Increase Indent">${IC.indent}</button>
       <div class="nst-sep"></div>
-      <button class="nst-btn" onmousedown="nstFmt(event,'justifyLeft')"    title="Align left">⬛</button>
-      <button class="nst-btn" onmousedown="nstFmt(event,'justifyCenter')"  title="Center">▪</button>
-      <button class="nst-btn" onmousedown="nstFmt(event,'justifyRight')"   title="Align right">▪</button>
-      <button class="nst-btn" onmousedown="nstFmt(event,'justifyFull')"    title="Justify">≡</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'justifyLeft')"   title="Align Left">${IC.alignL}</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'justifyCenter')" title="Center">${IC.alignC}</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'justifyRight')"  title="Align Right">${IC.alignR}</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'justifyFull')"   title="Justify">${IC.alignJ}</button>
       <div class="nst-sep"></div>
-      <button class="nst-btn" onmousedown="nstFmt(event,'removeFormat')" title="Clear formatting" style="color:#e85a5a">✕ Clear</button>
+      <select class="nst-sel" style="width:66px" title="Line spacing" onmousedown="_saveEditorSel();event.stopPropagation()" onchange="nstSpacing(event)">
+        <option value="1">1.0×</option>
+        <option value="1.5" selected>1.5×</option>
+        <option value="2">2.0×</option>
+        <option value="2.5">2.5×</option>
+        <option value="3">3.0×</option>
+      </select>
     </div>
   `;
 
@@ -3104,12 +3135,12 @@ function _showSelToolbar(rect) {
 
   // Wire color pickers
   document.getElementById('nst-fc-lbl').addEventListener('click', () => { _saveEditorSel(); document.getElementById('nst-fc').click(); });
-  document.getElementById('nst-fc').addEventListener('input', e => { _restoreEditorSel(); document.execCommand('foreColor', false, e.target.value); _syncBody(); draftChanged(); });
+  document.getElementById('nst-fc').addEventListener('input', e => { _restoreEditorSel(); document.execCommand('foreColor', false, e.target.value); const bar=document.getElementById('nst-fc-bar'); if(bar)bar.style.background=e.target.value; _syncBody(); draftChanged(); });
   document.getElementById('nst-hc-lbl').addEventListener('click', () => { _saveEditorSel(); document.getElementById('nst-hc').click(); });
-  document.getElementById('nst-hc').addEventListener('input', e => { _restoreEditorSel(); document.execCommand('hiliteColor', false, e.target.value); _syncBody(); draftChanged(); });
+  document.getElementById('nst-hc').addEventListener('input', e => { _restoreEditorSel(); document.execCommand('hiliteColor', false, e.target.value); const bar=document.getElementById('nst-hc-bar'); if(bar)bar.style.background=e.target.value; _syncBody(); draftChanged(); });
 
   // Position above selection, centered
-  const tbW = 490, tbH = 78;
+  const tbW = 530, tbH = 82;
   let x = rect.left + rect.width / 2 - tbW / 2;
   let y = rect.top - tbH - 10;
   if (y < 8) y = rect.bottom + 8;
@@ -3118,17 +3149,79 @@ function _showSelToolbar(rect) {
 }
 
 function nstFont(e) {
-  e.preventDefault();
-  _restoreEditorSel();
-  document.execCommand('fontName', false, e.target.value);
+  const val = e.target.value;
+  // Restore selection into editor before execCommand
+  const body = document.getElementById('nf-body');
+  if (body && _savedEditorRange) {
+    body.focus();
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_savedEditorRange.cloneRange());
+  }
+  document.execCommand('fontName', false, val);
   _syncBody(); draftChanged();
+  // Resave range after applying so further toolbar actions still work
+  const sel2 = window.getSelection();
+  if (sel2 && sel2.rangeCount) _savedEditorRange = sel2.getRangeAt(0).cloneRange();
 }
 
 function nstSize(e) {
-  e.preventDefault();
-  _restoreEditorSel();
-  document.execCommand('fontSize', false, e.target.value);
+  const val = e.target.value;
+  const body = document.getElementById('nf-body');
+  if (body && _savedEditorRange) {
+    body.focus();
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_savedEditorRange.cloneRange());
+  }
+  document.execCommand('fontSize', false, val);
   _syncBody(); draftChanged();
+  const sel2 = window.getSelection();
+  if (sel2 && sel2.rangeCount) _savedEditorRange = sel2.getRangeAt(0).cloneRange();
+}
+
+function nstSpacing(e) {
+  const val = e.target.value;
+  const body = document.getElementById('nf-body');
+  if (!body) return;
+  // Apply line-height to every block in the selection
+  // execCommand doesn't support line-height, so we wrap in a span or apply to blocks
+  if (_savedEditorRange) {
+    body.focus();
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_savedEditorRange.cloneRange());
+  }
+  // Walk ancestor blocks of selection and set lineHeight
+  const range = window.getSelection()?.getRangeAt(0);
+  if (!range) return;
+  // Collect all block-level nodes in range
+  const blocks = new Set();
+  let node = range.startContainer;
+  while (node && node !== body) {
+    if (['P','DIV','LI','H1','H2','H3','BLOCKQUOTE'].includes(node.nodeName)) blocks.add(node);
+    node = node.parentNode;
+  }
+  node = range.endContainer;
+  while (node && node !== body) {
+    if (['P','DIV','LI','H1','H2','H3','BLOCKQUOTE'].includes(node.nodeName)) blocks.add(node);
+    node = node.parentNode;
+  }
+  // Also walk all nodes between start and end
+  const walker = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_ELEMENT);
+  while (walker.nextNode()) {
+    const n = walker.currentNode;
+    if (['P','DIV','LI','H1','H2','H3','BLOCKQUOTE'].includes(n.nodeName) && range.intersectsNode(n)) blocks.add(n);
+  }
+  if (!blocks.size) {
+    // No explicit block — apply to body itself or create wrapper
+    body.style.lineHeight = val;
+  } else {
+    blocks.forEach(b => b.style.lineHeight = val);
+  }
+  _syncBody(); draftChanged();
+  const sel2 = window.getSelection();
+  if (sel2 && sel2.rangeCount) _savedEditorRange = sel2.getRangeAt(0).cloneRange();
 }
 
 function _hideSelToolbar() {
@@ -3156,7 +3249,15 @@ function nstFmt(e, cmd) {
   e.preventDefault();
   const body = document.getElementById('nf-body');
   if (!body) return;
-  body.focus();
+  // Restore the saved selection before applying the command
+  if (_savedEditorRange) {
+    body.focus();
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_savedEditorRange.cloneRange());
+  } else {
+    body.focus();
+  }
   document.execCommand(cmd, false, null);
   _syncBody(); draftChanged();
   _hideSelToolbar();
@@ -3176,6 +3277,30 @@ function showNoteCtxMenu(e) {
   menu.className = 'note-ctx-menu';
   menu.id = 'note-ctx-menu';
 
+  // SVG icons for context menu
+  const MI = {
+    cut:      `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M9.6 12L4 5.2 5.4 3.8l4.8 5.8 1.6-2L6 2h2.4l3 3.6L14.4 2H17l-5.8 7 1.6 2 4.8-5.8 1.4 1.4-5.6 6.8 3 3.6H14L12 14l-2 2.4H7.6zM7 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm12 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>`,
+    copy:     `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>`,
+    paste:    `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 2h-4.2A3 3 0 0 0 12 0a3 3 0 0 0-2.8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 18H5V4h2v3h10V4h2v16z"/></svg>`,
+    bold:     `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h8a4 4 0 0 1 0 8H6zm0 8h9a4 4 0 0 1 0 8H6z"/></svg>`,
+    italic:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11 4h6v2h-2.3l-3.4 12H14v2H8v-2h2.3l3.4-12H11z"/></svg>`,
+    under:    `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h2v9a4 4 0 0 0 8 0V3h2v9a6 6 0 0 1-12 0V3zM4 21h16v2H4z"/></svg>`,
+    color:    `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2z" opacity=".2"/><path d="M11 7h2v7h-2zm0 8h2v2h-2z"/></svg>`,
+    hi:       `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M15.2 4.8L19.2 8.8 9 19 5 19 5 15z"/><rect x="3" y="21" width="18" height="2"/></svg>`,
+    indent:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="11" y="4" width="10" height="2"/><rect x="11" y="9" width="10" height="2"/><rect x="3"  y="14" width="18" height="2"/><rect x="3"  y="19" width="18" height="2"/><path d="M3 5l5 4-5 4z"/></svg>`,
+    outdent:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="11" y="4" width="10" height="2"/><rect x="11" y="9" width="10" height="2"/><rect x="3"  y="14" width="18" height="2"/><rect x="3"  y="19" width="18" height="2"/><path d="M8 5l-5 4 5 4z"/></svg>`,
+    bullet:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="4" cy="6" r="2"/><rect x="8" y="5" width="13" height="2"/><circle cx="4" cy="12" r="2"/><rect x="8" y="11" width="13" height="2"/><circle cx="4" cy="18" r="2"/><rect x="8" y="17" width="13" height="2"/></svg>`,
+    num:      `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h2v4H4V5H3zm1 9h1.5L4 14.5V16H3v-1l2-1.5V13H3zm0 5h2v.5H4v1h2V19H3zm4-13h13v2H8zm0 6h13v2H8zm0 6h13v2H8z"/></svg>`,
+    up:       `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-8 8h6v8h4v-8h6z"/></svg>`,
+    down:     `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20l8-8h-6V4H10v8H4z"/></svg>`,
+    alignL:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2"/><rect x="3" y="9" width="12" height="2"/><rect x="3" y="14" width="18" height="2"/><rect x="3" y="19" width="12" height="2"/></svg>`,
+    alignC:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2"/><rect x="6" y="9" width="12" height="2"/><rect x="3" y="14" width="18" height="2"/><rect x="6" y="19" width="12" height="2"/></svg>`,
+    alignR:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2"/><rect x="9" y="9" width="12" height="2"/><rect x="3" y="14" width="18" height="2"/><rect x="9" y="19" width="12" height="2"/></svg>`,
+    alignJ:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="2"/><rect x="3" y="9" width="18" height="2"/><rect x="3" y="14" width="18" height="2"/><rect x="3" y="19" width="18" height="2"/></svg>`,
+    clear:    `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.5 3.5L20.5 5.5 9 17 6 18l1-3zm-13 14l-2 2H18v2H3v-2l2.5-2.5z"/></svg>`,
+    link:     `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M3.9 12a4.1 4.1 0 0 1 4.1-4.1h3V6h-3A6 6 0 0 0 2 12a6 6 0 0 0 6 6h3v-2H8A4.1 4.1 0 0 1 3.9 12zM8 13h8v-2H8zm5 0h3a4.1 4.1 0 0 0 0-8.2h-3V6h3a6 6 0 0 1 0 12h-3v-2z"/></svg>`,
+  };
+
   const item = (icon, label, shortcut, action, danger=false) =>
     `<div class="ncm-item${danger?' danger':''}" data-action="${action}">
       <span class="ncm-icon">${icon}</span>
@@ -3185,32 +3310,32 @@ function showNoteCtxMenu(e) {
   const sep = () => '<div class="ncm-sep"></div>';
 
   menu.innerHTML = `
-    ${hasSel ? item('✂️','Cut','Ctrl+X','cut') : ''}
-    ${hasSel ? item('📋','Copy','Ctrl+C','copy') : ''}
-    ${item('📄','Paste','Ctrl+V','paste')}
-    ${hasSel ? item('🧹','Paste as plain text','','paste-plain') : ''}
+    ${hasSel ? item(MI.cut,    'Cut',                 'Ctrl+X',   'cut') : ''}
+    ${hasSel ? item(MI.copy,   'Copy',                'Ctrl+C',   'copy') : ''}
+    ${item(MI.paste,           'Paste',               'Ctrl+V',   'paste')}
+    ${hasSel ? item(MI.paste,  'Paste as Plain Text', 'Ctrl+Shift+V', 'paste-plain') : ''}
     ${sep()}
-    ${hasSel ? item('<b>B</b>','Bold','Ctrl+B','bold') : ''}
-    ${hasSel ? item('<i>I</i>','Italic','Ctrl+I','italic') : ''}
-    ${hasSel ? item('<u>U</u>','Underline','Ctrl+U','underline') : ''}
-    ${hasSel ? item('🎨','Text color…','','color-fore') : ''}
-    ${hasSel ? item('✏️','Highlight…','','color-hi') : ''}
-    ${hasSel ? sep() : ''}
-    ${item('→','Increase indent','Tab','indent')}
-    ${item('←','Decrease indent','Shift+Tab','outdent')}
+    ${hasSel ? item(MI.bold,   'Bold',                'Ctrl+B',   'bold') : ''}
+    ${hasSel ? item(MI.italic, 'Italic',              'Ctrl+I',   'italic') : ''}
+    ${hasSel ? item(MI.under,  'Underline',           'Ctrl+U',   'underline') : ''}
+    ${hasSel ? item(MI.color,  'Font Color…',         '',         'color-fore') : ''}
+    ${hasSel ? item(MI.hi,     'Highlight Text…',     '',         'color-hi') : ''}
     ${sep()}
-    ${item('•','Bullet list','','bullet')}
-    ${item('1.','Numbered list','','numbered')}
-    ${inList ? item('↑','Move list item up','','list-up') : ''}
-    ${inList ? item('↓','Move list item down','','list-down') : ''}
+    ${item(MI.outdent,         'Decrease Indent',     'Shift+Tab','outdent')}
+    ${item(MI.indent,          'Increase Indent',     'Tab',      'indent')}
     ${sep()}
-    ${item('⬛','Align left','','justifyLeft')}
-    ${item('▪','Align center','','justifyCenter')}
-    ${item('▪','Align right','','justifyRight')}
-    ${item('≡','Justify','','justifyFull')}
+    ${item(MI.bullet,          'Bullets',             '',         'bullet')}
+    ${item(MI.num,             'Numbering',           '',         'numbered')}
+    ${inList ? item(MI.up,     'Move Item Up',        '',         'list-up') : ''}
+    ${inList ? item(MI.down,   'Move Item Down',      '',         'list-down') : ''}
     ${sep()}
-    ${hasSel ? item('✕','Clear formatting','','removeFormat','danger') : ''}
-    ${item('🔗','Insert link…','','link')}
+    ${item(MI.alignL,          'Align Left',          'Ctrl+L',   'justifyLeft')}
+    ${item(MI.alignC,          'Center',              'Ctrl+E',   'justifyCenter')}
+    ${item(MI.alignR,          'Align Right',         'Ctrl+R',   'justifyRight')}
+    ${item(MI.alignJ,          'Justify',             'Ctrl+J',   'justifyFull')}
+    ${sep()}
+    ${hasSel ? item(MI.clear,  'Clear Formatting',    '',         'removeFormat', true) : ''}
+    ${item(MI.link,            'Hyperlink…',          'Ctrl+K',   'link')}
   `;
 
   // Position
