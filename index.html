@@ -442,6 +442,90 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 canvas#gc{width:100%;height:100%;display:block}
 .graph-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:10px;font-family:'Geist Mono',monospace;color:var(--muted);background:rgba(10,10,8,.8);padding:4px 12px;border-radius:99px;pointer-events:none}
 
+/* ── FINANCE TRACKER ── */
+.finance-layout{display:flex;flex:1;overflow:hidden;height:100%;gap:0}
+.finance-left{width:520px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)}
+.finance-right{flex:1;overflow-y:auto;background:#0a0a08;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+
+/* month bar */
+.finance-month-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:#0a0a08}
+.finance-month-nav{display:flex;align-items:center;gap:10px}
+.fin-nav-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:4px;transition:color .1s}
+.fin-nav-btn:hover{color:var(--ink)}
+.finance-month-label{font-family:'Instrument Serif',serif;font-size:20px;font-style:italic;color:var(--ink);min-width:140px;text-align:center}
+.fin-income-btn{display:flex;align-items:center;gap:7px;background:rgba(52,168,83,.1);border:1px solid rgba(52,168,83,.25);border-radius:8px;padding:6px 14px;cursor:pointer;transition:all .15s;font-family:'Geist',sans-serif}
+.fin-income-btn:hover{background:rgba(52,168,83,.18);border-color:#34a853}
+.fin-income-icon{font-size:14px}
+#fin-income-display{font-size:13px;font-weight:600;color:#34a853}
+
+/* entry form */
+.finance-entry-form{padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:#0d0d0b;display:flex;flex-direction:column;gap:10px}
+.fin-form-row{display:flex;gap:10px;align-items:center}
+.fin-amount-wrap{display:flex;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:1;max-width:160px;transition:border-color .15s}
+.fin-amount-wrap:focus-within{border-color:#34a853}
+.fin-currency{padding:0 10px;font-size:14px;color:var(--muted);font-family:'Geist Mono',monospace;background:var(--surface2)}
+.fin-amount-inp{flex:1;background:none;border:none;outline:none;font-size:16px;font-weight:600;color:var(--ink);padding:9px 10px 9px 6px;font-family:'Geist',sans-serif;width:0}
+.fin-amount-inp::placeholder{color:var(--subtle)}
+.fin-cat-sel{flex:1;padding:9px 12px;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--ink);outline:none;cursor:pointer;font-family:'Geist',sans-serif;transition:border-color .15s}
+.fin-cat-sel:focus{border-color:#34a853}
+.fin-form-row2{display:flex;gap:8px;align-items:center}
+.fin-desc-inp{flex:1;padding:8px 12px;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--ink);outline:none;font-family:'Geist',sans-serif;transition:border-color .15s}
+.fin-desc-inp:focus{border-color:#34a853}
+.fin-desc-inp::placeholder{color:var(--subtle)}
+.fin-day-wrap{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0 10px;transition:border-color .15s}
+.fin-day-wrap:focus-within{border-color:#34a853}
+.fin-day-lbl{font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace}
+.fin-day-inp{width:36px;background:none;border:none;outline:none;font-size:14px;font-weight:600;color:var(--ink);padding:8px 0;text-align:center;font-family:'Geist',sans-serif}
+.fin-add-btn{padding:9px 20px;background:#34a853;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:background .15s;white-space:nowrap}
+.fin-add-btn:hover{background:#2d9147}
+.fin-add-btn:active{transform:scale(.97)}
+
+/* entries list */
+.finance-entries{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;padding-bottom:20px}
+.finance-entries::-webkit-scrollbar{width:4px}
+.finance-entries::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.fin-day-group{border-bottom:1px solid var(--border-light)}
+.fin-day-hd{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 6px;background:#0d0d0b;position:sticky;top:0;z-index:5}
+.fin-day-num{font-size:11px;font-weight:700;color:var(--muted);font-family:'Geist Mono',monospace;letter-spacing:.06em}
+.fin-day-total{font-size:12px;font-weight:600;color:#8ab4f8;font-family:'Geist Mono',monospace}
+.fin-entry{display:flex;align-items:center;gap:10px;padding:8px 16px;transition:background .1s;cursor:default;group:true}
+.fin-entry:hover{background:rgba(255,255,255,.03)}
+.fin-entry-cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.fin-entry-info{flex:1;min-width:0}
+.fin-entry-desc{font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fin-entry-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.fin-entry-amount{font-size:13px;font-weight:600;color:var(--ink);font-family:'Geist Mono',monospace;flex-shrink:0}
+.fin-entry-del{background:none;border:none;color:transparent;cursor:pointer;padding:3px 6px;border-radius:4px;font-size:11px;transition:all .1s;flex-shrink:0}
+.fin-entry:hover .fin-entry-del{color:var(--muted)}
+.fin-entry-del:hover{color:var(--red)!important;background:var(--red-bg)}
+
+/* analytics panel */
+.finance-analytics{padding:20px}
+.fin-kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.fin-kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.fin-kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:6px}
+.fin-kpi-value{font-size:22px;font-weight:700;color:var(--ink);font-family:'Geist Mono',monospace}
+.fin-kpi-value.positive{color:#34a853}
+.fin-kpi-value.negative{color:#e85a5a}
+.fin-kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;font-family:'Geist',sans-serif}
+.fin-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:12px;margin-top:4px}
+.fin-cat-bar-wrap{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.fin-cat-bar-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.fin-cat-bar-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.fin-cat-bar-name{font-size:13px;font-weight:500;color:var(--ink)}
+.fin-cat-bar-meta{display:flex;align-items:center;gap:10px}
+.fin-cat-bar-amt{font-size:13px;font-weight:700;color:var(--ink);font-family:'Geist Mono',monospace}
+.fin-cat-bar-pct{font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;min-width:40px;text-align:right}
+.fin-bar-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.fin-bar-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.fin-daily-chart{display:flex;align-items:flex-end;gap:2px;height:80px;margin-bottom:20px}
+.fin-daily-bar{flex:1;min-width:0;border-radius:2px 2px 0 0;cursor:pointer;transition:opacity .15s;position:relative}
+.fin-daily-bar:hover{opacity:.8}
+.fin-empty-state{text-align:center;padding:60px 20px;color:var(--subtle)}
+.fin-empty-icon{font-size:40px;margin-bottom:12px}
+.fin-empty-text{font-size:15px;color:var(--muted);font-family:'Instrument Serif',serif;font-style:italic}
+.fin-empty-sub{font-size:12px;color:var(--subtle);margin-top:6px;font-family:'Geist',sans-serif}
+
 /* ── SHEETS ── */
 .sheets-layout{display:flex;flex:1;overflow:hidden;height:100%}
 .sheets-sidebar{width:180px;flex-shrink:0;background:#0a0a08;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
@@ -583,6 +667,7 @@ canvas#gc{width:100%;height:100%;display:block}
     <button class="tab"        onclick="show('kanban')"   id="tab-kanban">📋 Kanban</button>
     <button class="tab"        onclick="show('flash')"    id="tab-flash">🃏 Flashcards</button>
     <button class="tab"        onclick="show('calendar')" id="tab-calendar">📅 Calendar</button>
+    <button class="tab"        onclick="show('finance')"  id="tab-finance">💰 Finance</button>
     <button class="tab"        onclick="show('sheets')"   id="tab-sheets">📊 Sheets</button>
     <button class="tab"        onclick="show('graph')"    id="tab-graph">🕸 Graph</button>
     <button class="tab"        onclick="show('settings')" id="tab-settings">⚙️ Settings</button>
@@ -685,6 +770,104 @@ canvas#gc{width:100%;height:100%;display:block}
           </div>
           <div id="cal-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- FINANCE TRACKER -->
+    <div class="view" id="view-finance">
+      <div class="finance-layout">
+
+        <!-- LEFT PANEL: Entry + Day list -->
+        <div class="finance-left">
+
+          <!-- Month/Income header -->
+          <div class="finance-month-bar">
+            <div class="finance-month-nav">
+              <button class="fin-nav-btn" onclick="finPrevMonth()">‹</button>
+              <span class="finance-month-label" id="fin-month-label"></span>
+              <button class="fin-nav-btn" onclick="finNextMonth()">›</button>
+            </div>
+            <button class="fin-income-btn" onclick="finEditIncome()" id="fin-income-btn" title="Set income">
+              <span class="fin-income-icon">💵</span>
+              <span id="fin-income-display">Set income</span>
+            </button>
+          </div>
+
+          <!-- Quick entry form -->
+          <div class="finance-entry-form" id="fin-entry-form">
+            <div class="fin-form-row">
+              <div class="fin-amount-wrap">
+                <span class="fin-currency">₸</span>
+                <input class="fin-amount-inp" id="fin-amount" type="number" placeholder="0" min="0" step="1" onkeydown="if(event.key==='Enter')finSubmit()"/>
+              </div>
+              <select class="fin-cat-sel" id="fin-cat">
+                <option value="">Category</option>
+                <optgroup label="Personal Expenses">
+                  <option value="Personal|Food">🍽 Food & Dining</option>
+                  <option value="Personal|Transport">🚌 Transport</option>
+                  <option value="Personal|Health">💊 Health & Fitness</option>
+                  <option value="Personal|Entertainment">🎬 Entertainment</option>
+                  <option value="Personal|Clothes">👗 Clothes</option>
+                  <option value="Personal|Cafe">☕ Cafe & Drinks</option>
+                  <option value="Personal|Groceries">🛒 Groceries</option>
+                  <option value="Personal|Other">📦 Other Personal</option>
+                </optgroup>
+                <optgroup label="Debts">
+                  <option value="Debts|Kaspi">🏦 Kaspi Credit</option>
+                  <option value="Debts|Loan">💳 Loan Payment</option>
+                  <option value="Debts|Friend">🤝 Debt to Friend</option>
+                  <option value="Debts|Other">📋 Other Debt</option>
+                </optgroup>
+                <optgroup label="Monthly Payments">
+                  <option value="Monthly|Rent">🏠 Rent</option>
+                  <option value="Monthly|Utilities">💡 Utilities</option>
+                  <option value="Monthly|Internet">🌐 Internet/Phone</option>
+                  <option value="Monthly|Subscription">📱 Subscriptions</option>
+                  <option value="Monthly|Other">🔁 Other Monthly</option>
+                </optgroup>
+                <optgroup label="Big Purchases">
+                  <option value="Big|Electronics">💻 Electronics</option>
+                  <option value="Big|Furniture">🪑 Furniture</option>
+                  <option value="Big|Appliance">🔧 Appliance</option>
+                  <option value="Big|Other">🛍 Other Big Purchase</option>
+                </optgroup>
+                <optgroup label="Self-Development">
+                  <option value="SelfDev|Course">📚 Course / Books</option>
+                  <option value="SelfDev|Gym">🏋 Gym / Sport</option>
+                  <option value="SelfDev|Software">🛠 Tools / Software</option>
+                  <option value="SelfDev|Other">🌱 Other Dev</option>
+                </optgroup>
+                <optgroup label="Savings">
+                  <option value="Savings|Emergency">🏦 Emergency Fund</option>
+                  <option value="Savings|Goal">🎯 Savings Goal</option>
+                  <option value="Savings|Investment">📈 Investment</option>
+                </optgroup>
+                <optgroup label="My Love">
+                  <option value="Love|Gift">🎁 Gift</option>
+                  <option value="Love|Date">🌹 Date / Outing</option>
+                  <option value="Love|Other">💝 Other</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="fin-form-row2">
+              <input class="fin-desc-inp" id="fin-desc" placeholder="Description (optional)" onkeydown="if(event.key==='Enter')finSubmit()"/>
+              <div class="fin-day-wrap">
+                <span class="fin-day-lbl">Day</span>
+                <input class="fin-day-inp" id="fin-day" type="number" min="1" max="31" value="1" onkeydown="if(event.key==='Enter')finSubmit()"/>
+              </div>
+              <button class="fin-add-btn" onclick="finSubmit()">+ Add</button>
+            </div>
+          </div>
+
+          <!-- Day-by-day list -->
+          <div class="finance-entries" id="fin-entries"></div>
+        </div>
+
+        <!-- RIGHT PANEL: Analytics -->
+        <div class="finance-right">
+          <div class="finance-analytics" id="fin-analytics"></div>
+        </div>
+
       </div>
     </div>
 
@@ -1053,6 +1236,7 @@ function show(v){
   if(v==='calendar') renderCal();
   if(v==='graph')    renderGraph();
   if(v==='sheets')   sheetsInit();
+  if(v==='finance')  financeInit();
   if(v==='settings') {renderTopicMgr();renderTagMgr();renderDataStats()}
   const sbtn=document.getElementById('settings-btn');if(sbtn)sbtn.classList.toggle('active',v==='settings');
   updateCounts();
@@ -1066,6 +1250,7 @@ function updateCounts(){
   document.getElementById('tab-calendar').textContent= '📅 Calendar';
   document.getElementById('tab-graph').textContent   = '🕸 Graph';
   if(document.getElementById('tab-sheets')) document.getElementById('tab-sheets').textContent = '📊 Sheets';
+  if(document.getElementById('tab-finance')) document.getElementById('tab-finance').textContent = '💰 Finance';
   document.getElementById('tab-settings').textContent= '⚙️ Settings';
 }
 
@@ -4270,6 +4455,307 @@ function _loadSaved(key){
   try{ const s=localStorage.getItem('mind_wb_'+key); return s?JSON.parse(s):null; }catch(_){ return null; }
 }
 
+
+// ══════════════════════════════════════════
+// FINANCE TRACKER
+// ══════════════════════════════════════════
+
+const FIN_CATS = {
+  'Personal': { label:'Personal Expenses', color:'#4285f4', icon:'🧾' },
+  'Debts':    { label:'Debts',             color:'#e85a5a', icon:'💳' },
+  'Monthly':  { label:'Monthly Payments',  color:'#f59e0b', icon:'🔁' },
+  'Big':      { label:'Big Purchases',     color:'#8b5cf6', icon:'🛍' },
+  'SelfDev':  { label:'Self-Development',  color:'#06b6d4', icon:'📚' },
+  'Savings':  { label:'Savings',           color:'#34a853', icon:'💰' },
+  'Love':     { label:'My Love',           color:'#f472b6', icon:'💝' },
+};
+
+const FIN_SUBCAT_LABELS = {
+  'Personal|Food':'Food & Dining','Personal|Transport':'Transport',
+  'Personal|Health':'Health & Fitness','Personal|Entertainment':'Entertainment',
+  'Personal|Clothes':'Clothes','Personal|Cafe':'Cafe & Drinks',
+  'Personal|Groceries':'Groceries','Personal|Other':'Other Personal',
+  'Debts|Kaspi':'Kaspi Credit','Debts|Loan':'Loan Payment',
+  'Debts|Friend':'Debt to Friend','Debts|Other':'Other Debt',
+  'Monthly|Rent':'Rent','Monthly|Utilities':'Utilities',
+  'Monthly|Internet':'Internet/Phone','Monthly|Subscription':'Subscriptions',
+  'Monthly|Other':'Other Monthly',
+  'Big|Electronics':'Electronics','Big|Furniture':'Furniture',
+  'Big|Appliance':'Appliance','Big|Other':'Other Big Purchase',
+  'SelfDev|Course':'Course/Books','SelfDev|Gym':'Gym/Sport',
+  'SelfDev|Software':'Tools/Software','SelfDev|Other':'Other Dev',
+  'Savings|Emergency':'Emergency Fund','Savings|Goal':'Savings Goal',
+  'Savings|Investment':'Investment',
+  'Love|Gift':'Gift','Love|Date':'Date/Outing','Love|Other':'Other',
+};
+
+// ── DATA STORE ──
+// finData = { months: { 'YYYY-MM': { income: number, entries: [{id,day,amount,cat,desc,ts}] } } }
+let finData = {};
+let finCurrentMonth = (() => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); })();
+let _finInited = false;
+
+const FIN_SK = 'mind_fin_v1';
+
+function finLoad() {
+  try { finData = JSON.parse(localStorage.getItem(FIN_SK)||'{}'); } catch(_) { finData = {}; }
+}
+function finSave() {
+  localStorage.setItem(FIN_SK, JSON.stringify(finData));
+}
+function finGetMonth(key) {
+  if (!key) key = finCurrentMonth;
+  if (!finData[key]) finData[key] = { income:0, entries:[] };
+  return finData[key];
+}
+
+// ── INIT ──
+function financeInit() {
+  if (!_finInited) { finLoad(); _finInited = true; }
+  // Set today's day in the day input
+  const today = new Date().getDate();
+  const dayInp = document.getElementById('fin-day');
+  if (dayInp) dayInp.value = today;
+  finRender();
+}
+
+// ── MONTH NAV ──
+function finPrevMonth() {
+  const [y,m] = finCurrentMonth.split('-').map(Number);
+  const d = new Date(y, m-2, 1);
+  finCurrentMonth = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  finRender();
+}
+function finNextMonth() {
+  const [y,m] = finCurrentMonth.split('-').map(Number);
+  const d = new Date(y, m, 1);
+  finCurrentMonth = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  finRender();
+}
+function finMonthLabel(key) {
+  const [y,m] = key.split('-').map(Number);
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return MONTHS[m-1]+' '+y;
+}
+
+// ── INCOME ──
+function finEditIncome() {
+  const month = finGetMonth(finCurrentMonth);
+  const val = prompt(`Income for ${finMonthLabel(finCurrentMonth)} (₸):`, month.income||'');
+  if (val === null) return;
+  const n = parseFloat(val.replace(/[, ]/g,''));
+  if (!isNaN(n) && n >= 0) {
+    month.income = n;
+    finSave();
+    finRender();
+  }
+}
+
+// ── ADD ENTRY ──
+function finSubmit() {
+  const amtEl  = document.getElementById('fin-amount');
+  const catEl  = document.getElementById('fin-cat');
+  const descEl = document.getElementById('fin-desc');
+  const dayEl  = document.getElementById('fin-day');
+
+  const amt  = parseFloat(amtEl.value);
+  const cat  = catEl.value;
+  const desc = descEl.value.trim();
+  const day  = parseInt(dayEl.value) || 1;
+
+  if (!amt || amt <= 0) { amtEl.focus(); amtEl.style.outline='2px solid #e85a5a'; setTimeout(()=>amtEl.style.outline='',800); return; }
+  if (!cat) { catEl.style.outline='2px solid #e85a5a'; setTimeout(()=>catEl.style.outline='',800); return; }
+
+  const month = finGetMonth(finCurrentMonth);
+  month.entries.push({ id: Date.now(), day, amount: amt, cat, desc });
+  month.entries.sort((a,b) => a.day - b.day);
+  finSave();
+
+  // Clear form
+  amtEl.value = '';
+  descEl.value = '';
+  catEl.value = '';
+  amtEl.focus();
+
+  finRender();
+}
+
+// ── DELETE ──
+function finDeleteEntry(id) {
+  const month = finGetMonth(finCurrentMonth);
+  month.entries = month.entries.filter(e => e.id !== id);
+  finSave();
+  finRender();
+}
+
+// ── FORMAT ──
+function finFmt(n) {
+  if (!n && n !== 0) return '—';
+  return Math.round(n).toLocaleString('ru-KZ') + ' ₸';
+}
+
+// ── RENDER ──
+function finRender() {
+  const month = finGetMonth(finCurrentMonth);
+  const entries = month.entries;
+  const income = month.income || 0;
+
+  // Month label
+  document.getElementById('fin-month-label').textContent = finMonthLabel(finCurrentMonth);
+
+  // Income button
+  const incomeBtn = document.getElementById('fin-income-display');
+  if (incomeBtn) incomeBtn.textContent = income ? finFmt(income) : 'Set income';
+
+  // ── ENTRIES LIST ──
+  const container = document.getElementById('fin-entries');
+  if (!container) return;
+
+  if (!entries.length) {
+    container.innerHTML = `<div class="fin-empty-state">
+      <div class="fin-empty-icon">💸</div>
+      <div class="fin-empty-text">No entries yet</div>
+      <div class="fin-empty-sub">Add your first spending above</div>
+    </div>`;
+  } else {
+    // Group by day
+    const byDay = {};
+    entries.forEach(e => {
+      if (!byDay[e.day]) byDay[e.day] = [];
+      byDay[e.day].push(e);
+    });
+    const sortedDays = Object.keys(byDay).map(Number).sort((a,b)=>a-b);
+
+    container.innerHTML = sortedDays.map(day => {
+      const dayEntries = byDay[day];
+      const dayTotal = dayEntries.reduce((s,e) => s+e.amount, 0);
+      const rows = dayEntries.map(e => {
+        const [mainCat] = e.cat.split('|');
+        const catInfo = FIN_CATS[mainCat] || {color:'#6b6760',icon:'?'};
+        const subLabel = FIN_SUBCAT_LABELS[e.cat] || e.cat;
+        return `<div class="fin-entry">
+          <div class="fin-entry-cat-dot" style="background:${catInfo.color}"></div>
+          <div class="fin-entry-info">
+            <div class="fin-entry-desc">${esc(e.desc || subLabel)}</div>
+            <div class="fin-entry-sub">${catInfo.icon} ${subLabel}</div>
+          </div>
+          <div class="fin-entry-amount">${finFmt(e.amount)}</div>
+          <button class="fin-entry-del" onclick="finDeleteEntry(${e.id})" title="Delete">✕</button>
+        </div>`;
+      }).join('');
+      return `<div class="fin-day-group">
+        <div class="fin-day-hd">
+          <span class="fin-day-num">DAY ${day}</span>
+          <span class="fin-day-total">${finFmt(dayTotal)}</span>
+        </div>
+        ${rows}
+      </div>`;
+    }).join('');
+  }
+
+  // ── ANALYTICS ──
+  finRenderAnalytics(entries, income);
+}
+
+function finRenderAnalytics(entries, income) {
+  const panel = document.getElementById('fin-analytics');
+  if (!panel) return;
+
+  const total = entries.reduce((s,e) => s+e.amount, 0);
+  const balance = income - total;
+  const savingRate = income > 0 ? ((income - total) / income * 100) : 0;
+
+  // Per main category
+  const catTotals = {};
+  entries.forEach(e => {
+    const main = e.cat.split('|')[0];
+    catTotals[main] = (catTotals[main]||0) + e.amount;
+  });
+
+  // Per day for sparkline
+  const byDay = {};
+  entries.forEach(e => { byDay[e.day] = (byDay[e.day]||0) + e.amount; });
+  const dayVals = Array.from({length:31},(_,i)=>byDay[i+1]||0);
+  const maxDay = Math.max(...dayVals, 1);
+
+  const catBars = Object.entries(FIN_CATS).map(([key,info]) => {
+    const amt = catTotals[key] || 0;
+    const pct = total > 0 ? (amt/total*100) : 0;
+    const pctIncome = income > 0 ? (amt/income*100) : 0;
+    return { key, info, amt, pct, pctIncome };
+  }).filter(c => c.amt > 0).sort((a,b) => b.amt - a.amt);
+
+  if (!entries.length) {
+    panel.innerHTML = `<div class="fin-empty-state" style="padding:80px 20px">
+      <div class="fin-empty-icon">📊</div>
+      <div class="fin-empty-text">Analytics will appear here</div>
+      <div class="fin-empty-sub">Start logging your spendings</div>
+    </div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <!-- KPI cards -->
+    <div class="fin-kpi-row">
+      <div class="fin-kpi">
+        <div class="fin-kpi-label">Total Spent</div>
+        <div class="fin-kpi-value">${finFmt(total)}</div>
+        <div class="fin-kpi-sub">${entries.length} transaction${entries.length!==1?'s':''}</div>
+      </div>
+      <div class="fin-kpi">
+        <div class="fin-kpi-label">Income</div>
+        <div class="fin-kpi-value positive">${income ? finFmt(income) : '—'}</div>
+        <div class="fin-kpi-sub">${income ? 'this month' : 'tap to set'}</div>
+      </div>
+      <div class="fin-kpi">
+        <div class="fin-kpi-label">Balance Left</div>
+        <div class="fin-kpi-value ${balance>=0?'positive':'negative'}">${income ? finFmt(balance) : '—'}</div>
+        <div class="fin-kpi-sub">${income ? (balance>=0?'remaining':'overspent') : 'set income first'}</div>
+      </div>
+      <div class="fin-kpi">
+        <div class="fin-kpi-label">Savings Rate</div>
+        <div class="fin-kpi-value ${savingRate>=20?'positive':savingRate>0?'':'negative'}">${income ? savingRate.toFixed(1)+'%' : '—'}</div>
+        <div class="fin-kpi-sub">${income ? (savingRate>=20?'Great!':savingRate>=10?'OK':'Spend less') : 'set income first'}</div>
+      </div>
+    </div>
+
+    <!-- Daily spending chart -->
+    <div class="fin-section-title">Daily spending</div>
+    <div class="fin-daily-chart" style="margin-bottom:20px">
+      ${dayVals.map((v,i)=>`
+        <div class="fin-daily-bar" title="Day ${i+1}: ${finFmt(v)}"
+          style="height:${v>0?Math.max(4,Math.round(v/maxDay*76)):0}px;background:${v>0?'#4285f4':'#1a1816'};opacity:${v>0?1:.3}">
+        </div>`).join('')}
+    </div>
+
+    <!-- Category breakdown -->
+    <div class="fin-section-title">By category</div>
+    <div class="fin-cat-bar-wrap">
+      ${catBars.map(c=>`
+        <div class="fin-cat-bar-item">
+          <div class="fin-cat-bar-hd">
+            <div class="fin-cat-bar-name">${c.info.icon} ${c.info.label}</div>
+            <div class="fin-cat-bar-meta">
+              <div class="fin-cat-bar-amt">${finFmt(c.amt)}</div>
+              <div class="fin-cat-bar-pct">${c.pct.toFixed(1)}%${income?' · '+c.pctIncome.toFixed(1)+'% inc':''}</div>
+            </div>
+          </div>
+          <div class="fin-bar-track">
+            <div class="fin-bar-fill" style="width:${c.pct.toFixed(1)}%;background:${c.info.color}"></div>
+          </div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Categories with 0 spending -->
+    ${Object.entries(FIN_CATS).filter(([k])=>!catTotals[k]).length ? `
+    <div class="fin-section-title" style="margin-top:8px">Unused categories</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px">
+      ${Object.entries(FIN_CATS).filter(([k])=>!catTotals[k]).map(([k,v])=>`
+        <span style="padding:4px 10px;border-radius:99px;background:var(--surface);border:1px solid var(--border);font-size:11px;color:var(--subtle)">${v.icon} ${v.label}</span>
+      `).join('')}
+    </div>` : ''}
+  `;
+}
 // ── INIT ──
 function sheetsInit() {
   if (_sheetsInited) return;
@@ -5098,6 +5584,254 @@ function __renderGrid() {
   _updateToolbar();
 }
 
+
+// ── INIT ──
+function financeInit() {
+  if (!_finInited) { finLoad(); _finInited = true; }
+  // Set today's day in the day input
+  const today = new Date().getDate();
+  const dayInp = document.getElementById('fin-day');
+  if (dayInp) dayInp.value = today;
+  finRender();
+}
+
+// ── MONTH NAV ──
+function finPrevMonth() {
+  const [y,m] = finCurrentMonth.split('-').map(Number);
+  const d = new Date(y, m-2, 1);
+  finCurrentMonth = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  finRender();
+}
+function finNextMonth() {
+  const [y,m] = finCurrentMonth.split('-').map(Number);
+  const d = new Date(y, m, 1);
+  finCurrentMonth = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  finRender();
+}
+function finMonthLabel(key) {
+  const [y,m] = key.split('-').map(Number);
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return MONTHS[m-1]+' '+y;
+}
+
+// ── INCOME ──
+function finEditIncome() {
+  const month = finGetMonth(finCurrentMonth);
+  const val = prompt(`Income for ${finMonthLabel(finCurrentMonth)} (₸):`, month.income||'');
+  if (val === null) return;
+  const n = parseFloat(val.replace(/[, ]/g,''));
+  if (!isNaN(n) && n >= 0) {
+    month.income = n;
+    finSave();
+    finRender();
+  }
+}
+
+// ── ADD ENTRY ──
+function finSubmit() {
+  const amtEl  = document.getElementById('fin-amount');
+  const catEl  = document.getElementById('fin-cat');
+  const descEl = document.getElementById('fin-desc');
+  const dayEl  = document.getElementById('fin-day');
+
+  const amt  = parseFloat(amtEl.value);
+  const cat  = catEl.value;
+  const desc = descEl.value.trim();
+  const day  = parseInt(dayEl.value) || 1;
+
+  if (!amt || amt <= 0) { amtEl.focus(); amtEl.style.outline='2px solid #e85a5a'; setTimeout(()=>amtEl.style.outline='',800); return; }
+  if (!cat) { catEl.style.outline='2px solid #e85a5a'; setTimeout(()=>catEl.style.outline='',800); return; }
+
+  const month = finGetMonth(finCurrentMonth);
+  month.entries.push({ id: Date.now(), day, amount: amt, cat, desc });
+  month.entries.sort((a,b) => a.day - b.day);
+  finSave();
+
+  // Clear form
+  amtEl.value = '';
+  descEl.value = '';
+  catEl.value = '';
+  amtEl.focus();
+
+  finRender();
+}
+
+// ── DELETE ──
+function finDeleteEntry(id) {
+  const month = finGetMonth(finCurrentMonth);
+  month.entries = month.entries.filter(e => e.id !== id);
+  finSave();
+  finRender();
+}
+
+// ── FORMAT ──
+function finFmt(n) {
+  if (!n && n !== 0) return '—';
+  return Math.round(n).toLocaleString('ru-KZ') + ' ₸';
+}
+
+// ── RENDER ──
+function finRender() {
+  const month = finGetMonth(finCurrentMonth);
+  const entries = month.entries;
+  const income = month.income || 0;
+
+  // Month label
+  document.getElementById('fin-month-label').textContent = finMonthLabel(finCurrentMonth);
+
+  // Income button
+  const incomeBtn = document.getElementById('fin-income-display');
+  if (incomeBtn) incomeBtn.textContent = income ? finFmt(income) : 'Set income';
+
+  // ── ENTRIES LIST ──
+  const container = document.getElementById('fin-entries');
+  if (!container) return;
+
+  if (!entries.length) {
+    container.innerHTML = `<div class="fin-empty-state">
+      <div class="fin-empty-icon">💸</div>
+      <div class="fin-empty-text">No entries yet</div>
+      <div class="fin-empty-sub">Add your first spending above</div>
+    </div>`;
+  } else {
+    // Group by day
+    const byDay = {};
+    entries.forEach(e => {
+      if (!byDay[e.day]) byDay[e.day] = [];
+      byDay[e.day].push(e);
+    });
+    const sortedDays = Object.keys(byDay).map(Number).sort((a,b)=>a-b);
+
+    container.innerHTML = sortedDays.map(day => {
+      const dayEntries = byDay[day];
+      const dayTotal = dayEntries.reduce((s,e) => s+e.amount, 0);
+      const rows = dayEntries.map(e => {
+        const [mainCat] = e.cat.split('|');
+        const catInfo = FIN_CATS[mainCat] || {color:'#6b6760',icon:'?'};
+        const subLabel = FIN_SUBCAT_LABELS[e.cat] || e.cat;
+        return `<div class="fin-entry">
+          <div class="fin-entry-cat-dot" style="background:${catInfo.color}"></div>
+          <div class="fin-entry-info">
+            <div class="fin-entry-desc">${esc(e.desc || subLabel)}</div>
+            <div class="fin-entry-sub">${catInfo.icon} ${subLabel}</div>
+          </div>
+          <div class="fin-entry-amount">${finFmt(e.amount)}</div>
+          <button class="fin-entry-del" onclick="finDeleteEntry(${e.id})" title="Delete">✕</button>
+        </div>`;
+      }).join('');
+      return `<div class="fin-day-group">
+        <div class="fin-day-hd">
+          <span class="fin-day-num">DAY ${day}</span>
+          <span class="fin-day-total">${finFmt(dayTotal)}</span>
+        </div>
+        ${rows}
+      </div>`;
+    }).join('');
+  }
+
+  // ── ANALYTICS ──
+  finRenderAnalytics(entries, income);
+}
+
+function finRenderAnalytics(entries, income) {
+  const panel = document.getElementById('fin-analytics');
+  if (!panel) return;
+
+  const total = entries.reduce((s,e) => s+e.amount, 0);
+  const balance = income - total;
+  const savingRate = income > 0 ? ((income - total) / income * 100) : 0;
+
+  // Per main category
+  const catTotals = {};
+  entries.forEach(e => {
+    const main = e.cat.split('|')[0];
+    catTotals[main] = (catTotals[main]||0) + e.amount;
+  });
+
+  // Per day for sparkline
+  const byDay = {};
+  entries.forEach(e => { byDay[e.day] = (byDay[e.day]||0) + e.amount; });
+  const dayVals = Array.from({length:31},(_,i)=>byDay[i+1]||0);
+  const maxDay = Math.max(...dayVals, 1);
+
+  const catBars = Object.entries(FIN_CATS).map(([key,info]) => {
+    const amt = catTotals[key] || 0;
+    const pct = total > 0 ? (amt/total*100) : 0;
+    const pctIncome = income > 0 ? (amt/income*100) : 0;
+    return { key, info, amt, pct, pctIncome };
+  }).filter(c => c.amt > 0).sort((a,b) => b.amt - a.amt);
+
+  if (!entries.length) {
+    panel.innerHTML = `<div class="fin-empty-state" style="padding:80px 20px">
+      <div class="fin-empty-icon">📊</div>
+      <div class="fin-empty-text">Analytics will appear here</div>
+      <div class="fin-empty-sub">Start logging your spendings</div>
+    </div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <!-- KPI cards -->
+    <div class="fin-kpi-row">
+      <div class="fin-kpi">
+        <div class="fin-kpi-label">Total Spent</div>
+        <div class="fin-kpi-value">${finFmt(total)}</div>
+        <div class="fin-kpi-sub">${entries.length} transaction${entries.length!==1?'s':''}</div>
+      </div>
+      <div class="fin-kpi">
+        <div class="fin-kpi-label">Income</div>
+        <div class="fin-kpi-value positive">${income ? finFmt(income) : '—'}</div>
+        <div class="fin-kpi-sub">${income ? 'this month' : 'tap to set'}</div>
+      </div>
+      <div class="fin-kpi">
+        <div class="fin-kpi-label">Balance Left</div>
+        <div class="fin-kpi-value ${balance>=0?'positive':'negative'}">${income ? finFmt(balance) : '—'}</div>
+        <div class="fin-kpi-sub">${income ? (balance>=0?'remaining':'overspent') : 'set income first'}</div>
+      </div>
+      <div class="fin-kpi">
+        <div class="fin-kpi-label">Savings Rate</div>
+        <div class="fin-kpi-value ${savingRate>=20?'positive':savingRate>0?'':'negative'}">${income ? savingRate.toFixed(1)+'%' : '—'}</div>
+        <div class="fin-kpi-sub">${income ? (savingRate>=20?'Great!':savingRate>=10?'OK':'Spend less') : 'set income first'}</div>
+      </div>
+    </div>
+
+    <!-- Daily spending chart -->
+    <div class="fin-section-title">Daily spending</div>
+    <div class="fin-daily-chart" style="margin-bottom:20px">
+      ${dayVals.map((v,i)=>`
+        <div class="fin-daily-bar" title="Day ${i+1}: ${finFmt(v)}"
+          style="height:${v>0?Math.max(4,Math.round(v/maxDay*76)):0}px;background:${v>0?'#4285f4':'#1a1816'};opacity:${v>0?1:.3}">
+        </div>`).join('')}
+    </div>
+
+    <!-- Category breakdown -->
+    <div class="fin-section-title">By category</div>
+    <div class="fin-cat-bar-wrap">
+      ${catBars.map(c=>`
+        <div class="fin-cat-bar-item">
+          <div class="fin-cat-bar-hd">
+            <div class="fin-cat-bar-name">${c.info.icon} ${c.info.label}</div>
+            <div class="fin-cat-bar-meta">
+              <div class="fin-cat-bar-amt">${finFmt(c.amt)}</div>
+              <div class="fin-cat-bar-pct">${c.pct.toFixed(1)}%${income?' · '+c.pctIncome.toFixed(1)+'% inc':''}</div>
+            </div>
+          </div>
+          <div class="fin-bar-track">
+            <div class="fin-bar-fill" style="width:${c.pct.toFixed(1)}%;background:${c.info.color}"></div>
+          </div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Categories with 0 spending -->
+    ${Object.entries(FIN_CATS).filter(([k])=>!catTotals[k]).length ? `
+    <div class="fin-section-title" style="margin-top:8px">Unused categories</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px">
+      ${Object.entries(FIN_CATS).filter(([k])=>!catTotals[k]).map(([k,v])=>`
+        <span style="padding:4px 10px;border-radius:99px;background:var(--surface);border:1px solid var(--border);font-size:11px;color:var(--subtle)">${v.icon} ${v.label}</span>
+      `).join('')}
+    </div>` : ''}
+  `;
+}
 // ── INIT ──
 renderTagSel();
 renderTopics();
