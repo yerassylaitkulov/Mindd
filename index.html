@@ -117,6 +117,11 @@ body{font-family:'Geist',system-ui,sans-serif;background:var(--bg);color:var(--i
 .note-focus-body:empty::before{content:attr(data-ph);color:#2e2b26;pointer-events:none}
 .note-focus-body::-webkit-scrollbar{width:4px}
 .note-focus-body::-webkit-scrollbar-thumb{background:#2e2b26;border-radius:2px}
+.note-focus-body ul,.note-focus-body ol{padding-left:1.6em;margin:0.4em 0}
+.note-focus-body li{margin:0.15em 0;color:#e8e4dc}
+.note-focus-body ul{list-style-type:disc}
+.note-focus-body ol{list-style-type:decimal}
+.note-focus-body p{margin:0.2em 0}
 /* right-click toolbar */
 .note-ctx-toolbar{position:fixed;background:#1a1916;border:1px solid #3a3630;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.7);z-index:4000;padding:6px;display:flex;flex-wrap:wrap;gap:3px;min-width:280px;animation:popin .1s ease}
 .nct-btn{min-width:28px;height:26px;padding:0 6px;font-size:12px;background:none;border:1px solid transparent;border-radius:4px;cursor:pointer;color:#e8e4dc;font-family:'Geist',sans-serif;display:flex;align-items:center;justify-content:center;transition:background .1s}
@@ -2927,12 +2932,162 @@ function _openFocusOverlay(noteId, titleVal, bodyHTML) {
   // Escape exits
   ov.addEventListener('keydown', e => { if (e.key === 'Escape') exitFocusMode(); });
 
+  // Smart list keyboard handling
+  nfBody.addEventListener('keydown', editorKeydown);
+
   // Focus body at end
   setTimeout(() => {
     nfBody.focus();
     const r = document.createRange(); r.selectNodeContents(nfBody); r.collapse(false);
     const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
   }, 50);
+}
+
+
+// ── SMART LIST KEYBOARD HANDLER ──
+function editorKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    const li = _currentLi();
+    if (li) {
+      e.preventDefault();
+      if (_isEmptyLi(li)) {
+        // Empty list item → exit the list, insert paragraph after
+        _exitList(li);
+      } else {
+        // Non-empty → insert new list item
+        _insertLiAfter(li);
+      }
+      _syncBody();
+      return;
+    }
+  }
+
+  if (e.key === 'Backspace') {
+    const li = _currentLi();
+    if (li && _isEmptyLi(li)) {
+      e.preventDefault();
+      _exitList(li);
+      _syncBody();
+      return;
+    }
+    // At very start of a non-empty LI: unwrap LI into paragraph
+    if (li && _cursorAtStart(li)) {
+      e.preventDefault();
+      _unwrapLiToParagraph(li);
+      _syncBody();
+      return;
+    }
+  }
+
+  // Tab in list: indent (nested list)
+  if (e.key === 'Tab') {
+    const li = _currentLi();
+    if (li) {
+      e.preventDefault();
+      if (e.shiftKey) {
+        document.execCommand('outdent');
+      } else {
+        document.execCommand('indent');
+      }
+      _syncBody();
+      return;
+    }
+  }
+}
+
+function _syncBody() {
+  const nfBody = document.getElementById('nf-body');
+  const fbody  = document.getElementById('f-body');
+  if (nfBody && fbody) fbody.innerHTML = nfBody.innerHTML;
+  draftChanged();
+}
+
+// Returns the <li> ancestor of the cursor, or null
+function _currentLi() {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return null;
+  let node = sel.getRangeAt(0).startContainer;
+  while (node && node !== document) {
+    if (node.nodeName === 'LI') return node;
+    node = node.parentNode;
+  }
+  return null;
+}
+
+function _isEmptyLi(li) {
+  return li.textContent.trim() === '' && !li.querySelector('img,br[data-mce-bogus]');
+}
+
+function _cursorAtStart(li) {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return false;
+  const range = sel.getRangeAt(0);
+  if (!range.collapsed) return false;
+  // Check offset 0 in the LI or its first text node
+  if (range.startOffset === 0) {
+    // Make sure we're inside this LI
+    return li.contains(range.startContainer);
+  }
+  return false;
+}
+
+// Insert a new <li> after the given one and place cursor in it
+function _insertLiAfter(li) {
+  const newLi = document.createElement('li');
+  newLi.innerHTML = '\u200B'; // zero-width space so it's not "empty"
+  li.parentNode.insertBefore(newLi, li.nextSibling);
+  // Place cursor inside new li
+  const range = document.createRange();
+  const sel   = window.getSelection();
+  range.setStart(newLi, 0);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  // Clear the ZWS so typing replaces it
+  newLi.innerHTML = '';
+}
+
+// Remove the empty <li> and insert a <p> after the list (or split the list)
+function _exitList(li) {
+  const list = li.parentNode; // UL or OL
+  const nfBody = document.getElementById('nf-body');
+  li.remove();
+  // If list is now empty, remove it too
+  if (!list.children.length) list.remove();
+  // Insert a new paragraph after the list (or at end of body)
+  const p = document.createElement('p');
+  p.innerHTML = '<br>';
+  // Find where list sits in nfBody to insert after it
+  if (list.parentNode === nfBody) {
+    list.parentNode.insertBefore(p, list.nextSibling);
+  } else {
+    nfBody.appendChild(p);
+  }
+  const range = document.createRange();
+  const sel   = window.getSelection();
+  range.setStart(p, 0);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+// Convert a <li> into a <p> and remove it from the list
+function _unwrapLiToParagraph(li) {
+  const list   = li.parentNode;
+  const nfBody = document.getElementById('nf-body');
+  const p = document.createElement('p');
+  p.innerHTML = li.innerHTML || '<br>';
+  // Insert before the list
+  list.parentNode.insertBefore(p, list);
+  li.remove();
+  if (!list.children.length) list.remove();
+  // Place cursor at start of p
+  const range = document.createRange();
+  const sel   = window.getSelection();
+  range.setStart(p, 0);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 
 function exitFocusMode() {
