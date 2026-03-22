@@ -1186,6 +1186,34 @@ const EVT_COLORS=[
   {id:'yellow', bg:'#1e1a00',border:'#ca8a04',text:'#fbbf24'},
 ];
 function getColor(id){return EVT_COLORS.find(c=>c.id===id)||EVT_COLORS[0];}
+
+// Map GCal numeric colorId → Mind color name
+const GCAL_COLOR_MAP={
+  '1':'purple',  // Lavender
+  '2':'green',   // Sage
+  '3':'purple',  // Grape
+  '4':'pink',    // Flamingo
+  '5':'yellow',  // Banana
+  '6':'orange',  // Tangerine
+  '7':'teal',    // Peacock
+  '8':'blue',    // Blueberry
+  '9':'green',   // Basil
+  '10':'red',    // Tomato
+  '11':'red',    // Tomato (alt)
+};
+// Map Mind color name → GCal colorId
+const MIND_TO_GCAL_COLOR={
+  'blue':'8','green':'9','red':'10','orange':'6',
+  'purple':'3','teal':'7','pink':'4','yellow':'5'
+};
+function gcalColorToMind(colorId){
+  if(!colorId) return 'blue';
+  return GCAL_COLOR_MAP[String(colorId)] || 'blue';
+}
+function mindColorToGcal(mindColor){
+  return MIND_TO_GCAL_COLOR[mindColor] || null;
+}
+
 function evtStyle(evt){const col=getColor(evt.color||'blue');return`background:${col.bg};border-left-color:${col.border};color:${col.text}`;}
 
 // ── NAV ──
@@ -2556,7 +2584,7 @@ async function gcalSync() {
           end:          endTime,
           gcalId:       masterId,   // use master id so updates/deletes hit the right event
           fromGcal:     true,
-          color:        evt.colorId || null,
+          color:        gcalColorToMind(evt.colorId),
           ...repeat     // repeat, repeatEvery, repeatDays, repeatEnds, repeatEndDate, repeatAfter
         });
         added++;
@@ -2568,7 +2596,7 @@ async function gcalSync() {
           end:      endTime,
           gcalId:   evt.id,
           fromGcal: true,
-          color:    evt.colorId || null
+          color:    gcalColorToMind(evt.colorId)
         });
         added++;
       }
@@ -2675,23 +2703,29 @@ async function gcalRequest(method, path, body) {
 function gcalBuildBody(evt, dk) {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   if (evt.allDay || !evt.start) {
-    return {
+    const alldayBody = {
       summary: evt.title,
       description: evt.desc || '',
       location: evt.location || '',
       start: { date: dk },
       end:   { date: dk }
     };
+    const gcalColorA = mindColorToGcal(evt.color);
+    if(gcalColorA) alldayBody.colorId = gcalColorA;
+    return alldayBody;
   }
   const startDT = dk + 'T' + evt.start + ':00';
   const endDT   = dk + 'T' + (evt.end || evt.start) + ':00';
-  return {
+  const body = {
     summary: evt.title,
     description: evt.desc || '',
     location: evt.location || '',
     start: { dateTime: startDT, timeZone: tz },
     end:   { dateTime: endDT,   timeZone: tz }
   };
+  const gcalColor = mindColorToGcal(evt.color);
+  if(gcalColor) body.colorId = gcalColor;
+  return body;
 }
 
 // ── CREATE ──
