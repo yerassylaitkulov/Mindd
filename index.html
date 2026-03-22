@@ -670,13 +670,20 @@ canvas#gc{width:100%;height:100%;display:block}
         <div class="sheets-sidebar" id="sheets-sidebar">
           <div class="sheets-sidebar-head">
             <span class="sheets-sidebar-title">Spreadsheets</span>
-            <button class="sheets-new-btn" onclick="sheetsNewFile()" title="New spreadsheet">＋</button>
           </div>
           <div class="sheets-file-list" id="sheets-file-list">
-            <div class="sheets-connect-prompt" id="sheets-connect-prompt">
+            <div class="sheets-connect-prompt" id="sheets-connect-prompt" style="display:none">
               <div class="sheets-connect-icon">📊</div>
               <div class="sheets-connect-text">Connect Google Sheets</div>
               <button class="sheets-connect-btn" onclick="sheetsConnect()">Connect</button>
+            </div>
+            <div class="sheets-file-item" id="sheets-btn-0" onclick="_sheetsOpenFile('1OrJv3laBzAhQJlXAhmyykLQz1LmvzarQccUOurh1j9E','Pixels')">
+              <span class="sfi-icon">📊</span>
+              <span class="sfi-name">Pixels</span>
+            </div>
+            <div class="sheets-file-item" id="sheets-btn-1" onclick="_sheetsOpenFile('1rDo2gZMxDEEq08kiAh_CDvGZDVXYDCFA6PLUBnBDD4Q','Spendings')">
+              <span class="sfi-icon">📊</span>
+              <span class="sfi-name">Spendings</span>
             </div>
           </div>
         </div>
@@ -695,7 +702,7 @@ canvas#gc{width:100%;height:100%;display:block}
                 <button class="sheets-tb-btn" onclick="sheetsAddCol()" title="Add column">＋ Col</button>
                 <div class="sheets-tb-sep"></div>
                 <button class="sheets-tb-btn" onclick="sheetsSave()" title="Save to Google Sheets" id="sheets-save-btn">💾 Save</button>
-                <button class="sheets-tb-btn danger" onclick="sheetsDeleteSheet()" title="Delete sheet">🗑</button>
+
               </div>
             </div>
             <div class="sheets-formula-bar" id="sheets-formula-bar">
@@ -3632,14 +3639,22 @@ let _editing      = false;
 let _sheetsInited = false;
 
 // ── AUTH ──
+const SHEETS_FILES = [
+  { id: '1OrJv3laBzAhQJlXAhmyykLQz1LmvzarQccUOurh1j9E', name: 'Pixels' },
+  { id: '1rDo2gZMxDEEq08kiAh_CDvGZDVXYDCFA6PLUBnBDD4Q', name: 'Spendings' },
+];
+
 function sheetsInit() {
   if (_sheetsInited) return;
   _sheetsInited = true;
   sheetsToken = localStorage.getItem('sheets_token') || null;
-  if (sheetsToken) {
-    _sheetsLoadFiles();
-  } else {
+  if (!sheetsToken) {
     document.getElementById('sheets-connect-prompt').style.display = '';
+    document.getElementById('sheets-btn-0').style.display = 'none';
+    document.getElementById('sheets-btn-1').style.display = 'none';
+  } else {
+    // Auto-open first sheet
+    _sheetsOpenFile(SHEETS_FILES[0].id, SHEETS_FILES[0].name);
   }
 }
 
@@ -3655,7 +3670,9 @@ function sheetsConnect() {
         sheetsToken = resp.access_token;
         localStorage.setItem('sheets_token', sheetsToken);
         document.getElementById('sheets-connect-prompt').style.display = 'none';
-        _sheetsLoadFiles();
+        document.getElementById('sheets-btn-0').style.display = '';
+        document.getElementById('sheets-btn-1').style.display = '';
+        _sheetsOpenFile(SHEETS_FILES[0].id, SHEETS_FILES[0].name);
       }
     });
     tc.requestAccessToken();
@@ -3681,25 +3698,14 @@ async function _driveReq(path) {
 }
 
 // ── FILE LIST ──
-async function _sheetsLoadFiles() {
-  try {
-    const data = await _driveReq("/files?q=mimeType='application/vnd.google-apps.spreadsheet'&fields=files(id,name,modifiedTime)&orderBy=modifiedTime+desc&pageSize=50");
-    _sheetFiles = data.files || [];
-    _renderFileList();
-  } catch(e) { console.error('Sheets load files:', e); }
-}
+function _sheetsLoadFiles() { _renderFileList(); }
 
 function _renderFileList() {
-  const list = document.getElementById('sheets-file-list');
-  if (!_sheetFiles.length) {
-    list.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted);text-align:center">No spreadsheets found</div>';
-    return;
-  }
-  list.innerHTML = _sheetFiles.map(f => `
-    <div class="sheets-file-item ${_activeFile?.id===f.id?'active':''}" onclick="_sheetsOpenFile('${f.id}','${f.name.replace(/'/g,"\'")}')">
-      <span class="sfi-icon">📊</span>
-      <span class="sfi-name">${esc(f.name)}</span>
-    </div>`).join('');
+  // Update active state on the two fixed buttons
+  SHEETS_FILES.forEach((f, i) => {
+    const btn = document.getElementById('sheets-btn-' + i);
+    if (btn) btn.classList.toggle('active', _activeFile?.id === f.id);
+  });
 }
 
 // ── OPEN FILE ──
@@ -3958,36 +3964,11 @@ async function sheetsSave() {
   }
 }
 
-// ── NEW FILE ──
-async function sheetsNewFile() {
-  if (!sheetsToken) { sheetsConnect(); return; }
-  const name = prompt('Spreadsheet name:', 'Untitled spreadsheet');
-  if (!name) return;
-  try {
-    const resp = await _sheetsReq('POST', '', {
-      properties: { title: name },
-      sheets: [{ properties: { title: 'Sheet1' } }]
-    });
-    if (!resp) return;
-    await _sheetsLoadFiles();
-    _sheetsOpenFile(resp.spreadsheetId, name);
-  } catch(e) { console.error('New file:', e); }
-}
+// ── NEW FILE (disabled — only 2 fixed sheets) ──
+function sheetsNewFile() {}
 
-// ── DELETE ──
-async function sheetsDeleteSheet() {
-  if (!_activeFile) return;
-  if (!confirm('Delete this spreadsheet from Google Drive?')) return;
-  try {
-    await fetch(`https://www.googleapis.com/drive/v3/files/${_activeFile.id}`, {
-      method: 'DELETE', headers: { 'Authorization': 'Bearer ' + sheetsToken }
-    });
-    _activeFile = null;
-    document.getElementById('sheets-empty').style.display = '';
-    document.getElementById('sheets-editor').style.display = 'none';
-    await _sheetsLoadFiles();
-  } catch(e) { console.error('Delete:', e); }
-}
+// ── DELETE disabled for fixed sheets ──
+function sheetsDeleteSheet() {}
 
 // ── INIT ──
 renderTagSel();
