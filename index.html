@@ -242,7 +242,7 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-week-head{display:flex;flex-shrink:0;background:#0d0d0b;border-bottom:1px solid var(--border);box-sizing:border-box}
 .cal-week-gutter{width:58px;flex-shrink:0;padding:6px 0 4px;display:flex;align-items:flex-end;justify-content:center;border-right:1px solid var(--border-light);display:none}
 .cal-week-gutter-tz{font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;text-align:center}
-.cal-week-head-cell{width:120px;flex-shrink:0;padding:8px 6px 6px;border:none;user-select:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;box-sizing:border-box}
+.cal-week-head-cell{width:160px;flex-shrink:0;padding:8px 6px 6px;border:none;user-select:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;box-sizing:border-box}
 .cal-wdow{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;width:100%}
 .cal-wdn{font-size:20px;font-weight:300;color:var(--muted);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin:0 auto}
 .cal-wdn.is-today{background:#c8303a;color:#fff;font-weight:700}
@@ -260,7 +260,7 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-gutter-lbl.gl-hour{color:var(--subtle)}
 .cal-gutter-lbl.gl-half{color:rgba(107,103,96,.5);font-size:8px}
 .cal-gutter-lbl.gl-quarter{color:rgba(107,103,96,.3);font-size:7.5px}
-.cal-day-col{position:relative;width:120px;flex-shrink:0;background:var(--bg);border-left:none;box-sizing:border-box;contain:layout style}
+.cal-day-col{position:relative;width:160px;flex-shrink:0;background:var(--bg);border-left:none;box-sizing:border-box;contain:layout style}
 .cal-day-col+.cal-day-col{border-left:1px solid rgba(255,255,255,.05)}
 .cal-day-col.is-today{background:#0f0e0c}
 .cal-slot{position:relative;cursor:crosshair;box-sizing:border-box;border:none;margin:0}
@@ -613,7 +613,7 @@ canvas#gc{width:100%;height:100%;display:block}
               <button class="cal-vbtn active" id="cvbtn-week" onclick="setCalView('week')">Week</button>
               <button class="cal-vbtn" id="cvbtn-month" onclick="setCalView('month')">Month</button>
             </div>
-            <button class="gcal-btn" id="gcal-btn" onclick="gcalConnect()">📅 Sync Google Cal</button>
+            <span class="gcal-status" id="gcal-btn"></span>
           </div>
           <div id="cal-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0"></div>
         </div>
@@ -1426,7 +1426,12 @@ function renderWeek(){
 
   // Scroll to selDate horizontally and 9:30am vertically
   setTimeout(()=>{
-    calScrollToDate(selDate, false); // today lands right after gutter
+    // Scroll to Monday of the week containing selDate
+    const _selD = new Date(selDate+'T12:00:00');
+    const _dow = _selD.getDay(); // 0=Sun,1=Mon,...6=Sat
+    const _daysToMon = _dow===0 ? -6 : 1-_dow; // shift back to Monday
+    const _monD = new Date(_selD); _monD.setDate(_selD.getDate()+_daysToMon);
+    calScrollToDate(dkey(_monD), false);
     const vsc=document.getElementById('cal-wvscroll');if(vsc)vsc.scrollTop=Math.floor((9*60+30)/15)*calSlotH;
     // Update month label on horizontal scroll
     const sc2=document.getElementById('cal-wscroll');
@@ -1452,7 +1457,7 @@ function initCalSwipe(){
 
 // Horizontal scroll: native DOM scroll on cal-wscroll
 // selDate tracks which day is at the left edge
-const CAL_DAY_W = 120; // px per day column — must match CSS
+const CAL_DAY_W = 160; // px per day column — must match CSS
 const CAL_STRIP_PAST = 60;  // days rendered before anchor
 const CAL_STRIP_FUTURE = 90; // days rendered after anchor
 let _stripAnchor = null; // the date the strip was built around
@@ -2415,59 +2420,45 @@ let gcalToken = null;
 let gcalTokenClient = null;
 
 function gcalInit() {
-  // If stored token was granted under readonly scope, clear it so user re-auths with write scope
   const storedScope = localStorage.getItem('gcal_scope') || '';
   if (!storedScope.includes('calendar') || storedScope === 'readonly') {
     localStorage.removeItem('gcal_token');
   }
   gcalToken = localStorage.getItem('gcal_token') || null;
   if (gcalToken) {
-    const btn = document.getElementById('gcal-btn');
-    if (btn) { btn.textContent = '🔄 Sync Google Cal'; btn.className = 'gcal-btn connected'; }
+    // Auto-sync silently on load
+    gcalSync();
   }
+  // Set up periodic background sync every 5 minutes
+  setInterval(() => { if(gcalToken) gcalSync(); }, 5 * 60 * 1000);
 }
 
 function gcalConnect() {
   const btn = document.getElementById('gcal-btn');
-  if (gcalToken) {
-    // Already connected — just sync
-    gcalSync();
-    return;
-  }
-  // Initialize token client
-  btn.className = 'gcal-btn syncing';
-  btn.textContent = '⏳ Connecting…';
+  if (gcalToken) { gcalSync(); return; }
   try {
     gcalTokenClient = google.accounts.oauth2.initTokenClient({
       client_id: GCAL_CLIENT_ID,
       scope: GCAL_SCOPE,
       callback: (response) => {
         if (response.error) {
-          btn.className = 'gcal-btn err';
-          btn.textContent = '✕ Auth failed';
-          setTimeout(() => { btn.className='gcal-btn'; btn.textContent='📅 Connect Google Calendar'; }, 3000);
+          console.warn('GCal auth failed');
           return;
         }
         gcalToken = response.access_token;
         localStorage.setItem('gcal_token', gcalToken);
         localStorage.setItem('gcal_scope', 'calendar');
-        btn.className = 'gcal-btn connected';
-        btn.textContent = '🔄 Sync Google Cal';
         gcalSync();
       }
     });
     gcalTokenClient.requestAccessToken();
   } catch(e) {
-    btn.className = 'gcal-btn err';
-    btn.textContent = '✕ Error: ' + e.message;
-    setTimeout(() => { btn.className='gcal-btn'; btn.textContent='📅 Connect Google Calendar'; }, 4000);
+    console.warn('GCal connect error:', e.message);
   }
 }
 
 async function gcalSync() {
-  const btn = document.getElementById('gcal-btn');
-  btn.className = 'gcal-btn syncing';
-  btn.textContent = '⏳ Syncing…';
+  const btn = document.getElementById('gcal-btn'); // may be null, that's fine
 
   try {
     // Fetch events from primary calendar — next 60 days + past 30 days
@@ -2494,8 +2485,7 @@ async function gcalSync() {
       gcalToken = null;
       localStorage.removeItem('gcal_token');
       localStorage.removeItem('gcal_scope');
-      btn.className = 'gcal-btn';
-      btn.textContent = '📅 Connect Google Calendar';
+      // token expired, re-auth
       gcalConnect();
       return;
     }
@@ -2569,15 +2559,11 @@ async function gcalSync() {
 
     save();
     renderCal();
-    btn.className = 'gcal-btn connected';
-    btn.textContent = `✓ ${items.length} events synced`;
-    setTimeout(() => { btn.className='gcal-btn connected'; btn.textContent='🔄 Sync Google Cal'; }, 3000);
+    if(btn) btn.title = `GCal: ${items.length} events synced`;
 
   } catch(err) {
     console.error('GCal sync error:', err);
-    btn.className = 'gcal-btn err';
-    btn.textContent = '✕ Sync failed';
-    setTimeout(() => { btn.className='gcal-btn connected'; btn.textContent='🔄 Sync Google Cal'; }, 3000);
+    console.warn('GCal sync failed');
   }
 }
 
@@ -2809,10 +2795,18 @@ async function notionUpdateEvent(evt, dk) {
       return;
     }
 
-    // Enter — confirm/save when popover title field is focused
+    // Enter — confirm/save (works from title input OR when no input focused)
     if(e.key==='Enter' && !e.shiftKey && popOpen){
-      if(tag==='input' && document.activeElement?.id==='cap-title'){
-        e.preventDefault(); capSave(); return;
+      e.preventDefault(); capSave(); return;
+    }
+
+    // Backspace/Delete — delete event when popover is open in edit mode.
+    // Allow if: not in an input, OR the focused input is empty (nothing to delete).
+    if((e.key==='Backspace'||e.key==='Delete') && popOpen && popIsEdit){
+      const focused = document.activeElement;
+      const inputEmpty = !focused || !inInput || (focused.value !== undefined && focused.value === '') || focused.value === undefined;
+      if(inputEmpty || !inInput){
+        e.preventDefault(); capDelete(); return;
       }
     }
 
@@ -2820,16 +2814,6 @@ async function notionUpdateEvent(evt, dk) {
     if(inInput) return;
 
     // ── Global calendar shortcuts (no input focused) ──
-
-    // Backspace / Delete — delete event if popover open in edit mode
-    if(e.key==='Backspace'||e.key==='Delete'){
-      if(popOpen && popIsEdit){ e.preventDefault(); capDelete(); return; }
-    }
-
-    // Enter — save if popover open
-    if(e.key==='Enter'){
-      if(popOpen){ e.preventDefault(); capSave(); return; }
-    }
 
     // Arrow left/right — scroll calendar strip
     if(e.key==='ArrowLeft'){
