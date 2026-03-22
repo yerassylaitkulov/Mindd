@@ -122,12 +122,12 @@ body{font-family:'Geist',system-ui,sans-serif;background:var(--bg);color:var(--i
 .note-focus-body ul{list-style-type:disc}
 .note-focus-body ol{list-style-type:decimal}
 .note-focus-body p{margin:0.2em 0}
-/* right-click toolbar */
-.note-ctx-toolbar{position:fixed;background:#1a1916;border:1px solid #3a3630;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.7);z-index:4000;padding:6px;display:flex;flex-wrap:wrap;gap:3px;min-width:280px;animation:popin .1s ease}
-.nct-btn{min-width:28px;height:26px;padding:0 6px;font-size:12px;background:none;border:1px solid transparent;border-radius:4px;cursor:pointer;color:#e8e4dc;font-family:'Geist',sans-serif;display:flex;align-items:center;justify-content:center;transition:background .1s}
-.nct-btn:hover{background:#252320;border-color:#3a3630}
-.nct-btn.on{background:#2a2015;border-color:#c8873a;color:#e8a55a}
-.nct-sep{width:1px;background:#2e2b26;margin:2px 3px;align-self:stretch}
+/* selection floating toolbar */
+.note-sel-toolbar{position:fixed;z-index:4000;display:flex;align-items:center;gap:2px;background:#1a1916;border:1px solid #3a3630;border-radius:7px;padding:4px 6px;box-shadow:0 4px 24px rgba(0,0,0,.7);animation:popin .1s ease;user-select:none}
+.nst-btn{min-width:28px;height:26px;padding:0 7px;font-size:12px;background:none;border:1px solid transparent;border-radius:4px;cursor:pointer;color:#e8e4dc;font-family:'Geist',sans-serif;display:flex;align-items:center;justify-content:center;gap:3px;transition:background .1s;position:relative}
+.nst-btn:hover{background:#2a2724}
+.nst-btn.on{background:#2d2410;color:#e8a55a}
+.nst-sep{width:1px;background:#2e2b26;height:18px;margin:0 2px;flex-shrink:0}
 .rg{display:flex;align-items:center;gap:1px;padding:0 3px;border-right:1px solid var(--border)}
 .rg:last-child{border-right:none}
 .rb{display:flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 3px;font-size:12px;background:transparent;border:1px solid transparent;border-radius:3px;cursor:pointer;color:var(--ink);transition:background .1s;font-family:'Geist',sans-serif;white-space:nowrap}
@@ -2874,25 +2874,29 @@ let _focusOverlay = null;
 let _focusNoteId = null; // null = new note, number = editing existing
 
 // Open focus mode for a NEW note
+// ══════════════════════════════════════════════
+// NOTE EDITOR — focus overlay + selection toolbar
+// ══════════════════════════════════════════════
+let _focusOverlay = null;
+let _focusNoteId  = null;
+let _selToolbar   = null;
+
 function newNoteFocus() {
   clearForm();
   _openFocusOverlay(null, '', '');
 }
 
-// Open focus mode to EDIT an existing note card
 function editNoteFocus(id) {
   const n = notes.find(x => x.id === id);
   if (!n) return;
-  // Load into hidden form
-  document.getElementById('f-title').value = n.title || '';
+  document.getElementById('f-title').value  = n.title || '';
   document.getElementById('f-body').innerHTML = n.body || '';
-  // Set pending so commitDraft updates this note
   pendingId = id;
   _openFocusOverlay(id, n.title || '', n.body || '');
 }
 
 function _openFocusOverlay(noteId, titleVal, bodyHTML) {
-  document.getElementById('note-ctx-toolbar')?.remove();
+  document.getElementById('note-sel-toolbar')?.remove();
   const ov = document.createElement('div');
   ov.className = 'note-focus-overlay';
   ov.id = 'note-focus-overlay';
@@ -2901,365 +2905,290 @@ function _openFocusOverlay(noteId, titleVal, bodyHTML) {
       <input class="note-focus-title" id="nf-title" placeholder="Title…" autocomplete="off" spellcheck="true"/>
       <button class="note-focus-exit" onclick="exitFocusMode()">Done ↩</button>
     </div>
-    <div class="note-focus-body" id="nf-body" contenteditable="true" data-ph="Start writing…"
+    <div class="note-focus-body" id="nf-body" contenteditable="true"
+      data-ph="Start writing…"
       onpaste="handleFocusPaste(event)"
-      oncontextmenu="showNoteCtxToolbar(event)"
     ></div>`;
   document.body.appendChild(ov);
   _focusOverlay = ov;
-  _focusNoteId = noteId;
+  _focusNoteId  = noteId;
 
   document.getElementById('nf-title').value = titleVal;
-  const nfBody = document.getElementById('nf-body');
-  nfBody.innerHTML = bodyHTML;
+  const body = document.getElementById('nf-body');
+  body.innerHTML = bodyHTML;
 
-  // Sync title live
+  // Title → hidden form
   document.getElementById('nf-title').addEventListener('input', () => {
     document.getElementById('f-title').value = document.getElementById('nf-title').value;
     draftChanged();
   });
 
-  // Sync body live — debounced
-  let _syncTimer;
-  nfBody.addEventListener('input', () => {
-    clearTimeout(_syncTimer);
-    _syncTimer = setTimeout(() => {
-      document.getElementById('f-body').innerHTML = nfBody.innerHTML;
-      draftChanged();
-    }, 200);
+  // Body → hidden form (debounced)
+  let _st;
+  body.addEventListener('input', () => {
+    clearTimeout(_st);
+    _st = setTimeout(() => { _syncBody(); draftChanged(); }, 150);
   });
+
+  // Keys
+  body.addEventListener('keydown', _editorKey);
+
+  // Selection toolbar
+  body.addEventListener('mouseup',   _onSelChange);
+  body.addEventListener('keyup',     _onSelChange);
+  document.addEventListener('mousedown', _onDocMousedown);
 
   // Escape exits
   ov.addEventListener('keydown', e => { if (e.key === 'Escape') exitFocusMode(); });
 
-  // Smart list keyboard handling
-  nfBody.addEventListener('keydown', editorKeydown);
-
-  // Focus body at end
   setTimeout(() => {
-    nfBody.focus();
-    const r = document.createRange(); r.selectNodeContents(nfBody); r.collapse(false);
-    const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-  }, 50);
-}
-
-
-// ── SMART LIST KEYBOARD HANDLER ──
-function editorKeydown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    const li = _currentLi();
-    if (li) {
-      e.preventDefault();
-      if (_isEmptyLi(li)) {
-        // Empty list item → exit the list, insert paragraph after
-        _exitListEnter(li);
-      } else {
-        // Non-empty → insert new list item
-        _insertLiAfter(li);
-      }
-      _syncBody();
-      return;
+    body.focus();
+    if (bodyHTML) {
+      // cursor at end
+      const r = document.createRange();
+      r.selectNodeContents(body); r.collapse(false);
+      const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
     }
-  }
-
-  if (e.key === 'Backspace') {
-    const li = _currentLi();
-    if (li && _isEmptyLi(li)) {
-      e.preventDefault();
-      _exitListBackspace(li); // cursor to prev LI end, or exit upward
-      _syncBody();
-      return;
-    }
-    // At very start of a non-empty LI: unwrap LI into paragraph
-    if (li && _cursorAtStart(li)) {
-      e.preventDefault();
-      _unwrapLiToParagraph(li);
-      _syncBody();
-      return;
-    }
-  }
-
-  // Tab in list: indent (nested list)
-  if (e.key === 'Tab') {
-    const li = _currentLi();
-    if (li) {
-      e.preventDefault();
-      if (e.shiftKey) {
-        document.execCommand('outdent');
-      } else {
-        document.execCommand('indent');
-      }
-      _syncBody();
-      return;
-    }
-  }
-}
-
-function _syncBody() {
-  const nfBody = document.getElementById('nf-body');
-  const fbody  = document.getElementById('f-body');
-  if (nfBody && fbody) fbody.innerHTML = nfBody.innerHTML;
-  draftChanged();
-}
-
-// Returns the <li> ancestor of the cursor, or null
-function _currentLi() {
-  const sel = window.getSelection();
-  if (!sel || !sel.rangeCount) return null;
-  let node = sel.getRangeAt(0).startContainer;
-  while (node && node !== document) {
-    if (node.nodeName === 'LI') return node;
-    node = node.parentNode;
-  }
-  return null;
-}
-
-function _isEmptyLi(li) {
-  return li.textContent.trim() === '' && !li.querySelector('img,br[data-mce-bogus]');
-}
-
-function _cursorAtStart(li) {
-  const sel = window.getSelection();
-  if (!sel || !sel.rangeCount) return false;
-  const range = sel.getRangeAt(0);
-  if (!range.collapsed) return false;
-  // Check offset 0 in the LI or its first text node
-  if (range.startOffset === 0) {
-    // Make sure we're inside this LI
-    return li.contains(range.startContainer);
-  }
-  return false;
-}
-
-// Insert a new <li> after the given one and place cursor in it
-function _insertLiAfter(li) {
-  const newLi = document.createElement('li');
-  newLi.innerHTML = '\u200B'; // zero-width space so it's not "empty"
-  li.parentNode.insertBefore(newLi, li.nextSibling);
-  // Place cursor inside new li
-  const range = document.createRange();
-  const sel   = window.getSelection();
-  range.setStart(newLi, 0);
-  range.collapse(true);
-  sel.removeAllRanges();
-  sel.addRange(range);
-  // Clear the ZWS so typing replaces it
-  newLi.innerHTML = '';
-}
-
-// Place cursor at the END of a node's text content
-function _cursorAtEnd(node) {
-  const range = document.createRange();
-  const sel   = window.getSelection();
-  range.selectNodeContents(node);
-  range.collapse(false); // false = collapse to end
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-
-// Backspace on empty LI:
-//   - If previous sibling LI exists → remove current LI, cursor to end of prev LI (stay on same line)
-//   - If no prev sibling → remove LI, convert to paragraph before list (exit list upward)
-function _exitListBackspace(li) {
-  const list   = li.parentNode;
-  const nfBody = document.getElementById('nf-body');
-  const prevLi = li.previousElementSibling;
-
-  li.remove();
-  if (!list.children.length) list.remove();
-
-  if (prevLi) {
-    // Stay on prev line — cursor at its end
-    _cursorAtEnd(prevLi);
-  } else {
-    // No prev li — insert paragraph before where list was (or body start)
-    const p = document.createElement('p');
-    p.innerHTML = '<br>';
-    const listParent = list.parentNode;
-    if (listParent) {
-      listParent.insertBefore(p, list.nextSibling || null);
-    } else {
-      nfBody.prepend(p);
-    }
-    const range = document.createRange();
-    const sel   = window.getSelection();
-    range.setStart(p, 0);
-    range.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
-}
-
-// Enter on empty LI → exit list, insert paragraph AFTER the list, cursor there
-function _exitListEnter(li) {
-  const list   = li.parentNode;
-  const nfBody = document.getElementById('nf-body');
-  li.remove();
-  if (!list.children.length) list.remove();
-  const p = document.createElement('p');
-  p.innerHTML = '<br>';
-  const listParent = list.parentNode;
-  if (listParent) {
-    listParent.insertBefore(p, list.nextSibling || null);
-  } else {
-    nfBody.appendChild(p);
-  }
-  const range = document.createRange();
-  const sel   = window.getSelection();
-  range.setStart(p, 0);
-  range.collapse(true);
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-
-// Convert a <li> into a <p> and remove it from the list (for Backspace at start of non-empty LI)
-function _unwrapLiToParagraph(li) {
-  const list   = li.parentNode;
-  const nfBody = document.getElementById('nf-body');
-  const p = document.createElement('p');
-  p.innerHTML = li.innerHTML || '<br>';
-  list.parentNode.insertBefore(p, list);
-  li.remove();
-  if (!list.children.length) list.remove();
-  const range = document.createRange();
-  const sel   = window.getSelection();
-  range.setStart(p, 0);
-  range.collapse(true);
-  sel.removeAllRanges();
-  sel.addRange(range);
+  }, 40);
 }
 
 function exitFocusMode() {
   if (!_focusOverlay) return;
-  // Final sync
-  const nfTitle = document.getElementById('nf-title')?.value || '';
-  const nfBody  = document.getElementById('nf-body')?.innerHTML || '';
-  document.getElementById('f-title').value = nfTitle;
-  document.getElementById('f-body').innerHTML = nfBody;
-  // Force immediate save
+  document.removeEventListener('mousedown', _onDocMousedown);
+  _hideSelToolbar();
+  document.getElementById('f-title').value =
+    document.getElementById('nf-title')?.value || '';
+  _syncBody();
   commitDraft();
   _focusOverlay.remove();
   _focusOverlay = null;
-  _focusNoteId = null;
+  _focusNoteId  = null;
   renderNotes();
 }
 
-// Paste handler: strip colors, force white
+function _syncBody() {
+  const b = document.getElementById('nf-body');
+  const f = document.getElementById('f-body');
+  if (b && f) f.innerHTML = b.innerHTML;
+}
+
+// ── PASTE: strip external colors, force white ──
 function handleFocusPaste(e) {
   e.preventDefault();
-  const html = e.clipboardData.getData('text/html');
-  const text = e.clipboardData.getData('text/plain');
-  let clean = '';
+  const html  = e.clipboardData.getData('text/html');
+  const plain = e.clipboardData.getData('text/plain');
+  let clean;
   if (html) {
-    // Parse and strip color styles, force white
     const tmp = document.createElement('div');
     tmp.innerHTML = html;
     tmp.querySelectorAll('*').forEach(el => {
-      el.style.color = '#e8e4dc';
+      el.style.color           = '#e8e4dc';
       el.style.backgroundColor = '';
-      el.style.background = '';
-      // Remove font-color attributes
+      el.style.background      = '';
       el.removeAttribute('color');
     });
     clean = tmp.innerHTML;
   } else {
-    clean = `<span style="color:#e8e4dc">${text.replace(/\n/g,'<br>')}</span>`;
+    clean = plain.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                 .replace(/\n/g,'<br>');
+    clean = `<span style="color:#e8e4dc">${clean}</span>`;
   }
   document.execCommand('insertHTML', false, clean);
-  // Sync back
+  setTimeout(_syncBody, 0);
+}
+
+// ── SELECTION FLOATING TOOLBAR ──
+function _onSelChange() {
   setTimeout(() => {
-    document.getElementById('f-body').innerHTML = document.getElementById('nf-body')?.innerHTML || '';
-    draftChanged();
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) { _hideSelToolbar(); return; }
+    const range = sel.getRangeAt(0);
+    // Only show if selection is inside nf-body
+    const body = document.getElementById('nf-body');
+    if (!body || !body.contains(range.commonAncestorContainer)) { _hideSelToolbar(); return; }
+    _showSelToolbar(range.getBoundingClientRect());
+  }, 10);
+}
+
+function _onDocMousedown(e) {
+  const tb = document.getElementById('note-sel-toolbar');
+  if (tb && tb.contains(e.target)) return; // clicking toolbar itself — don't hide
+  // Hide on next tick so selectionchange fires first
+  setTimeout(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) _hideSelToolbar();
   }, 0);
 }
 
-// ── RIGHT-CLICK FORMATTING TOOLBAR ──
-// Saves selection before showing, restores it before applying command
-let _nctSavedRange = null;
-
-function showNoteCtxToolbar(e) {
-  e.preventDefault();
-  document.getElementById('note-ctx-toolbar')?.remove();
-
-  // Save the current selection range now, before anything steals focus
-  const sel = window.getSelection();
-  _nctSavedRange = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0).cloneRange() : null;
+function _showSelToolbar(rect) {
+  _hideSelToolbar();
+  const tb = document.createElement('div');
+  tb.id = 'note-sel-toolbar';
+  tb.className = 'note-sel-toolbar';
 
   const bold      = document.queryCommandState('bold');
   const italic    = document.queryCommandState('italic');
   const underline = document.queryCommandState('underline');
+  const strike    = document.queryCommandState('strikeThrough');
 
-  const tb = document.createElement('div');
-  tb.className = 'note-ctx-toolbar';
-  tb.id = 'note-ctx-toolbar';
   tb.innerHTML = `
-    <button class="nct-btn ${bold?'on':''}"      onmousedown="nctFmt(event,'bold')"><b>B</b></button>
-    <button class="nct-btn ${italic?'on':''}"    onmousedown="nctFmt(event,'italic')"><i>I</i></button>
-    <button class="nct-btn ${underline?'on':''}" onmousedown="nctFmt(event,'underline')"><u>U</u></button>
-    <button class="nct-btn"                      onmousedown="nctFmt(event,'strikeThrough')"><s>S</s></button>
-    <div class="nct-sep"></div>
-    <button class="nct-btn" onmousedown="nctFmt(event,'insertUnorderedList')">•</button>
-    <button class="nct-btn" onmousedown="nctFmt(event,'insertOrderedList')">1.</button>
-    <div class="nct-sep"></div>
-    <button class="nct-btn" onmousedown="nctFmt(event,'justifyLeft')" title="Left">⬛</button>
-    <button class="nct-btn" onmousedown="nctFmt(event,'justifyCenter')" title="Center">▪</button>
-    <div class="nct-sep"></div>
-    <button class="nct-btn" onmousedown="nctFmt(event,'superscript')">x²</button>
-    <button class="nct-btn" onmousedown="nctFmt(event,'subscript')">x₂</button>
-    <div class="nct-sep"></div>
-    <button class="nct-btn" onmousedown="nctPickColor(event,'fore')" title="Text color" style="min-width:36px">A 🎨</button>
-    <button class="nct-btn" onmousedown="nctPickColor(event,'hi')"   title="Highlight"  style="min-width:36px">H ✏️</button>
-    <div class="nct-sep"></div>
-    <button class="nct-btn" onmousedown="nctFmt(event,'removeFormat')">✕</button>
+    <button class="nst-btn ${bold?'on':''}"      onmousedown="nstFmt(event,'bold')"         ><b>B</b></button>
+    <button class="nst-btn ${italic?'on':''}"    onmousedown="nstFmt(event,'italic')"       ><i>I</i></button>
+    <button class="nst-btn ${underline?'on':''}" onmousedown="nstFmt(event,'underline')"    ><u>U</u></button>
+    <button class="nst-btn ${strike?'on':''}"    onmousedown="nstFmt(event,'strikeThrough')"><s>S</s></button>
+    <div class="nst-sep"></div>
+    <button class="nst-btn" onmousedown="nstFmt(event,'insertUnorderedList')">•</button>
+    <button class="nst-btn" onmousedown="nstFmt(event,'insertOrderedList')">1.</button>
+    <div class="nst-sep"></div>
+    <button class="nst-btn" onmousedown="nstFmt(event,'superscript')">x²</button>
+    <button class="nst-btn" onmousedown="nstFmt(event,'subscript')">x₂</button>
+    <div class="nst-sep"></div>
+    <label class="nst-btn" onmousedown="event.preventDefault()" title="Color">
+      A <input type="color" value="#e8e4dc" tabindex="-1"
+        style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" id="nst-fc"/>
+    </label>
+    <label class="nst-btn" onmousedown="event.preventDefault()" title="Highlight">
+      H <input type="color" value="#fff176" tabindex="-1"
+        style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" id="nst-hc"/>
+    </label>
+    <div class="nst-sep"></div>
+    <button class="nst-btn" onmousedown="nstFmt(event,'removeFormat')">✕</button>
   `;
-
-  const x = Math.min(e.clientX, window.innerWidth - 310);
-  const y = Math.min(e.clientY + 4, window.innerHeight - 60);
-  tb.style.cssText = `left:${x}px;top:${y}px`;
   document.body.appendChild(tb);
+  _selToolbar = tb;
 
-  const close = ev => {
-    if (!tb.contains(ev.target)) { tb.remove(); document.removeEventListener('mousedown', close); }
-  };
-  setTimeout(() => document.addEventListener('mousedown', close), 0);
+  // Wire color pickers — click label triggers the input
+  tb.querySelector('[title="Color"]').addEventListener('click', () => {
+    const inp = document.getElementById('nst-fc');
+    _saveEditorSel();
+    inp.click();
+  });
+  document.getElementById('nst-fc').addEventListener('input', e => {
+    _restoreEditorSel();
+    document.execCommand('foreColor', false, e.target.value);
+    _syncBody(); draftChanged();
+  });
+  tb.querySelector('[title="Highlight"]').addEventListener('click', () => {
+    const inp = document.getElementById('nst-hc');
+    _saveEditorSel();
+    inp.click();
+  });
+  document.getElementById('nst-hc').addEventListener('input', e => {
+    _restoreEditorSel();
+    document.execCommand('hiliteColor', false, e.target.value);
+    _syncBody(); draftChanged();
+  });
+
+  // Position above selection
+  const tbW = 340, tbH = 40;
+  let x = rect.left + rect.width / 2 - tbW / 2;
+  let y = rect.top - tbH - 8;
+  if (y < 8) y = rect.bottom + 8;
+  x = Math.max(8, Math.min(x, window.innerWidth - tbW - 8));
+  tb.style.cssText = `left:${x}px;top:${y}px`;
 }
 
-function _nctRestoreAndFocus() {
-  const body = document.getElementById('nf-body') || document.getElementById('f-body');
+function _hideSelToolbar() {
+  document.getElementById('note-sel-toolbar')?.remove();
+  _selToolbar = null;
+}
+
+let _savedEditorRange = null;
+function _saveEditorSel() {
+  const sel = window.getSelection();
+  _savedEditorRange = sel && sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
+}
+function _restoreEditorSel() {
+  const body = document.getElementById('nf-body');
   if (!body) return;
   body.focus();
-  if (_nctSavedRange) {
+  if (_savedEditorRange) {
     const sel = window.getSelection();
     sel.removeAllRanges();
-    sel.addRange(_nctSavedRange);
+    sel.addRange(_savedEditorRange);
   }
 }
 
-function nctFmt(e, cmd) {
-  e.preventDefault(); // prevent button from stealing focus/selection
-  _nctRestoreAndFocus();
+function nstFmt(e, cmd) {
+  e.preventDefault();
+  const body = document.getElementById('nf-body');
+  if (!body) return;
+  // Restore focus+selection, apply command
+  body.focus();
   document.execCommand(cmd, false, null);
-  document.getElementById('f-body').innerHTML = (document.getElementById('nf-body') || document.getElementById('f-body')).innerHTML;
-  draftChanged();
-  document.getElementById('note-ctx-toolbar')?.remove();
+  _syncBody(); draftChanged();
+  _hideSelToolbar();
 }
 
-function nctPickColor(e, type) {
-  e.preventDefault();
-  // Create hidden color input, trigger it
-  const inp = document.createElement('input');
-  inp.type = 'color';
-  inp.value = type === 'fore' ? '#e8e4dc' : '#fff176';
-  inp.style.cssText = 'position:fixed;left:-999px;top:-999px;opacity:0';
-  document.body.appendChild(inp);
-  inp.addEventListener('input', () => {
-    _nctRestoreAndFocus();
-    document.execCommand(type === 'fore' ? 'foreColor' : 'hiliteColor', false, inp.value);
-    document.getElementById('f-body').innerHTML = (document.getElementById('nf-body') || document.getElementById('f-body')).innerHTML;
-    draftChanged();
-  });
-  inp.addEventListener('change', () => { inp.remove(); document.getElementById('note-ctx-toolbar')?.remove(); });
-  inp.click();
+// ── KEYBOARD HANDLER ──
+// Uses execCommand for lists — browser handles continuation natively.
+// We only intercept: Escape, and the two edge cases browser gets wrong:
+//   • Backspace on first-and-only empty LI → exit list
+//   • Enter on empty LI at end → exit list (browser already does this in Chrome but not Safari)
+function _editorKey(e) {
+  if (e.key === 'Escape') { exitFocusMode(); return; }
+
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+
+  // Find enclosing LI
+  let li = null;
+  let node = range.startContainer;
+  while (node && node.id !== 'nf-body') {
+    if (node.nodeName === 'LI') { li = node; break; }
+    node = node.parentNode;
+  }
+
+  if (!li) return;
+
+  const isEmpty = li.textContent.replace(/\u200B/g, '').trim() === '';
+  const list    = li.parentNode;
+
+  if (e.key === 'Enter' && !e.shiftKey && isEmpty) {
+    // Empty LI → exit list, new paragraph after
+    e.preventDefault();
+    const p = document.createElement('p'); p.innerHTML = '<br>';
+    list.parentNode.insertBefore(p, list.nextSibling);
+    li.remove(); if (!list.children.length) list.remove();
+    _moveCursorTo(p, false);
+    _syncBody(); draftChanged(); return;
+  }
+
+  if (e.key === 'Backspace' && isEmpty) {
+    e.preventDefault();
+    const prev = li.previousElementSibling;
+    li.remove(); if (!list.children.length) list.remove();
+    if (prev) {
+      // Cursor to end of previous LI — stay on same line
+      _moveCursorTo(prev, true);
+    } else {
+      // No prev LI → paragraph before list
+      const p = document.createElement('p'); p.innerHTML = '<br>';
+      const listParent = list.parentNode;
+      if (listParent) listParent.insertBefore(p, list);
+      else document.getElementById('nf-body').prepend(p);
+      _moveCursorTo(p, false);
+    }
+    _syncBody(); draftChanged(); return;
+  }
+
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    document.execCommand(e.shiftKey ? 'outdent' : 'indent');
+    _syncBody(); draftChanged(); return;
+  }
+}
+
+function _moveCursorTo(el, atEnd) {
+  const r = document.createRange();
+  const s = window.getSelection();
+  if (atEnd) {
+    r.selectNodeContents(el); r.collapse(false);
+  } else {
+    r.setStart(el, 0); r.collapse(true);
+  }
+  s.removeAllRanges(); s.addRange(r);
 }
 
 // ── INIT ──
