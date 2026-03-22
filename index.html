@@ -2428,56 +2428,96 @@ async function gcalSync() {
     const timeMin = new Date(now); timeMin.setDate(now.getDate() - 30);
     const timeMax = new Date(now); timeMax.setDate(now.getDate() + 60);
 
-    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
+    // Fetch 1: expanded single instances (for non-recurring & recurrence instances we need times for)
+    const urlSingle = `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
       `timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}` +
-      `&singleEvents=true&orderBy=startTime&maxResults=250`;
+      `&singleEvents=true&orderBy=startTime&maxResults=500`;
 
-    const resp = await fetch(url, {
-      headers: { 'Authorization': 'Bearer ' + gcalToken }
-    });
+    // Fetch 2: master recurring events (not expanded) so we get RRULE
+    const urlMaster = `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
+      `timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}` +
+      `&singleEvents=false&maxResults=250`;
 
-    if (resp.status === 401) {
-      // Token expired — re-auth
+    const [respSingle, respMaster] = await Promise.all([
+      fetch(urlSingle, { headers: { 'Authorization': 'Bearer ' + gcalToken } }),
+      fetch(urlMaster, { headers: { 'Authorization': 'Bearer ' + gcalToken } })
+    ]);
+
+    if (respSingle.status === 401 || respMaster.status === 401) {
       gcalToken = null;
       localStorage.removeItem('gcal_token');
+      localStorage.removeItem('gcal_scope');
       btn.className = 'gcal-btn';
       btn.textContent = '📅 Connect Google Calendar';
       gcalConnect();
       return;
     }
 
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    if (!respSingle.ok) throw new Error('HTTP ' + respSingle.status);
 
-    const data = await resp.json();
-    const items = data.items || [];
+    const dataSingle = await respSingle.json();
+    const dataMaster = respMaster.ok ? await respMaster.json() : { items: [] };
+
+    // Build a map of recurringEventId → master event (with RRULE)
+    const masterMap = {};
+    (dataMaster.items || []).forEach(m => {
+      if (m.recurrence) masterMap[m.id] = m;
+    });
+
+    const items = dataSingle.items || [];
     let added = 0;
+
+    // Track which master recurring events we've already stored (store once on anchor day)
+    const storedMasters = new Set();
+    // Remove all previously gcal-synced events so we get a clean re-sync
+    Object.keys(calEvts).forEach(dk => {
+      calEvts[dk] = (calEvts[dk] || []).filter(e => !e.fromGcal);
+    });
 
     items.forEach(evt => {
       if (!evt.summary) return;
-      // Get day key
       const startRaw = evt.start?.dateTime || evt.start?.date;
       const endRaw   = evt.end?.dateTime   || evt.end?.date;
       if (!startRaw) return;
 
-      const dayKey = startRaw.split('T')[0];
+      const dayKey    = startRaw.split('T')[0];
       const startTime = startRaw.includes('T') ? startRaw.split('T')[1].slice(0,5) : null;
       const endTime   = endRaw && endRaw.includes('T') ? endRaw.split('T')[1].slice(0,5) : null;
 
       if (!calEvts[dayKey]) calEvts[dayKey] = [];
 
-      // Skip if already synced by gcal id
-      const exists = calEvts[dayKey].some(e => e.gcalId === evt.id);
-      if (!exists) {
+      // Is this instance part of a master recurring event?
+      const masterId = evt.recurringEventId;
+      const master   = masterId ? masterMap[masterId] : null;
+
+      if (master && !storedMasters.has(masterId)) {
+        // Parse the RRULE and store the event ONCE on its anchor day with Mind's repeat props
+        storedMasters.add(masterId);
+        const repeat = parseGcalRrule(master.recurrence, startRaw);
+        if (!calEvts[dayKey]) calEvts[dayKey] = [];
         calEvts[dayKey].push({
-          title: evt.summary,
-          start: startTime,
-          end:   endTime,
-          gcalId: evt.id,
+          title:        evt.summary,
+          start:        startTime,
+          end:          endTime,
+          gcalId:       masterId,   // use master id so updates/deletes hit the right event
+          fromGcal:     true,
+          color:        evt.colorId || null,
+          ...repeat     // repeat, repeatEvery, repeatDays, repeatEnds, repeatEndDate, repeatAfter
+        });
+        added++;
+      } else if (!master) {
+        // Plain non-recurring event
+        calEvts[dayKey].push({
+          title:    evt.summary,
+          start:    startTime,
+          end:      endTime,
+          gcalId:   evt.id,
           fromGcal: true,
-          color: evt.colorId || null
+          color:    evt.colorId || null
         });
         added++;
       }
+      // else: additional instances of an already-stored recurring event — skip (Mind expands them)
     });
 
     save();
@@ -2494,6 +2534,69 @@ async function gcalSync() {
   }
 }
 
+
+
+// ── RRULE → Mind repeat format ──
+// GCal recurrence looks like: ["RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR"]
+// Mind format: repeat='weekly'|'daily'|'monthly'|'yearly'|'custom'|'none'
+//              repeatDays=[0-6] (Sun=0), repeatEvery=N
+function parseGcalRrule(recurrence, anchorDateTimeStr) {
+  const result = { repeat:'none', repeatEvery:1, repeatDays:[], repeatEnds:'never', repeatEndDate:'', repeatAfter:4 };
+  if (!recurrence || !recurrence.length) return result;
+
+  const rruleStr = recurrence.find(r => r.startsWith('RRULE:')) || '';
+  if (!rruleStr) return result;
+
+  const parts = {};
+  rruleStr.replace('RRULE:','').split(';').forEach(p => {
+    const [k,v] = p.split('=');
+    parts[k] = v;
+  });
+
+  const freq = parts['FREQ'] || '';
+  const interval = parseInt(parts['INTERVAL'] || '1', 10);
+  const byDay = parts['BYDAY'] || '';
+  const count = parts['COUNT'] ? parseInt(parts['COUNT'],10) : null;
+  const until = parts['UNTIL'] || null;
+
+  // Map BYDAY abbreviations to JS day numbers (Sun=0)
+  const dayMap = { SU:0, MO:1, TU:2, WE:3, TH:4, FR:5, SA:6 };
+  const days = byDay ? byDay.split(',').map(d => dayMap[d.replace(/[+-\d]/g,'')]).filter(d => d !== undefined) : [];
+
+  result.repeatEvery = interval;
+
+  if (freq === 'DAILY') {
+    result.repeat = interval === 1 ? 'daily' : 'custom';
+    if (interval > 1) result.repeatDays = [0,1,2,3,4,5,6]; // every N days
+  } else if (freq === 'WEEKLY') {
+    if (days.length > 1 || interval > 1) {
+      // Multiple days per week or every N weeks → custom
+      result.repeat = 'custom';
+      // For custom, repeatDays holds which weekdays
+      result.repeatDays = days.length ? days : [new Date(anchorDateTimeStr.split('T')[0]+'T12:00:00').getDay()];
+    } else {
+      result.repeat = 'weekly';
+      result.repeatDays = days.length ? days : [new Date(anchorDateTimeStr.split('T')[0]+'T12:00:00').getDay()];
+    }
+  } else if (freq === 'MONTHLY') {
+    result.repeat = 'monthly';
+  } else if (freq === 'YEARLY') {
+    result.repeat = 'yearly';
+  }
+
+  // End conditions
+  if (count) {
+    result.repeatEnds = 'after';
+    result.repeatAfter = count;
+  } else if (until) {
+    result.repeatEnds = 'on';
+    // UNTIL is like 20260401T000000Z — convert to YYYY-MM-DD
+    const u = until.replace(/T.*/, '');
+    result.repeatEndDate = u.slice(0,4)+'-'+u.slice(4,6)+'-'+u.slice(6,8);
+  }
+
+  return result;
+}
 
 // ── GOOGLE CALENDAR WRITE ──
 
