@@ -1663,6 +1663,7 @@ function evtDragEnd(e){
     calEvts[st.dk].splice(st.idx,1);
     if(!calEvts[st.targetDk])calEvts[st.targetDk]=[];
     calEvts[st.targetDk].push(movedEvt);
+    gcalUpdateEvent(movedEvt, st.targetDk);
     save();
     renderCal();
   };
@@ -1693,8 +1694,12 @@ function cResizeStart(e,dk,idx){
     const newMin=Math.max(sh*60+sm+15,Math.min(origEndMin+dMin,24*60-1));
     evt.end=minToStr(newMin);save();renderCal();
   };
-  const onUp=()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
-  document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
+  const onUp2=()=>{
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp2);
+    gcalUpdateEvent(evt,dk);
+  };
+  document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp2);
 }
 
 // ── RECURRING EDIT DIALOG ──
@@ -1949,11 +1954,22 @@ function capSave(){
   const origDk=pop.dataset.dk;
   const doSave=(scope)=>{
     if(isEdit&&_pIdx!==null){
-      if(dk!==origDk){calEvts[origDk].splice(_pIdx,1);if(!calEvts[dk])calEvts[dk]=[];calEvts[dk].push(newEvt);}
-      else calEvts[origDk][_pIdx]=newEvt;
+      const oldEvt=calEvts[origDk]?.[_pIdx];
+      if(dk!==origDk){
+        calEvts[origDk].splice(_pIdx,1);
+        if(!calEvts[dk])calEvts[dk]=[];
+        calEvts[dk].push(newEvt);
+      } else {
+        calEvts[origDk][_pIdx]=newEvt;
+      }
+      // preserve gcalId so update works
+      if(oldEvt?.gcalId) newEvt.gcalId=oldEvt.gcalId;
+      gcalUpdateEvent(newEvt, dk);
     } else {
-      if(!calEvts[dk])calEvts[dk]=[];calEvts[dk].push(newEvt);
+      if(!calEvts[dk])calEvts[dk]=[];
+      calEvts[dk].push(newEvt);
       pushToNotion(val,dk,start,end);
+      gcalCreateEvent(newEvt, dk);
     }
     save();closeAllCal();renderCal();
   };
@@ -1969,17 +1985,22 @@ function capDelete(){
     const isRecur=(evt?.repeat||'none')!=='none';
     if(isRecur){
       showRecurDialog(evt.title||'',{start:evt.start,end:evt.end},{start:evt.start,end:evt.end},(scope)=>{
-        if(scope==='all'){calEvts[_pDk].splice(_pIdx,1);}
-        else if(scope==='this'){calEvts[_pDk].splice(_pIdx,1);}
-        else{calEvts[_pDk].splice(_pIdx,1);}
+        gcalDeleteEvent(evt?.gcalId);
+        calEvts[_pDk].splice(_pIdx,1);
         save();closeAllCal();renderCal();
       });
     } else {
+      const delEvt=calEvts[_pDk][_pIdx];
+      gcalDeleteEvent(delEvt?.gcalId);
       calEvts[_pDk].splice(_pIdx,1);save();closeAllCal();renderCal();
     }
   }
 }
-function calDelEvt(dk,idx){calEvts[dk].splice(idx,1);save();closeAllCal();renderCal();}
+function calDelEvt(dk,idx){
+  const delEvt=calEvts[dk]?.[idx];
+  gcalDeleteEvent(delEvt?.gcalId);
+  calEvts[dk].splice(idx,1);save();closeAllCal();renderCal();
+}
 
 // ── REPEAT ──
 function repeatLabel(r,every,days,dk){
@@ -2342,11 +2363,16 @@ async function pushToNotion(title, day, start, end) {
 
 // ── GOOGLE CALENDAR SYNC ──
 const GCAL_CLIENT_ID = '584971150624-3phej39s8knovu706g52ptbhp58cc46n.apps.googleusercontent.com';
-const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar';
 let gcalToken = null;
 let gcalTokenClient = null;
 
 function gcalInit() {
+  // If stored token was granted under readonly scope, clear it so user re-auths with write scope
+  const storedScope = localStorage.getItem('gcal_scope') || '';
+  if (!storedScope.includes('calendar') || storedScope === 'readonly') {
+    localStorage.removeItem('gcal_token');
+  }
   gcalToken = localStorage.getItem('gcal_token') || null;
   if (gcalToken) {
     const btn = document.getElementById('gcal-btn');
@@ -2377,6 +2403,7 @@ function gcalConnect() {
         }
         gcalToken = response.access_token;
         localStorage.setItem('gcal_token', gcalToken);
+        localStorage.setItem('gcal_scope', 'calendar');
         btn.className = 'gcal-btn connected';
         btn.textContent = '🔄 Sync Google Cal';
         gcalSync();
@@ -2465,6 +2492,77 @@ async function gcalSync() {
     btn.textContent = '✕ Sync failed';
     setTimeout(() => { btn.className='gcal-btn connected'; btn.textContent='🔄 Sync Google Cal'; }, 3000);
   }
+}
+
+
+// ── GOOGLE CALENDAR WRITE ──
+
+async function gcalRequest(method, path, body) {
+  if (!gcalToken) return null;
+  const resp = await fetch('https://www.googleapis.com/calendar/v3' + path, {
+    method,
+    headers: {
+      'Authorization': 'Bearer ' + gcalToken,
+      'Content-Type': 'application/json'
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (resp.status === 401) {
+    gcalToken = null;
+    localStorage.removeItem('gcal_token');
+    localStorage.removeItem('gcal_scope');
+    return null;
+  }
+  if (resp.status === 204) return {};  // DELETE success
+  if (!resp.ok) { console.warn('GCal write error', resp.status, await resp.text()); return null; }
+  return resp.json();
+}
+
+function gcalBuildBody(evt, dk) {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (evt.allDay || !evt.start) {
+    return {
+      summary: evt.title,
+      description: evt.desc || '',
+      location: evt.location || '',
+      start: { date: dk },
+      end:   { date: dk }
+    };
+  }
+  const startDT = dk + 'T' + evt.start + ':00';
+  const endDT   = dk + 'T' + (evt.end || evt.start) + ':00';
+  return {
+    summary: evt.title,
+    description: evt.desc || '',
+    location: evt.location || '',
+    start: { dateTime: startDT, timeZone: tz },
+    end:   { dateTime: endDT,   timeZone: tz }
+  };
+}
+
+async function gcalCreateEvent(evt, dk) {
+  if (!gcalToken) return;
+  try {
+    const data = await gcalRequest('POST', '/calendars/primary/events', gcalBuildBody(evt, dk));
+    if (data && data.id) {
+      evt.gcalId = data.id;
+      save();
+    }
+  } catch(e) { console.warn('gcalCreate failed', e); }
+}
+
+async function gcalUpdateEvent(evt, dk) {
+  if (!gcalToken || !evt.gcalId) return;
+  try {
+    await gcalRequest('PUT', '/calendars/primary/events/' + evt.gcalId, gcalBuildBody(evt, dk));
+  } catch(e) { console.warn('gcalUpdate failed', e); }
+}
+
+async function gcalDeleteEvent(gcalId) {
+  if (!gcalToken || !gcalId) return;
+  try {
+    await gcalRequest('DELETE', '/calendars/primary/events/' + gcalId);
+  } catch(e) { console.warn('gcalDelete failed', e); }
 }
 
 // ── INIT ──
