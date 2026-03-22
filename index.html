@@ -122,12 +122,27 @@ body{font-family:'Geist',system-ui,sans-serif;background:var(--bg);color:var(--i
 .note-focus-body ul{list-style-type:disc}
 .note-focus-body ol{list-style-type:decimal}
 .note-focus-body p{margin:0.2em 0}
-/* selection floating toolbar */
-.note-sel-toolbar{position:fixed;z-index:4000;display:flex;align-items:center;gap:2px;background:#1a1916;border:1px solid #3a3630;border-radius:7px;padding:4px 6px;box-shadow:0 4px 24px rgba(0,0,0,.7);animation:popin .1s ease;user-select:none}
-.nst-btn{min-width:28px;height:26px;padding:0 7px;font-size:12px;background:none;border:1px solid transparent;border-radius:4px;cursor:pointer;color:#e8e4dc;font-family:'Geist',sans-serif;display:flex;align-items:center;justify-content:center;gap:3px;transition:background .1s;position:relative}
-.nst-btn:hover{background:#2a2724}
-.nst-btn.on{background:#2d2410;color:#e8a55a}
-.nst-sep{width:1px;background:#2e2b26;height:18px;margin:0 2px;flex-shrink:0}
+/* ── SELECTION FLOATING TOOLBAR ── */
+.note-sel-toolbar{position:fixed;z-index:4000;display:flex;flex-direction:column;background:#141210;border:1px solid #2e2b26;border-radius:9px;box-shadow:0 8px 32px rgba(0,0,0,.8);animation:popin .12s ease;user-select:none;overflow:hidden;min-width:480px}
+.nst-row{display:flex;align-items:center;padding:5px 7px;gap:2px;border-bottom:1px solid #1e1c19}
+.nst-row:last-child{border-bottom:none}
+.nst-btn{min-width:28px;height:26px;padding:0 7px;font-size:12px;background:none;border:1px solid transparent;border-radius:4px;cursor:pointer;color:#e8e4dc;font-family:'Geist',sans-serif;display:flex;align-items:center;justify-content:center;gap:3px;transition:background .1s;position:relative;white-space:nowrap;flex-shrink:0}
+.nst-btn:hover{background:#2a2724;border-color:#3a3630}
+.nst-btn.on{background:#2d2410;color:#e8a55a;border-color:#5a3a10}
+.nst-sep{width:1px;background:#2e2b26;height:18px;margin:0 3px;flex-shrink:0}
+.nst-sel{height:26px;padding:0 6px;font-size:12px;background:#1e1c19;border:1px solid #2e2b26;border-radius:4px;color:#e8e4dc;cursor:pointer;outline:none;font-family:'Geist',sans-serif}
+.nst-sel:focus{border-color:#c8873a}
+/* ── RIGHT-CLICK CONTEXT MENU ── */
+.note-ctx-menu{position:fixed;z-index:5000;background:#141210;border:1px solid #2e2b26;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.85);padding:4px;min-width:220px;animation:popin .1s ease;user-select:none}
+.ncm-item{display:flex;align-items:center;gap:10px;padding:7px 12px;font-size:13px;color:#e8e4dc;cursor:pointer;border-radius:5px;font-family:'Geist',sans-serif;transition:background .08s}
+.ncm-item:hover{background:#252320}
+.ncm-item.danger{color:#e85a5a}
+.ncm-item .ncm-icon{width:16px;text-align:center;font-size:13px;opacity:.7;flex-shrink:0}
+.ncm-item .ncm-label{flex:1}
+.ncm-item .ncm-shortcut{font-size:11px;color:#3d3a35;font-family:'Geist Mono',monospace}
+.ncm-sep{height:1px;background:#1e1c19;margin:3px 0}
+.ncm-sub{position:fixed;background:#141210;border:1px solid #2e2b26;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.85);padding:4px;min-width:180px;z-index:5001}
+.ncm-has-sub::after{content:'›';margin-left:auto;opacity:.5}
 .rg{display:flex;align-items:center;gap:1px;padding:0 3px;border-right:1px solid var(--border)}
 .rg:last-child{border-right:none}
 .rb{display:flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 3px;font-size:12px;background:transparent;border:1px solid transparent;border-radius:3px;cursor:pointer;color:var(--ink);transition:background .1s;font-family:'Geist',sans-serif;white-space:nowrap}
@@ -2903,6 +2918,7 @@ function _openFocusOverlay(noteId, titleVal, bodyHTML) {
     <div class="note-focus-body" id="nf-body" contenteditable="true"
       data-ph="Start writing…"
       onpaste="handleFocusPaste(event)"
+      oncontextmenu="showNoteCtxMenu(event)"
     ></div>`;
   document.body.appendChild(ov);
   _focusOverlay = ov;
@@ -3025,62 +3041,94 @@ function _showSelToolbar(rect) {
   const italic    = document.queryCommandState('italic');
   const underline = document.queryCommandState('underline');
   const strike    = document.queryCommandState('strikeThrough');
+  const curFont   = document.queryCommandValue('fontName') || '';
+  const curSize   = document.queryCommandValue('fontSize') || '3';
 
+  // Row 1: font family + size + basic formatting
+  // Row 2: lists, indent, align, color, clear
   tb.innerHTML = `
-    <button class="nst-btn ${bold?'on':''}"      onmousedown="nstFmt(event,'bold')"         ><b>B</b></button>
-    <button class="nst-btn ${italic?'on':''}"    onmousedown="nstFmt(event,'italic')"       ><i>I</i></button>
-    <button class="nst-btn ${underline?'on':''}" onmousedown="nstFmt(event,'underline')"    ><u>U</u></button>
-    <button class="nst-btn ${strike?'on':''}"    onmousedown="nstFmt(event,'strikeThrough')"><s>S</s></button>
-    <div class="nst-sep"></div>
-    <button class="nst-btn" onmousedown="nstFmt(event,'insertUnorderedList')">•</button>
-    <button class="nst-btn" onmousedown="nstFmt(event,'insertOrderedList')">1.</button>
-    <div class="nst-sep"></div>
-    <button class="nst-btn" onmousedown="nstFmt(event,'superscript')">x²</button>
-    <button class="nst-btn" onmousedown="nstFmt(event,'subscript')">x₂</button>
-    <div class="nst-sep"></div>
-    <label class="nst-btn" onmousedown="event.preventDefault()" title="Color">
-      A <input type="color" value="#e8e4dc" tabindex="-1"
-        style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" id="nst-fc"/>
-    </label>
-    <label class="nst-btn" onmousedown="event.preventDefault()" title="Highlight">
-      H <input type="color" value="#fff176" tabindex="-1"
-        style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" id="nst-hc"/>
-    </label>
-    <div class="nst-sep"></div>
-    <button class="nst-btn" onmousedown="nstFmt(event,'removeFormat')">✕</button>
+    <div class="nst-row">
+      <select class="nst-sel" style="width:130px" onmousedown="event.stopPropagation()" onchange="nstFont(event)">
+        <option value="'Times New Roman',Times,serif"    ${curFont.includes('Times')?'selected':''}>Times New Roman</option>
+        <option value="'Instrument Serif',Georgia,serif" ${curFont.includes('Instrument')?'selected':''}>Instrument Serif</option>
+        <option value="Georgia,serif"                    ${curFont.includes('Georgia')&&!curFont.includes('Instrument')?'selected':''}>Georgia</option>
+        <option value="'Geist',sans-serif"               ${curFont.includes('Geist')&&!curFont.includes('Mono')?'selected':''}>Geist</option>
+        <option value="'Arial',sans-serif"               ${curFont.includes('Arial')?'selected':''}>Arial</option>
+        <option value="'Geist Mono',monospace"           ${curFont.includes('Mono')?'selected':''}>Mono</option>
+      </select>
+      <select class="nst-sel" style="width:54px;margin-left:4px" onmousedown="event.stopPropagation()" onchange="nstSize(event)">
+        <option value="1" ${curSize==='1'?'selected':''}>8</option>
+        <option value="2" ${curSize==='2'?'selected':''}>10</option>
+        <option value="3" ${curSize==='3'?'selected':''}>12</option>
+        <option value="4" ${curSize==='4'?'selected':''}>14</option>
+        <option value="5" ${curSize==='5'?'selected':''}>18</option>
+        <option value="6" ${curSize==='6'?'selected':''}>24</option>
+        <option value="7" ${curSize==='7'?'selected':''}>36</option>
+      </select>
+      <div class="nst-sep"></div>
+      <button class="nst-btn ${bold?'on':''}"      onmousedown="nstFmt(event,'bold')"         ><b>B</b></button>
+      <button class="nst-btn ${italic?'on':''}"    onmousedown="nstFmt(event,'italic')"       ><i>I</i></button>
+      <button class="nst-btn ${underline?'on':''}" onmousedown="nstFmt(event,'underline')"    ><u>U</u></button>
+      <button class="nst-btn ${strike?'on':''}"    onmousedown="nstFmt(event,'strikeThrough')"><s>S</s></button>
+      <div class="nst-sep"></div>
+      <button class="nst-btn" onmousedown="nstFmt(event,'superscript')" title="Superscript">x²</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'subscript')"   title="Subscript">x₂</button>
+      <div class="nst-sep"></div>
+      <label class="nst-btn" id="nst-fc-lbl" title="Text color" onmousedown="event.preventDefault()">
+        <span style="border-bottom:3px solid #e8e4dc;padding-bottom:1px">A</span>
+        <input type="color" value="#e8e4dc" id="nst-fc" tabindex="-1" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none"/>
+      </label>
+      <label class="nst-btn" id="nst-hc-lbl" title="Highlight" onmousedown="event.preventDefault()">
+        <span style="background:#fff17660;padding:1px 3px;border-radius:2px;font-size:11px">H</span>
+        <input type="color" value="#fff176" id="nst-hc" tabindex="-1" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none"/>
+      </label>
+    </div>
+    <div class="nst-row">
+      <button class="nst-btn" onmousedown="nstFmt(event,'insertUnorderedList')" title="Bullet list">• List</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'insertOrderedList')"   title="Numbered list">1. List</button>
+      <div class="nst-sep"></div>
+      <button class="nst-btn" onmousedown="nstFmt(event,'indent')"   title="Indent">→</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'outdent')"  title="Outdent">←</button>
+      <div class="nst-sep"></div>
+      <button class="nst-btn" onmousedown="nstFmt(event,'justifyLeft')"    title="Align left">⬛</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'justifyCenter')"  title="Center">▪</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'justifyRight')"   title="Align right">▪</button>
+      <button class="nst-btn" onmousedown="nstFmt(event,'justifyFull')"    title="Justify">≡</button>
+      <div class="nst-sep"></div>
+      <button class="nst-btn" onmousedown="nstFmt(event,'removeFormat')" title="Clear formatting" style="color:#e85a5a">✕ Clear</button>
+    </div>
   `;
+
   document.body.appendChild(tb);
   _selToolbar = tb;
 
-  // Wire color pickers — click label triggers the input
-  tb.querySelector('[title="Color"]').addEventListener('click', () => {
-    const inp = document.getElementById('nst-fc');
-    _saveEditorSel();
-    inp.click();
-  });
-  document.getElementById('nst-fc').addEventListener('input', e => {
-    _restoreEditorSel();
-    document.execCommand('foreColor', false, e.target.value);
-    _syncBody(); draftChanged();
-  });
-  tb.querySelector('[title="Highlight"]').addEventListener('click', () => {
-    const inp = document.getElementById('nst-hc');
-    _saveEditorSel();
-    inp.click();
-  });
-  document.getElementById('nst-hc').addEventListener('input', e => {
-    _restoreEditorSel();
-    document.execCommand('hiliteColor', false, e.target.value);
-    _syncBody(); draftChanged();
-  });
+  // Wire color pickers
+  document.getElementById('nst-fc-lbl').addEventListener('click', () => { _saveEditorSel(); document.getElementById('nst-fc').click(); });
+  document.getElementById('nst-fc').addEventListener('input', e => { _restoreEditorSel(); document.execCommand('foreColor', false, e.target.value); _syncBody(); draftChanged(); });
+  document.getElementById('nst-hc-lbl').addEventListener('click', () => { _saveEditorSel(); document.getElementById('nst-hc').click(); });
+  document.getElementById('nst-hc').addEventListener('input', e => { _restoreEditorSel(); document.execCommand('hiliteColor', false, e.target.value); _syncBody(); draftChanged(); });
 
-  // Position above selection
-  const tbW = 340, tbH = 40;
+  // Position above selection, centered
+  const tbW = 490, tbH = 78;
   let x = rect.left + rect.width / 2 - tbW / 2;
-  let y = rect.top - tbH - 8;
+  let y = rect.top - tbH - 10;
   if (y < 8) y = rect.bottom + 8;
   x = Math.max(8, Math.min(x, window.innerWidth - tbW - 8));
   tb.style.cssText = `left:${x}px;top:${y}px`;
+}
+
+function nstFont(e) {
+  e.preventDefault();
+  _restoreEditorSel();
+  document.execCommand('fontName', false, e.target.value);
+  _syncBody(); draftChanged();
+}
+
+function nstSize(e) {
+  e.preventDefault();
+  _restoreEditorSel();
+  document.execCommand('fontSize', false, e.target.value);
+  _syncBody(); draftChanged();
 }
 
 function _hideSelToolbar() {
@@ -3108,11 +3156,155 @@ function nstFmt(e, cmd) {
   e.preventDefault();
   const body = document.getElementById('nf-body');
   if (!body) return;
-  // Restore focus+selection, apply command
   body.focus();
   document.execCommand(cmd, false, null);
   _syncBody(); draftChanged();
   _hideSelToolbar();
+}
+
+// ── RIGHT-CLICK CONTEXT MENU (Word-style) ──
+function showNoteCtxMenu(e) {
+  e.preventDefault();
+  document.getElementById('note-ctx-menu')?.remove();
+  _saveEditorSel();
+
+  const hasSel = !window.getSelection()?.isCollapsed;
+  const li = _currentLi();
+  const inList = !!li;
+
+  const menu = document.createElement('div');
+  menu.className = 'note-ctx-menu';
+  menu.id = 'note-ctx-menu';
+
+  const item = (icon, label, shortcut, action, danger=false) =>
+    `<div class="ncm-item${danger?' danger':''}" data-action="${action}">
+      <span class="ncm-icon">${icon}</span>
+      <span class="ncm-label">${label}</span>
+      ${shortcut?`<span class="ncm-shortcut">${shortcut}</span>`:''}
+    </div>`;
+  const sep = () => '<div class="ncm-sep"></div>';
+
+  menu.innerHTML = `
+    ${hasSel ? item('✂️','Cut','Ctrl+X','cut') : ''}
+    ${hasSel ? item('📋','Copy','Ctrl+C','copy') : ''}
+    ${item('📄','Paste','Ctrl+V','paste')}
+    ${hasSel ? item('🧹','Paste as plain text','','paste-plain') : ''}
+    ${sep()}
+    ${hasSel ? item('<b>B</b>','Bold','Ctrl+B','bold') : ''}
+    ${hasSel ? item('<i>I</i>','Italic','Ctrl+I','italic') : ''}
+    ${hasSel ? item('<u>U</u>','Underline','Ctrl+U','underline') : ''}
+    ${hasSel ? item('🎨','Text color…','','color-fore') : ''}
+    ${hasSel ? item('✏️','Highlight…','','color-hi') : ''}
+    ${hasSel ? sep() : ''}
+    ${item('→','Increase indent','Tab','indent')}
+    ${item('←','Decrease indent','Shift+Tab','outdent')}
+    ${sep()}
+    ${item('•','Bullet list','','bullet')}
+    ${item('1.','Numbered list','','numbered')}
+    ${inList ? item('↑','Move list item up','','list-up') : ''}
+    ${inList ? item('↓','Move list item down','','list-down') : ''}
+    ${sep()}
+    ${item('⬛','Align left','','justifyLeft')}
+    ${item('▪','Align center','','justifyCenter')}
+    ${item('▪','Align right','','justifyRight')}
+    ${item('≡','Justify','','justifyFull')}
+    ${sep()}
+    ${hasSel ? item('✕','Clear formatting','','removeFormat','danger') : ''}
+    ${item('🔗','Insert link…','','link')}
+  `;
+
+  // Position
+  const x = Math.min(e.clientX, window.innerWidth  - 240);
+  const y = Math.min(e.clientY, window.innerHeight - 400);
+  menu.style.cssText = `left:${x}px;top:${y}px`;
+  document.body.appendChild(menu);
+
+  // Handle item clicks
+  menu.addEventListener('mousedown', async ev => {
+    const item = ev.target.closest('.ncm-item');
+    if (!item) return;
+    ev.preventDefault();
+    const action = item.dataset.action;
+    menu.remove();
+    _restoreEditorSel();
+
+    switch(action) {
+      case 'cut':           document.execCommand('cut'); break;
+      case 'copy':          document.execCommand('copy'); break;
+      case 'paste':
+        try { const t=await navigator.clipboard.readText(); document.execCommand('insertText',false,t); } catch(_){}
+        break;
+      case 'paste-plain':
+        try {
+          const t = await navigator.clipboard.readText();
+          const esc = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').split('\n').join('<br>');
+          document.execCommand('insertHTML', false, '<span style="color:#e8e4dc">' + esc + '</span>');
+        } catch(_){}
+        break;
+      case 'bold':          document.execCommand('bold'); break;
+      case 'italic':        document.execCommand('italic'); break;
+      case 'underline':     document.execCommand('underline'); break;
+      case 'indent':        document.execCommand('indent'); break;
+      case 'outdent':       document.execCommand('outdent'); break;
+      case 'bullet':        document.execCommand('insertUnorderedList'); break;
+      case 'numbered':      document.execCommand('insertOrderedList'); break;
+      case 'justifyLeft':   document.execCommand('justifyLeft'); break;
+      case 'justifyCenter': document.execCommand('justifyCenter'); break;
+      case 'justifyRight':  document.execCommand('justifyRight'); break;
+      case 'justifyFull':   document.execCommand('justifyFull'); break;
+      case 'removeFormat':  document.execCommand('removeFormat'); break;
+      case 'list-up':       _moveListItem(true); break;
+      case 'list-down':     _moveListItem(false); break;
+      case 'color-fore':    _pickColorCmd('foreColor'); break;
+      case 'color-hi':      _pickColorCmd('hiliteColor'); break;
+      case 'link':          _insertLink(); break;
+    }
+    _syncBody(); draftChanged();
+  });
+
+  // Close on outside click
+  const close = ev => { if (!menu.contains(ev.target)){ menu.remove(); document.removeEventListener('mousedown', close); } };
+  setTimeout(() => document.addEventListener('mousedown', close), 0);
+}
+
+function _moveListItem(up) {
+  const li = _currentLi();
+  if (!li) return;
+  const sibling = up ? li.previousElementSibling : li.nextElementSibling;
+  if (!sibling) return;
+  const list = li.parentNode;
+  if (up) list.insertBefore(li, sibling);
+  else    list.insertBefore(sibling, li);
+  _moveCursorTo(li, false);
+}
+
+function _pickColorCmd(cmd) {
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = cmd === 'foreColor' ? '#e8e4dc' : '#fff176';
+  inp.style.cssText = 'position:fixed;left:-999px;top:-999px;opacity:0';
+  document.body.appendChild(inp);
+  inp.addEventListener('input', () => { _restoreEditorSel(); document.execCommand(cmd, false, inp.value); _syncBody(); draftChanged(); });
+  inp.addEventListener('change', () => inp.remove());
+  inp.click();
+}
+
+function _insertLink() {
+  const url = prompt('Enter URL:');
+  if (!url) return;
+  _restoreEditorSel();
+  document.execCommand('createLink', false, url);
+}
+
+function _currentLi() {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return null;
+  let node = sel.getRangeAt(0).startContainer;
+  while (node && node.id !== 'nf-body') {
+    if (node.nodeName === 'LI') return node;
+    node = node.parentNode;
+  }
+  return null;
 }
 
 // ── KEYBOARD HANDLER ──
