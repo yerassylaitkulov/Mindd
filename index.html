@@ -442,6 +442,68 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 canvas#gc{width:100%;height:100%;display:block}
 .graph-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:10px;font-family:'Geist Mono',monospace;color:var(--muted);background:rgba(10,10,8,.8);padding:4px 12px;border-radius:99px;pointer-events:none}
 
+/* ── SHEETS ── */
+.sheets-layout{display:flex;flex:1;overflow:hidden;height:100%}
+.sheets-sidebar{width:220px;flex-shrink:0;background:#0a0a08;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sheets-sidebar-head{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sheets-sidebar-title{font-size:12px;font-weight:600;color:var(--ink);letter-spacing:.03em}
+.sheets-new-btn{background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:16px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.sheets-new-btn:hover{border-color:#0f9d58;color:#0f9d58}
+.sheets-file-list{flex:1;overflow-y:auto;scrollbar-width:none;padding:6px}
+.sheets-file-list::-webkit-scrollbar{display:none}
+.sheets-file-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:5px;cursor:pointer;transition:background .1s;user-select:none}
+.sheets-file-item:hover{background:rgba(255,255,255,.05)}
+.sheets-file-item.active{background:rgba(15,157,88,.12);color:#0f9d58}
+.sheets-file-item .sfi-icon{font-size:15px;flex-shrink:0}
+.sheets-file-item .sfi-name{font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.sheets-file-item .sfi-date{font-size:10px;color:var(--muted);font-family:'Geist Mono',monospace;flex-shrink:0}
+.sheets-connect-prompt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:30px 16px;text-align:center}
+.sheets-connect-icon{font-size:32px}
+.sheets-connect-text{font-size:13px;color:var(--muted)}
+.sheets-connect-btn{padding:7px 18px;font-size:13px;background:#0f9d58;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-weight:500}
+.sheets-connect-btn:hover{background:#0d8a4e}
+.sheets-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.sheets-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.sheets-editor{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.sheets-toolbar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;background:#0d0d0b}
+.sheets-file-name{font-size:14px;font-weight:500;color:var(--ink);flex:1;font-family:'Geist',sans-serif}
+.sheets-toolbar-actions{display:flex;align-items:center;gap:4px}
+.sheets-tb-btn{padding:5px 11px;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--ink);cursor:pointer;font-family:'Geist',sans-serif;transition:all .1s}
+.sheets-tb-btn:hover{border-color:#0f9d58;color:#0f9d58}
+.sheets-tb-btn.danger:hover{border-color:var(--red);color:var(--red)}
+.sheets-tb-sep{width:1px;background:var(--border);height:18px;margin:0 2px}
+.sheets-formula-bar{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid var(--border);flex-shrink:0;background:#0d0d0b}
+.sheets-cell-ref{font-family:'Geist Mono',monospace;font-size:12px;color:var(--ink);min-width:40px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:2px 6px}
+.sheets-formula-eq{color:var(--muted);font-family:'Geist Mono',monospace;font-size:13px}
+.sheets-formula-input{flex:1;background:none;border:none;outline:none;font-size:13px;color:var(--ink);font-family:'Geist Mono',monospace;caret-color:var(--ink)}
+.sheets-grid-wrap{flex:1;overflow:auto;position:relative;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.sheets-grid{display:grid;width:max-content}
+.sheets-grid::-webkit-scrollbar{width:5px;height:5px}
+.sheets-grid::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+/* header cells */
+.sg-corner{background:#111;border-right:1px solid var(--border);border-bottom:1px solid var(--border);position:sticky;top:0;left:0;z-index:30;width:40px}
+.sg-col-hd{background:#111;border-right:1px solid #1e1c19;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;font-size:11px;color:var(--muted);text-align:center;padding:5px 2px;font-family:'Geist Mono',monospace;user-select:none;min-width:100px;cursor:pointer}
+.sg-col-hd:hover{background:#1a1816;color:var(--ink)}
+.sg-col-hd.sel{background:#1a2e1a;color:#0f9d58}
+.sg-row-hd{background:#111;border-right:1px solid var(--border);border-bottom:1px solid #1e1c19;position:sticky;left:0;z-index:20;font-size:11px;color:var(--muted);text-align:center;padding:0 6px;font-family:'Geist Mono',monospace;user-select:none;cursor:pointer;width:40px}
+.sg-row-hd:hover{background:#1a1816;color:var(--ink)}
+.sg-row-hd.sel{background:#1a2e1a;color:#0f9d58}
+/* cells */
+.sg-cell{border-right:1px solid #1e1c19;border-bottom:1px solid #1e1c19;padding:0 6px;font-size:13px;color:var(--ink);font-family:'Geist',sans-serif;outline:none;background:var(--bg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:100px;height:28px;line-height:28px;cursor:default;box-sizing:border-box;transition:background .08s}
+.sg-cell:hover{background:#0d0d0c}
+.sg-cell.active{background:#0a1a0a;border:2px solid #0f9d58 !important;padding:0 5px;z-index:10;position:relative}
+.sg-cell.in-range{background:#0a1a0a55}
+.sg-cell.editing{outline:2px solid #0f9d58;background:#050e05;caret-color:#0f9d58}
+/* formula cells — text-align right for numbers */
+.sg-cell.num{text-align:right}
+.sheets-tabs-row{display:flex;align-items:center;gap:2px;padding:4px 10px;border-top:1px solid var(--border);flex-shrink:0;background:#0a0a08;overflow-x:auto;scrollbar-width:none}
+.sheets-tabs-row::-webkit-scrollbar{display:none}
+.sg-tab{padding:4px 14px;font-size:12px;font-family:'Geist',sans-serif;color:var(--muted);cursor:pointer;border-radius:4px 4px 0 0;border:1px solid transparent;border-bottom:none;transition:all .1s;white-space:nowrap}
+.sg-tab:hover{background:var(--surface);color:var(--ink)}
+.sg-tab.active{background:var(--surface2);color:#0f9d58;border-color:var(--border)}
+.sg-tab-add{padding:4px 10px;font-size:14px;color:var(--muted);cursor:pointer;border-radius:4px;transition:color .1s}
+.sg-tab-add:hover{color:#0f9d58}
+
 /* ── SETTINGS ── */
 .settings-layout{display:flex;flex:1;overflow:hidden;gap:0}
 .settings-nav{width:180px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;scrollbar-width:none}
@@ -496,6 +558,7 @@ canvas#gc{width:100%;height:100%;display:block}
     <button class="tab"        onclick="show('kanban')"   id="tab-kanban">📋 Kanban</button>
     <button class="tab"        onclick="show('flash')"    id="tab-flash">🃏 Flashcards</button>
     <button class="tab"        onclick="show('calendar')" id="tab-calendar">📅 Calendar</button>
+    <button class="tab"        onclick="show('sheets')"   id="tab-sheets">📊 Sheets</button>
     <button class="tab"        onclick="show('graph')"    id="tab-graph">🕸 Graph</button>
     <button class="tab"        onclick="show('settings')" id="tab-settings">⚙️ Settings</button>
   </div>
@@ -596,6 +659,56 @@ canvas#gc{width:100%;height:100%;display:block}
             <span class="gcal-status" id="gcal-btn"></span>
           </div>
           <div id="cal-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHEETS -->
+    <div class="view" id="view-sheets">
+      <div class="sheets-layout">
+        <!-- Left: file list -->
+        <div class="sheets-sidebar" id="sheets-sidebar">
+          <div class="sheets-sidebar-head">
+            <span class="sheets-sidebar-title">Spreadsheets</span>
+            <button class="sheets-new-btn" onclick="sheetsNewFile()" title="New spreadsheet">＋</button>
+          </div>
+          <div class="sheets-file-list" id="sheets-file-list">
+            <div class="sheets-connect-prompt" id="sheets-connect-prompt">
+              <div class="sheets-connect-icon">📊</div>
+              <div class="sheets-connect-text">Connect Google Sheets</div>
+              <button class="sheets-connect-btn" onclick="sheetsConnect()">Connect</button>
+            </div>
+          </div>
+        </div>
+        <!-- Right: spreadsheet editor -->
+        <div class="sheets-main" id="sheets-main">
+          <div class="sheets-empty" id="sheets-empty">
+            <div style="font-size:48px;margin-bottom:16px">📊</div>
+            <div style="font-size:18px;color:#6b6760;font-family:'Instrument Serif',serif;font-style:italic">Select a spreadsheet to open</div>
+            <div style="font-size:12px;color:#3d3a35;margin-top:8px;font-family:'Geist Mono',monospace">or create a new one</div>
+          </div>
+          <div class="sheets-editor" id="sheets-editor" style="display:none">
+            <div class="sheets-toolbar" id="sheets-toolbar">
+              <div class="sheets-file-name" id="sheets-file-name"></div>
+              <div class="sheets-toolbar-actions">
+                <button class="sheets-tb-btn" onclick="sheetsAddRow()" title="Add row">＋ Row</button>
+                <button class="sheets-tb-btn" onclick="sheetsAddCol()" title="Add column">＋ Col</button>
+                <div class="sheets-tb-sep"></div>
+                <button class="sheets-tb-btn" onclick="sheetsSave()" title="Save to Google Sheets" id="sheets-save-btn">💾 Save</button>
+                <button class="sheets-tb-btn danger" onclick="sheetsDeleteSheet()" title="Delete sheet">🗑</button>
+              </div>
+            </div>
+            <div class="sheets-formula-bar" id="sheets-formula-bar">
+              <span class="sheets-cell-ref" id="sheets-cell-ref">A1</span>
+              <span class="sheets-formula-eq">=</span>
+              <input class="sheets-formula-input" id="sheets-formula-input" placeholder="Enter value or formula…"
+                onkeydown="sheetsFormulaKey(event)" oninput="sheetsFormulaInput(event)"/>
+            </div>
+            <div class="sheets-grid-wrap" id="sheets-grid-wrap">
+              <div class="sheets-grid" id="sheets-grid"></div>
+            </div>
+            <div class="sheets-tabs-row" id="sheets-tabs-row"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -869,6 +982,7 @@ function show(v){
   if(v==='flash')    initFlash();
   if(v==='calendar') renderCal();
   if(v==='graph')    renderGraph();
+  if(v==='sheets')   sheetsInit();
   if(v==='settings') {renderTopicMgr();renderTagMgr();renderDataStats()}
   const sbtn=document.getElementById('settings-btn');if(sbtn)sbtn.classList.toggle('active',v==='settings');
   updateCounts();
@@ -881,6 +995,7 @@ function updateCounts(){
   document.getElementById('tab-flash').textContent   = '🃏 Flashcards';
   document.getElementById('tab-calendar').textContent= '📅 Calendar';
   document.getElementById('tab-graph').textContent   = '🕸 Graph';
+  if(document.getElementById('tab-sheets')) document.getElementById('tab-sheets').textContent = '📊 Sheets';
   document.getElementById('tab-settings').textContent= '⚙️ Settings';
 }
 
@@ -3501,6 +3616,377 @@ function _moveCursorTo(el, atEnd) {
     r.setStart(el, 0); r.collapse(true);
   }
   s.removeAllRanges(); s.addRange(r);
+}
+
+
+// ══════════════════════════════════════════
+// GOOGLE SHEETS INTEGRATION
+// ══════════════════════════════════════════
+const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.metadata.readonly';
+let sheetsToken   = null;
+let _sheetFiles   = [];       // list of spreadsheet files from Drive
+let _activeFile   = null;     // { id, name, sheets: [{id,name,data[][]}] }
+let _activeSheet  = 0;        // index into _activeFile.sheets
+let _selCell      = {r:0,c:0};
+let _editing      = false;
+let _sheetsInited = false;
+
+// ── AUTH ──
+function sheetsInit() {
+  if (_sheetsInited) return;
+  _sheetsInited = true;
+  sheetsToken = localStorage.getItem('sheets_token') || null;
+  if (sheetsToken) {
+    _sheetsLoadFiles();
+  } else {
+    document.getElementById('sheets-connect-prompt').style.display = '';
+  }
+}
+
+function sheetsConnect() {
+  const btn = document.querySelector('.sheets-connect-btn');
+  if (btn) btn.textContent = '⏳ Connecting…';
+  try {
+    const tc = google.accounts.oauth2.initTokenClient({
+      client_id: GCAL_CLIENT_ID,
+      scope: SHEETS_SCOPE,
+      callback: resp => {
+        if (resp.error) { if(btn) btn.textContent = 'Connect'; return; }
+        sheetsToken = resp.access_token;
+        localStorage.setItem('sheets_token', sheetsToken);
+        document.getElementById('sheets-connect-prompt').style.display = 'none';
+        _sheetsLoadFiles();
+      }
+    });
+    tc.requestAccessToken();
+  } catch(e) { if(btn) btn.textContent = 'Connect'; console.error(e); }
+}
+
+async function _sheetsReq(method, path, body) {
+  const resp = await fetch('https://sheets.googleapis.com/v4/spreadsheets' + path, {
+    method, headers: { 'Authorization': 'Bearer ' + sheetsToken, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (resp.status === 401) { sheetsToken=null; localStorage.removeItem('sheets_token'); sheetsInit(); return null; }
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  return resp.json();
+}
+
+async function _driveReq(path) {
+  const resp = await fetch('https://www.googleapis.com/drive/v3' + path, {
+    headers: { 'Authorization': 'Bearer ' + sheetsToken }
+  });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  return resp.json();
+}
+
+// ── FILE LIST ──
+async function _sheetsLoadFiles() {
+  try {
+    const data = await _driveReq("/files?q=mimeType='application/vnd.google-apps.spreadsheet'&fields=files(id,name,modifiedTime)&orderBy=modifiedTime+desc&pageSize=50");
+    _sheetFiles = data.files || [];
+    _renderFileList();
+  } catch(e) { console.error('Sheets load files:', e); }
+}
+
+function _renderFileList() {
+  const list = document.getElementById('sheets-file-list');
+  if (!_sheetFiles.length) {
+    list.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted);text-align:center">No spreadsheets found</div>';
+    return;
+  }
+  list.innerHTML = _sheetFiles.map(f => `
+    <div class="sheets-file-item ${_activeFile?.id===f.id?'active':''}" onclick="_sheetsOpenFile('${f.id}','${f.name.replace(/'/g,"\'")}')">
+      <span class="sfi-icon">📊</span>
+      <span class="sfi-name">${esc(f.name)}</span>
+    </div>`).join('');
+}
+
+// ── OPEN FILE ──
+async function _sheetsOpenFile(id, name) {
+  document.getElementById('sheets-empty').style.display = 'none';
+  document.getElementById('sheets-editor').style.display = 'flex';
+  document.getElementById('sheets-file-name').textContent = name;
+  try {
+    const meta = await _sheetsReq('GET', `/${id}?includeGridData=true`);
+    if (!meta) return;
+    const sheets = (meta.sheets || []).map(sh => {
+      const rows = sh.data?.[0]?.rowData || [];
+      const maxCols = Math.max(20, ...rows.map(r => (r.values||[]).length));
+      const maxRows = Math.max(50, rows.length + 5);
+      // Build 2D array
+      const data = Array.from({length: maxRows}, (_, ri) => {
+        const rowVals = rows[ri]?.values || [];
+        return Array.from({length: maxCols}, (_, ci) => {
+          const cell = rowVals[ci] || {};
+          return cell.formattedValue ?? cell.userEnteredValue?.stringValue ?? cell.userEnteredValue?.numberValue?.toString() ?? '';
+        });
+      });
+      return { id: sh.properties.sheetId, name: sh.properties.title, data };
+    });
+    _activeFile = { id, name, sheets, dirty: false };
+    _activeSheet = 0;
+    _renderSheetTabs();
+    _renderGrid();
+    _renderFileList();
+  } catch(e) { console.error('Open sheet:', e); }
+}
+
+// ── GRID RENDER ──
+function _renderGrid() {
+  if (!_activeFile) return;
+  const sh = _activeFile.sheets[_activeSheet];
+  const data = sh.data;
+  const rows = data.length, cols = data[0]?.length || 20;
+
+  // Build col letters
+  const colLetter = c => c < 26 ? String.fromCharCode(65+c) : String.fromCharCode(65+Math.floor(c/26)-1)+String.fromCharCode(65+c%26);
+
+  let html = '';
+  // Set grid-template-columns
+  const colW = 100;
+  const gridEl = document.getElementById('sheets-grid');
+  gridEl.style.gridTemplateColumns = `40px repeat(${cols}, ${colW}px)`;
+
+  // Corner
+  html += '<div class="sg-corner"></div>';
+  // Col headers
+  for (let c = 0; c < cols; c++) html += `<div class="sg-col-hd" data-col="${c}">${colLetter(c)}</div>`;
+
+  // Rows
+  for (let r = 0; r < rows; r++) {
+    html += `<div class="sg-row-hd" data-row="${r}">${r+1}</div>`;
+    for (let c = 0; c < cols; c++) {
+      const val = data[r][c] ?? '';
+      const isNum = val !== '' && !isNaN(val) && val.trim() !== '';
+      const active = _selCell.r===r && _selCell.c===c;
+      html += `<div class="sg-cell${isNum?' num':''}${active?' active':''}"
+        data-r="${r}" data-c="${c}"
+        tabindex="0"
+        onclick="_sgClick(${r},${c})"
+        ondblclick="_sgEdit(${r},${c})"
+        onkeydown="_sgKey(event,${r},${c})"
+      >${esc(val)}</div>`;
+    }
+  }
+  gridEl.innerHTML = html;
+  _updateFormulaBar();
+}
+
+function _updateFormulaBar() {
+  if (!_activeFile) return;
+  const sh = _activeFile.sheets[_activeSheet];
+  const {r, c} = _selCell;
+  const colLetter = c => c < 26 ? String.fromCharCode(65+c) : String.fromCharCode(65+Math.floor(c/26)-1)+String.fromCharCode(65+c%26);
+  document.getElementById('sheets-cell-ref').textContent = colLetter(c) + (r+1);
+  document.getElementById('sheets-formula-input').value = sh.data[r]?.[c] ?? '';
+}
+
+// ── CELL INTERACTION ──
+function _sgClick(r, c) {
+  if (_editing) _sgCommit();
+  _selCell = {r, c};
+  document.querySelectorAll('.sg-cell.active').forEach(el => el.classList.remove('active'));
+  const cell = document.querySelector(`.sg-cell[data-r="${r}"][data-c="${c}"]`);
+  if (cell) { cell.classList.add('active'); cell.focus(); }
+  _updateFormulaBar();
+}
+
+function _sgEdit(r, c) {
+  _selCell = {r, c};
+  _editing = true;
+  const cell = document.querySelector(`.sg-cell[data-r="${r}"][data-c="${c}"]`);
+  if (!cell) return;
+  cell.contentEditable = 'true';
+  cell.classList.add('editing');
+  cell.focus();
+  // Cursor at end
+  const range = document.createRange(); range.selectNodeContents(cell); range.collapse(false);
+  window.getSelection().removeAllRanges(); window.getSelection().addRange(range);
+  document.getElementById('sheets-formula-input').value = cell.textContent;
+}
+
+function _sgCommit() {
+  if (!_editing) return;
+  _editing = false;
+  const {r, c} = _selCell;
+  const cell = document.querySelector(`.sg-cell[data-r="${r}"][data-c="${c}"]`);
+  if (!cell) return;
+  const val = cell.textContent;
+  cell.contentEditable = 'false';
+  cell.classList.remove('editing');
+  // Store in data
+  while (_activeFile.sheets[_activeSheet].data.length <= r) _activeFile.sheets[_activeSheet].data.push([]);
+  while (_activeFile.sheets[_activeSheet].data[r].length <= c) _activeFile.sheets[_activeSheet].data[r].push('');
+  _activeFile.sheets[_activeSheet].data[r][c] = val;
+  _activeFile.dirty = true;
+  document.getElementById('sheets-save-btn').style.color = '#e8a55a';
+  // Update number class
+  const isNum = val !== '' && !isNaN(val) && val.trim() !== '';
+  cell.classList.toggle('num', isNum);
+}
+
+function _sgKey(e, r, c) {
+  const rows = _activeFile.sheets[_activeSheet].data.length;
+  const cols = _activeFile.sheets[_activeSheet].data[0]?.length || 20;
+  if (_editing) {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault(); _sgCommit();
+      if (e.key === 'Enter') _sgClick(Math.min(r+1, rows-1), c);
+      else _sgClick(r, Math.min(c+1, cols-1));
+    } else if (e.key === 'Escape') { _sgCommit(); }
+    return;
+  }
+  if (e.key === 'Enter' || (e.key.length===1 && !e.ctrlKey && !e.metaKey)) {
+    e.preventDefault(); _sgEdit(r, c);
+    if (e.key !== 'Enter') {
+      const cell = document.querySelector(`.sg-cell[data-r="${r}"][data-c="${c}"]`);
+      if (cell) { cell.textContent = ''; document.getElementById('sheets-formula-input').value = ''; }
+    }
+    return;
+  }
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    e.preventDefault();
+    if (_activeFile.sheets[_activeSheet].data[r]) _activeFile.sheets[_activeSheet].data[r][c] = '';
+    const cell = document.querySelector(`.sg-cell[data-r="${r}"][data-c="${c}"]`);
+    if (cell) cell.textContent = '';
+    _activeFile.dirty = true;
+    _updateFormulaBar();
+    return;
+  }
+  const nav = {ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1],Tab:[0,1]};
+  if (nav[e.key]) {
+    e.preventDefault();
+    const [dr,dc] = nav[e.key];
+    _sgClick(Math.max(0,Math.min(rows-1,r+dr)), Math.max(0,Math.min(cols-1,c+dc)));
+  }
+}
+
+// Formula bar input
+function sheetsFormulaInput(e) {
+  const cell = document.querySelector(`.sg-cell[data-r="${_selCell.r}"][data-c="${_selCell.c}"]`);
+  if (cell) cell.textContent = e.target.value;
+}
+function sheetsFormulaKey(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = document.getElementById('sheets-formula-input').value;
+    const {r, c} = _selCell;
+    while (_activeFile.sheets[_activeSheet].data.length <= r) _activeFile.sheets[_activeSheet].data.push([]);
+    while (_activeFile.sheets[_activeSheet].data[r].length <= c) _activeFile.sheets[_activeSheet].data[r].push('');
+    _activeFile.sheets[_activeSheet].data[r][c] = val;
+    _activeFile.dirty = true;
+    _renderGrid();
+    _sgClick(Math.min(r+1, _activeFile.sheets[_activeSheet].data.length-1), c);
+  }
+}
+
+// ── TABS ──
+function _renderSheetTabs() {
+  if (!_activeFile) return;
+  const row = document.getElementById('sheets-tabs-row');
+  row.innerHTML = _activeFile.sheets.map((sh, i) =>
+    `<div class="sg-tab ${i===_activeSheet?'active':''}" onclick="_switchSheet(${i})">${esc(sh.name)}</div>`
+  ).join('') + `<div class="sg-tab-add" onclick="sheetsAddSheet()" title="Add sheet">＋</div>`;
+}
+
+function _switchSheet(i) {
+  if (_editing) _sgCommit();
+  _activeSheet = i;
+  _selCell = {r:0, c:0};
+  _renderSheetTabs();
+  _renderGrid();
+}
+
+// ── GRID OPERATIONS ──
+function sheetsAddRow() {
+  const sh = _activeFile.sheets[_activeSheet];
+  const cols = sh.data[0]?.length || 20;
+  sh.data.push(Array(cols).fill(''));
+  _activeFile.dirty = true;
+  _renderGrid();
+}
+
+function sheetsAddCol() {
+  const sh = _activeFile.sheets[_activeSheet];
+  sh.data.forEach(row => row.push(''));
+  _activeFile.dirty = true;
+  _renderGrid();
+}
+
+function sheetsAddSheet() {
+  if (!_activeFile) return;
+  const name = prompt('Sheet name:', 'Sheet' + (_activeFile.sheets.length+1));
+  if (!name) return;
+  const cols = 20, rows = 50;
+  _activeFile.sheets.push({ id: null, name, data: Array.from({length:rows}, ()=>Array(cols).fill('')) });
+  _activeSheet = _activeFile.sheets.length - 1;
+  _activeFile.dirty = true;
+  _renderSheetTabs();
+  _renderGrid();
+}
+
+// ── SAVE ──
+async function sheetsSave() {
+  if (!_activeFile || !sheetsToken) return;
+  const btn = document.getElementById('sheets-save-btn');
+  btn.textContent = '⏳ Saving…';
+  try {
+    // Build valueRanges for each sheet
+    const data = [];
+    _activeFile.sheets.forEach((sh, si) => {
+      const range = `'${sh.name}'!A1`;
+      const values = sh.data.map(row => [...row]);
+      // Trim trailing empty rows
+      while (values.length && values[values.length-1].every(c=>c==='')) values.pop();
+      if (values.length) data.push({ range, values });
+    });
+    if (data.length) {
+      await _sheetsReq('POST', `/${_activeFile.id}/values:batchUpdate`, {
+        valueInputOption: 'USER_ENTERED',
+        data
+      });
+    }
+    _activeFile.dirty = false;
+    btn.textContent = '✓ Saved';
+    btn.style.color = '#0f9d58';
+    setTimeout(() => { btn.textContent = '💾 Save'; btn.style.color = ''; }, 2000);
+  } catch(e) {
+    console.error('Save error:', e);
+    btn.textContent = '✕ Error';
+    setTimeout(() => { btn.textContent = '💾 Save'; }, 2000);
+  }
+}
+
+// ── NEW FILE ──
+async function sheetsNewFile() {
+  if (!sheetsToken) { sheetsConnect(); return; }
+  const name = prompt('Spreadsheet name:', 'Untitled spreadsheet');
+  if (!name) return;
+  try {
+    const resp = await _sheetsReq('POST', '', {
+      properties: { title: name },
+      sheets: [{ properties: { title: 'Sheet1' } }]
+    });
+    if (!resp) return;
+    await _sheetsLoadFiles();
+    _sheetsOpenFile(resp.spreadsheetId, name);
+  } catch(e) { console.error('New file:', e); }
+}
+
+// ── DELETE ──
+async function sheetsDeleteSheet() {
+  if (!_activeFile) return;
+  if (!confirm('Delete this spreadsheet from Google Drive?')) return;
+  try {
+    await fetch(`https://www.googleapis.com/drive/v3/files/${_activeFile.id}`, {
+      method: 'DELETE', headers: { 'Authorization': 'Bearer ' + sheetsToken }
+    });
+    _activeFile = null;
+    document.getElementById('sheets-empty').style.display = '';
+    document.getElementById('sheets-editor').style.display = 'none';
+    await _sheetsLoadFiles();
+  } catch(e) { console.error('Delete:', e); }
 }
 
 // ── INIT ──
