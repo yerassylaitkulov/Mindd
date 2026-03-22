@@ -2952,7 +2952,7 @@ function editorKeydown(e) {
       e.preventDefault();
       if (_isEmptyLi(li)) {
         // Empty list item → exit the list, insert paragraph after
-        _exitList(li);
+        _exitListEnter(li);
       } else {
         // Non-empty → insert new list item
         _insertLiAfter(li);
@@ -2966,7 +2966,7 @@ function editorKeydown(e) {
     const li = _currentLi();
     if (li && _isEmptyLi(li)) {
       e.preventDefault();
-      _exitList(li);
+      _exitListBackspace(li); // cursor to prev LI end, or exit upward
       _syncBody();
       return;
     }
@@ -3047,19 +3047,60 @@ function _insertLiAfter(li) {
   newLi.innerHTML = '';
 }
 
-// Remove the empty <li> and insert a <p> after the list (or split the list)
-function _exitList(li) {
-  const list = li.parentNode; // UL or OL
+// Place cursor at the END of a node's text content
+function _cursorAtEnd(node) {
+  const range = document.createRange();
+  const sel   = window.getSelection();
+  range.selectNodeContents(node);
+  range.collapse(false); // false = collapse to end
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+// Backspace on empty LI:
+//   - If previous sibling LI exists → remove current LI, cursor to end of prev LI (stay on same line)
+//   - If no prev sibling → remove LI, convert to paragraph before list (exit list upward)
+function _exitListBackspace(li) {
+  const list   = li.parentNode;
+  const nfBody = document.getElementById('nf-body');
+  const prevLi = li.previousElementSibling;
+
+  li.remove();
+  if (!list.children.length) list.remove();
+
+  if (prevLi) {
+    // Stay on prev line — cursor at its end
+    _cursorAtEnd(prevLi);
+  } else {
+    // No prev li — insert paragraph before where list was (or body start)
+    const p = document.createElement('p');
+    p.innerHTML = '<br>';
+    const listParent = list.parentNode;
+    if (listParent) {
+      listParent.insertBefore(p, list.nextSibling || null);
+    } else {
+      nfBody.prepend(p);
+    }
+    const range = document.createRange();
+    const sel   = window.getSelection();
+    range.setStart(p, 0);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+}
+
+// Enter on empty LI → exit list, insert paragraph AFTER the list, cursor there
+function _exitListEnter(li) {
+  const list   = li.parentNode;
   const nfBody = document.getElementById('nf-body');
   li.remove();
-  // If list is now empty, remove it too
   if (!list.children.length) list.remove();
-  // Insert a new paragraph after the list (or at end of body)
   const p = document.createElement('p');
   p.innerHTML = '<br>';
-  // Find where list sits in nfBody to insert after it
-  if (list.parentNode === nfBody) {
-    list.parentNode.insertBefore(p, list.nextSibling);
+  const listParent = list.parentNode;
+  if (listParent) {
+    listParent.insertBefore(p, list.nextSibling || null);
   } else {
     nfBody.appendChild(p);
   }
@@ -3071,17 +3112,15 @@ function _exitList(li) {
   sel.addRange(range);
 }
 
-// Convert a <li> into a <p> and remove it from the list
+// Convert a <li> into a <p> and remove it from the list (for Backspace at start of non-empty LI)
 function _unwrapLiToParagraph(li) {
   const list   = li.parentNode;
   const nfBody = document.getElementById('nf-body');
   const p = document.createElement('p');
   p.innerHTML = li.innerHTML || '<br>';
-  // Insert before the list
   list.parentNode.insertBefore(p, list);
   li.remove();
   if (!list.children.length) list.remove();
-  // Place cursor at start of p
   const range = document.createRange();
   const sel   = window.getSelection();
   range.setStart(p, 0);
