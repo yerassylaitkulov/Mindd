@@ -513,8 +513,18 @@ canvas#gc{width:100%;height:100%;display:block}
 .hw-table td{padding:6px 14px;font-size:13px;border-bottom:1px solid var(--border-light);vertical-align:middle}
 .hw-row-name{font-weight:600;color:var(--ink)}
 .hw-cell-date{font-family:'Geist Mono',monospace;font-size:12px;color:var(--muted)}
-.hw-status-sel{padding:4px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none;background:var(--surface)}
+.hw-status-sel{padding:4px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none;background:var(--surface);color:var(--ink)}
 .work-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px}
+/* month groups */
+.wa-month-group{margin-bottom:24px}
+.wa-month-hd{display:flex;align-items:center;gap:10px;padding:10px 0 8px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.wa-month-icon{font-size:16px}
+.wa-month-label{font-size:15px;font-weight:700;color:var(--ink);font-family:'Instrument Serif',serif;font-style:italic;cursor:pointer}
+.wa-month-label:hover{color:#06b6d4}
+.wa-active .wa-row-name{color:#06b6d4}
+.wa-color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+/* sidebar color bar */
+.work-student{border-left:3px solid transparent}
 .work-empty-icon{font-size:40px}
 .work-empty-text{font-size:16px;color:var(--muted);font-family:'Instrument Serif',serif;font-style:italic}
 .work-empty-sub{font-size:12px;color:var(--subtle)}
@@ -5225,24 +5235,36 @@ function finRenderAnalytics(entries, cats, incomeSources, openBal, totalIncome, 
 // ══════════════════════════════════════════
 // WORK TRACKER
 // ══════════════════════════════════════════
-// Data model:
-// workData.students = [{id, name, subs:{monthKey: totalLessons}}]
-// workData.attendance = {studentId: [{num:1..N, date:'DD.MM', status:'done'|'missed'}]}
-// workData.homework   = {studentId: [{date:'YYYY-MM-DD', lesson:N, hw:'sent'|'checked'|null, note:''}]}
+// workData.students  = [{id, name, color, subs:{mk:N}, schedule:[{dow:0-6,time:'HH:MM'}]}]
+// workData.months    = [{key:'YYYY-MM', label:'January', order:0}]  — user-defined month groups
+// workData.attendance= {sid: [{num,month,date,status}]}
+// workData.homework  = {sid: [{month,num,hw,note}]}
 
-let workData = { students:[], attendance:{}, homework:{} };
-let workCurrentMonth = (() => {const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})();
+let workData = {students:[],months:[],attendance:{},homework:{}};
+let workCurrentMonth = (()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})();
 let workActiveStudent = null;
 let workActiveSection = 'attendance';
 let _workInited = false;
-const WORK_SK = 'mind_work_v3';
+const WORK_SK = 'mind_work_v4';
 
-function workLoad(){try{workData=JSON.parse(localStorage.getItem(WORK_SK)||'{"students":[],"attendance":{},"homework":{}}');}catch(_){workData={students:[],attendance:{},homework:{}};}}
-function workSave(){localStorage.setItem(WORK_SK,JSON.stringify(workData));}
+function workLoad(){
+  try{ workData=JSON.parse(localStorage.getItem(WORK_SK)||'null')||{students:[],months:[],attendance:{},homework:{}}; }
+  catch(_){ workData={students:[],months:[],attendance:{},homework:{}}; }
+  if(!workData.months) workData.months=[];
+  if(!workData.attendance) workData.attendance={};
+  if(!workData.homework) workData.homework={};
+}
+function workSave(){ localStorage.setItem(WORK_SK, JSON.stringify(workData)); }
 
 function workInit(){
-  if(!_workInited){workLoad();_workInited=true;}
+  if(!_workInited){ workLoad(); _workInited=true; }
   if(!workActiveStudent&&workData.students.length) workActiveStudent=workData.students[0].id;
+  // Ensure current month exists in months list
+  if(!workData.months.find(m=>m.key===workCurrentMonth)){
+    workData.months.push({key:workCurrentMonth, label:workMonthLabel(workCurrentMonth)});
+    workSave();
+  }
+  document.getElementById('work-month-label').textContent=workMonthLabel(workCurrentMonth);
   workRenderSidebar();
   workRenderAttendance();
   workRenderHomework();
@@ -5250,11 +5272,11 @@ function workInit(){
 
 // ── SECTION TOGGLE ──
 function workShowSection(sec){
-  workActiveSection = sec;
-  document.getElementById('work-sec-attendance').classList.toggle('active', sec==='attendance');
-  document.getElementById('work-sec-homework').classList.toggle('active', sec==='homework');
-  document.getElementById('wsec-attendance').classList.toggle('active', sec==='attendance');
-  document.getElementById('wsec-homework').classList.toggle('active', sec==='homework');
+  workActiveSection=sec;
+  document.getElementById('work-sec-attendance').classList.toggle('active',sec==='attendance');
+  document.getElementById('work-sec-homework').classList.toggle('active',sec==='homework');
+  document.getElementById('wsec-attendance').classList.toggle('active',sec==='attendance');
+  document.getElementById('wsec-homework').classList.toggle('active',sec==='homework');
   if(sec==='homework') workRenderHomework();
 }
 
@@ -5263,15 +5285,23 @@ function workPrevMonth(){
   const[y,m]=workCurrentMonth.split('-').map(Number);
   const d=new Date(y,m-2,1);
   workCurrentMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-  workRenderAttendance(); workRenderHomework();
+  _workEnsureMonth(workCurrentMonth);
+  workRenderSidebar(); workRenderAttendance(); workRenderHomework();
   document.getElementById('work-month-label').textContent=workMonthLabel(workCurrentMonth);
 }
 function workNextMonth(){
   const[y,m]=workCurrentMonth.split('-').map(Number);
   const d=new Date(y,m,1);
   workCurrentMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-  workRenderAttendance(); workRenderHomework();
+  _workEnsureMonth(workCurrentMonth);
+  workRenderSidebar(); workRenderAttendance(); workRenderHomework();
   document.getElementById('work-month-label').textContent=workMonthLabel(workCurrentMonth);
+}
+function _workEnsureMonth(mk){
+  if(!workData.months.find(m=>m.key===mk)){
+    workData.months.push({key:mk,label:workMonthLabel(mk)});
+    workSave();
+  }
 }
 function workMonthLabel(key){
   const[y,m]=key.split('-').map(Number);
@@ -5279,26 +5309,25 @@ function workMonthLabel(key){
 }
 
 // ── STUDENTS ──
+const WORK_COLORS=['#4285f4','#34a853','#e85a5a','#f59e0b','#8b5cf6','#06b6d4','#f472b6','#10b981','#f97316','#6366f1'];
 function workAddStudent(){
   const name=prompt('Student name:','');
   if(!name?.trim())return;
   const id=Date.now();
-  workData.students.push({id,name:name.trim(),subs:{}});
+  const color=WORK_COLORS[workData.students.length%WORK_COLORS.length];
+  workData.students.push({id,name:name.trim(),color,subs:{},schedule:[],monthGroup:workCurrentMonth});
   workData.attendance[id]=[];
   workData.homework[id]=[];
   workSave();
   workActiveStudent=id;
-  workRenderSidebar();
-  workRenderAttendance();
-  workRenderHomework();
+  workRenderSidebar(); workRenderAttendance(); workRenderHomework();
 }
 function workDeleteStudent(id){
   if(!confirm('Delete this student and all records?'))return;
   workData.students=workData.students.filter(s=>s.id!==id);
-  delete workData.attendance[id];
-  delete workData.homework[id];
+  delete workData.attendance[id]; delete workData.homework[id];
   if(workActiveStudent===id) workActiveStudent=workData.students[0]?.id||null;
-  workSave();workRenderSidebar();workRenderAttendance();workRenderHomework();
+  workSave(); workRenderSidebar(); workRenderAttendance(); workRenderHomework();
 }
 function workRenameStudent(id){
   const s=workData.students.find(x=>x.id===id);if(!s)return;
@@ -5307,59 +5336,43 @@ function workRenameStudent(id){
 }
 function workSelectStudent(id){
   workActiveStudent=id;
-  workRenderSidebar();
-  workRenderAttendance();
-  workRenderHomework();
+  workRenderSidebar(); workRenderAttendance(); workRenderHomework();
 }
 
+// ── SIDEBAR ──
 function workRenderSidebar(){
   const list=document.getElementById('work-student-list');
   if(!list)return;
   if(!workData.students.length){
-    list.innerHTML='<div style="padding:20px 10px;text-align:center;font-size:12px;color:var(--muted)">Add a student</div>';return;
+    list.innerHTML='<div style="padding:20px 10px;text-align:center;font-size:12px;color:var(--muted)">Add a student<br>to get started</div>';
+    return;
   }
   list.innerHTML=workData.students.map(s=>{
     const att=workData.attendance[s.id]||[];
-    const done=att.filter(c=>c.status==='done').length;
+    const curAtt=att.filter(c=>c.month===workCurrentMonth);
+    const done=curAtt.filter(c=>c.status==='done').length;
     const total=(s.subs||{})[workCurrentMonth]||0;
     const active=s.id===workActiveStudent;
-    return`<div class="work-student${active?' active':''}" onclick="workSelectStudent(${s.id})" ondblclick="workRenameStudent(${s.id})">
-      <span class="ws-name">${esc(s.name)}</span>
-      ${total?`<span class="ws-badge" style="color:${done>=total?'#34a853':'#8ab4f8'}">${done}/${total}</span>`:`<span class="ws-badge" style="color:#34a853">${done}✓</span>`}
+    const mg=s.monthGroup||workCurrentMonth;
+    const mgShort=workMonthLabel(mg).slice(0,3).toUpperCase();
+    return`<div class="work-student${active?' active':''}" 
+      onclick="workSelectStudent(${s.id})" 
+      ondblclick="workEditStudentModal(${s.id})"
+      draggable="true"
+      ondragstart="workDragStart(event,${s.id})"
+      style="border-left:3px solid ${s.color||'#4285f4'}">
+      <div style="flex:1;min-width:0">
+        <div class="ws-name">${esc(s.name)}</div>
+        <div style="font-size:9px;font-family:'Geist Mono',monospace;color:var(--subtle);margin-top:1px">${mgShort}${total?' · '+done+'/'+total:''}</div>
+      </div>
       <button class="ws-del" onclick="event.stopPropagation();workDeleteStudent(${s.id})">✕</button>
     </div>`;
   }).join('');
 }
 
-// ── SET SUBSCRIPTION SIZE ──
-function workSetSubscription(studentId, monthKey){
-  const s=workData.students.find(x=>x.id===studentId);if(!s)return;
-  if(!s.subs)s.subs={};
-  const cur=(s.subs[monthKey]||0);
-  const val=prompt(`Lessons in subscription for ${s.name} (${workMonthLabel(monthKey)}):`,cur||'');
-  if(val===null)return;
-  const n=parseInt(val);
-  if(isNaN(n)||n<0)return;
-  const old=s.subs[monthKey]||0;
-  s.subs[monthKey]=n;
-  // Grow or shrink the attendance cells for this month
-  let att=workData.attendance[studentId]||[];
-  // Keep only cells not belonging to this month, then rebuild this month's cells
-  // Cells are keyed by a simple index (1..N) with an optional date label
-  // We store them as a flat array per student, tagged with a monthKey
-  const otherMonths=att.filter(c=>c.month!==monthKey);
-  const thisMonth=att.filter(c=>c.month===monthKey);
-  const newCells=Array.from({length:n},(_,i)=>{
-    const existing=thisMonth[i];
-    return existing||{num:i+1,month:monthKey,date:'',status:'empty'};
-  });
-  // Renumber
-  newCells.forEach((c,i)=>c.num=i+1);
-  workData.attendance[studentId]=[...otherMonths,...newCells];
-  workSave();
-  workRenderSidebar();
-  workRenderAttendance();
-}
+// ── DRAG-AND-DROP (move student to different month group) ──
+let _workDragId=null;
+function workDragStart(e,id){ _workDragId=id; e.dataTransfer.effectAllowed='move'; }
 
 // ── ATTENDANCE RENDER ──
 function workRenderAttendance(){
@@ -5372,57 +5385,266 @@ function workRenderAttendance(){
     return;
   }
 
-  // Render ALL students in one scrollable view (like the screenshot)
-  let html='<div class="wa-table">';
-
+  // Group students by their monthGroup
+  const groupedStudents={};
   workData.students.forEach(s=>{
-    const att=(workData.attendance[s.id]||[]).filter(c=>c.month===workCurrentMonth);
-    const total=(s.subs||{})[workCurrentMonth]||0;
-    const done=att.filter(c=>c.status==='done').length;
-    const missed=att.filter(c=>c.status==='missed').length;
-    const pct=total>0?Math.round(done/total*100):0;
-    const isActive=s.id===workActiveStudent;
-
-    html+=`<div class="wa-student-row" onclick="workSelectStudent(${s.id})" style="${isActive?'opacity:1':'opacity:.85'}">
-      <div class="wa-row-head">
-        <span class="wa-row-name" style="${isActive?'color:#06b6d4':''}">${esc(s.name)}</span>
-        <span class="wa-row-meta">${done}✓ ${missed>0?missed+'✕ ':''}</span>
-        ${total?`<div class="wa-progress"><div class="wa-progress-fill" style="width:${pct}%;background:${done>=total?'#34a853':'#4285f4'}"></div></div>
-        <span class="wa-row-meta" style="color:${done>=total?'#34a853':'#8ab4f8'}">${done}/${total} · ${pct}%</span>`:
-        `<span class="wa-row-meta" style="color:#3d3a35">no subscription set</span>`}
-        <button class="wa-set-btn" onclick="event.stopPropagation();workSetSubscription(${s.id},'${workCurrentMonth}')">
-          ${total?'Edit':'＋ Set'} subscription
-        </button>
-      </div>
-      <div class="wa-cells">`;
-
-    if(total===0){
-      html+=`<div style="padding:8px 0;font-size:12px;color:var(--subtle)">Set subscription size to see cells</div>`;
-    } else {
-      att.forEach((cell,i)=>{
-        const cls=cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
-        const icon=cell.status==='done'?'✓':cell.status==='missed'?'✕':'';
-        html+=`<div class="wa-cell ${cls}"
-          onclick="event.stopPropagation();workCellClick(${s.id},${i},'${workCurrentMonth}')"
-          title="Lesson ${cell.num}${cell.date?' · '+cell.date:''} · Click to change">
-          <span class="wc-date">${esc(cell.date||'—')}</span>
-          <span class="wc-num">${cell.num}</span>
-          ${icon?`<span class="wc-icon">${icon}</span>`:''}
-        </div>`;
-      });
-    }
-
-    html+=`</div></div>`;
+    const mg=s.monthGroup||workCurrentMonth;
+    if(!groupedStudents[mg]) groupedStudents[mg]=[];
+    groupedStudents[mg].push(s);
   });
+
+  // Get sorted month groups (by key)
+  const monthKeys=Object.keys(groupedStudents).sort();
+
+  let html='<div class="wa-table" id="wa-table-root">';
+
+  monthKeys.forEach(mk=>{
+    const mObj=workData.months.find(m=>m.key===mk);
+    const mLabel=mObj?.label||workMonthLabel(mk);
+
+    // Month section header — draggable drop target
+    html+=`<div class="wa-month-group" 
+      ondragover="event.preventDefault()" 
+      ondrop="workDropOnMonth(event,'${mk}')"
+      data-month="${mk}">
+      <div class="wa-month-hd">
+        <span class="wa-month-icon">📅</span>
+        <span class="wa-month-label" ondblclick="workRenameMonthGroup('${mk}')">${esc(mLabel)}</span>
+        <span style="font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace">${mk}</span>
+        <button class="wa-set-btn" style="margin-left:auto" onclick="workAddMonthGroup()">+ Month</button>
+      </div>`;
+
+    groupedStudents[mk].forEach(s=>{
+      const att=(workData.attendance[s.id]||[]).filter(c=>c.month===workCurrentMonth);
+      const total=(s.subs||{})[workCurrentMonth]||0;
+      const done=att.filter(c=>c.status==='done').length;
+      const missed=att.filter(c=>c.status==='missed').length;
+      const pct=total>0?Math.round(done/total*100):0;
+      const isActive=s.id===workActiveStudent;
+
+      html+=`<div class="wa-student-row${isActive?' wa-active':''}" 
+        onclick="workSelectStudent(${s.id})"
+        draggable="true"
+        ondragstart="workDragStart(event,${s.id})">
+        <div class="wa-row-head">
+          <div class="wa-color-dot" style="background:${s.color||'#4285f4'}"></div>
+          <span class="wa-row-name" style="${isActive?'color:#06b6d4':''}" ondblclick="event.stopPropagation();workEditStudentModal(${s.id})">${esc(s.name)}</span>
+          <span class="wa-row-meta">${done}✓${missed>0?' '+missed+'✕':''}</span>
+          ${total?`<div class="wa-progress"><div class="wa-progress-fill" style="width:${pct}%;background:${done>=total?'#34a853':'#4285f4'}"></div></div>
+          <span class="wa-row-meta" style="color:${done>=total?'#34a853':'#8ab4f8'};font-weight:600">${done}/${total}</span>`:
+          `<span class="wa-row-meta" style="color:#2e2b26">—</span>`}
+          <button class="wa-set-btn" onclick="event.stopPropagation();workSetSubscription(${s.id},'${workCurrentMonth}')">
+            ${total?'Edit':'Set'} sub
+          </button>
+          <button class="wa-set-btn" onclick="event.stopPropagation();workEditStudentModal(${s.id})" style="color:#8ab4f8;border-color:#1a2e4a">⚙ Edit</button>
+        </div>
+        <div class="wa-cells">`;
+
+      if(total===0){
+        html+=`<div style="padding:6px 0;font-size:12px;color:var(--subtle);font-style:italic">Click "Set sub" to add lessons</div>`;
+      } else {
+        att.forEach((cell,i)=>{
+          const cls=cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
+          html+=`<div class="wa-cell ${cls}"
+            onclick="event.stopPropagation();workCellClick(event,${s.id},${i},'${workCurrentMonth}')"
+            title="Lesson ${cell.num}${cell.date?' · '+cell.date:''}">
+            <span class="wc-date">${esc(cell.date||'·')}</span>
+            <span class="wc-num">${cell.num}</span>
+            <span class="wc-icon">${cell.status==='done'?'✓':cell.status==='missed'?'✕':''}</span>
+          </div>`;
+        });
+      }
+      html+=`</div></div>`;
+    });
+
+    html+=`</div>`; // close wa-month-group
+  });
+
+  // If no groups have students, show empty
+  if(!monthKeys.length){
+    html+=`<div class="work-empty"><div class="work-empty-icon">📅</div><div class="work-empty-text">No students yet</div></div>`;
+  }
 
   html+='</div>';
   wrap.innerHTML=html;
 }
 
+// ── MONTH GROUPS ──
+function workAddMonthGroup(){
+  const key=prompt('Month key (YYYY-MM):', (()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})());
+  if(!key?.match(/^\d{4}-\d{2}$/)) return;
+  const label=prompt('Label for this month:', workMonthLabel(key))||workMonthLabel(key);
+  if(!workData.months.find(m=>m.key===key)){
+    workData.months.push({key,label});
+    workSave();
+  } else {
+    workData.months.find(m=>m.key===key).label=label;
+    workSave();
+  }
+  workRenderAttendance();
+}
+
+function workRenameMonthGroup(mk){
+  const mObj=workData.months.find(m=>m.key===mk);
+  const cur=mObj?.label||workMonthLabel(mk);
+  const label=prompt('Rename this month group:',cur);
+  if(!label?.trim())return;
+  if(mObj) mObj.label=label.trim();
+  else workData.months.push({key:mk,label:label.trim()});
+  workSave(); workRenderAttendance();
+}
+
+function workDropOnMonth(e,mk){
+  e.preventDefault();
+  if(!_workDragId)return;
+  const s=workData.students.find(x=>x.id===_workDragId);
+  if(s){ s.monthGroup=mk; workSave(); workRenderSidebar(); workRenderAttendance(); }
+  _workDragId=null;
+}
+
+// ── SET SUBSCRIPTION ──
+function workSetSubscription(studentId, monthKey){
+  const s=workData.students.find(x=>x.id===studentId);if(!s)return;
+  if(!s.subs)s.subs={};
+  const cur=(s.subs[monthKey]||0);
+  const val=prompt(`Lessons in subscription for ${s.name}\n(${workMonthLabel(monthKey)}):`,cur||'');
+  if(val===null)return;
+  const n=parseInt(val);
+  if(isNaN(n)||n<0)return;
+  s.subs[monthKey]=n;
+  const att=workData.attendance[studentId]||[];
+  const other=att.filter(c=>c.month!==monthKey);
+  const existing=att.filter(c=>c.month===monthKey);
+  const newCells=Array.from({length:n},(_,i)=>existing[i]||{num:i+1,month:monthKey,date:'',status:'empty'});
+  newCells.forEach((c,i)=>c.num=i+1);
+  workData.attendance[studentId]=[...other,...newCells];
+  workSave(); workRenderSidebar(); workRenderAttendance();
+}
+
+// ── STUDENT EDIT MODAL (schedule + subscription) ──
+function workEditStudentModal(id){
+  const s=workData.students.find(x=>x.id===id);
+  if(!s)return;
+  document.getElementById('work-edit-modal')?.remove();
+
+  const DOW_LABELS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const schedule=s.schedule||[];
+
+  const modal=document.createElement('div');
+  modal.id='work-edit-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:6000;display:flex;align-items:center;justify-content:center';
+
+  const schedRows=schedule.map((slot,i)=>`
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+      <select onchange="workUpdateSchedule(${id},${i},'dow',this.value)"
+        style="padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none">
+        ${DOW_LABELS.map((d,di)=>`<option value="${di}" ${slot.dow==di?'selected':''}>${d}</option>`).join('')}
+      </select>
+      <input type="time" value="${slot.time||'09:00'}" onchange="workUpdateSchedule(${id},${i},'time',this.value)"
+        style="padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none"/>
+      <span style="font-size:11px;color:var(--muted)">${slot.duration||60}min</span>
+      <button onclick="workRemoveScheduleSlot(${id},${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px">✕</button>
+    </div>`).join('');
+
+  // Colors
+  const colorPicker=WORK_COLORS.map(c=>`
+    <div onclick="workSetStudentColor(${id},'${c}')" 
+      style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:2px solid ${s.color===c?'white':'transparent'};transition:transform .1s"
+      onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform=''"></div>`).join('');
+
+  modal.innerHTML=`<div style="background:#1a1816;border:1px solid #3a3630;border-radius:12px;padding:24px;width:420px;max-height:80vh;overflow-y:auto;box-shadow:0 16px 60px rgba(0,0,0,.8)">
+    <div style="font-size:18px;font-weight:600;color:var(--ink);margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <div style="width:12px;height:12px;border-radius:50%;background:${s.color||'#4285f4'}"></div>
+      ${esc(s.name)}
+    </div>
+    
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:8px">Color</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${colorPicker}</div>
+
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:8px">Weekly Schedule</div>
+    <div id="work-sched-rows">${schedRows||'<div style="font-size:12px;color:var(--subtle)">No schedule set</div>'}</div>
+    <button onclick="workAddScheduleSlot(${id})" style="margin-top:8px;padding:5px 12px;background:none;border:1px dashed var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:12px;font-family:'Geist',sans-serif">+ Add time slot</button>
+    
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin:16px 0 8px">Sync to Calendar</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onclick="workSyncScheduleToCalendar(${id})" 
+        style="padding:7px 16px;background:#1a2e4a;border:1px solid #2a4a6a;border-radius:6px;color:#8ab4f8;cursor:pointer;font-size:13px;font-family:'Geist',sans-serif">
+        📅 Create calendar events from schedule
+      </button>
+    </div>
+    <div style="font-size:11px;color:var(--subtle);margin-top:6px">Creates recurring events in calendar for this student's schedule</div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+      <button onclick="document.getElementById('work-edit-modal').remove()" 
+        style="padding:8px 18px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif">Close</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click',e=>{ if(e.target===modal){ modal.remove(); } });
+}
+
+function workSetStudentColor(id, color){
+  const s=workData.students.find(x=>x.id===id);
+  if(s){ s.color=color; workSave(); }
+  // Refresh color dots in modal
+  document.querySelectorAll('#work-edit-modal [onclick^="workSetStudentColor"]').forEach(el=>{
+    const c=el.getAttribute('onclick').match(/'([^']+)'\)/)?.[1];
+    el.style.border=`2px solid ${c===color?'white':'transparent'}`;
+  });
+  workRenderSidebar(); workRenderAttendance();
+}
+
+function workAddScheduleSlot(id){
+  const s=workData.students.find(x=>x.id===id);if(!s)return;
+  if(!s.schedule)s.schedule=[];
+  s.schedule.push({dow:1,time:'09:00',duration:60});
+  workSave(); workEditStudentModal(id); // re-open to refresh
+}
+
+function workRemoveScheduleSlot(id, idx){
+  const s=workData.students.find(x=>x.id===id);if(!s)return;
+  s.schedule.splice(idx,1);
+  workSave(); workEditStudentModal(id);
+}
+
+function workUpdateSchedule(id, idx, field, val){
+  const s=workData.students.find(x=>x.id===id);if(!s||!s.schedule[idx])return;
+  s.schedule[idx][field]=field==='dow'?parseInt(val):val;
+  workSave();
+}
+
+function workSyncScheduleToCalendar(id){
+  const s=workData.students.find(x=>x.id===id);if(!s||!s.schedule?.length)return;
+  const DOW=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  let created=0;
+  s.schedule.forEach(slot=>{
+    // Find next occurrence of this weekday
+    const today=new Date();
+    const target=new Date(today);
+    const dayDiff=(slot.dow-today.getDay()+7)%7||7;
+    target.setDate(today.getDate()+dayDiff);
+    const dk=dkey(target);
+    if(!calEvts[dk])calEvts[dk]=[];
+    const endH=slot.time?String(parseInt(slot.time)+1).padStart(2,'0')+slot.time.slice(2):'10:00';
+    calEvts[dk].push({
+      title:s.name,
+      start:slot.time||'09:00',
+      end:endH,
+      repeat:'weekly',
+      repeatEvery:1,
+      color:'blue',
+      id:Date.now()+created
+    });
+    created++;
+  });
+  if(created){ save(); renderCal(); }
+  alert(`Created ${created} recurring calendar event${created!==1?'s':''} for ${s.name}`);
+  document.getElementById('work-edit-modal')?.remove();
+}
+
 // ── CELL CLICK → popup ──
 let _waCellPopup=null;
-function workCellClick(studentId, cellIdx, monthKey){
-  // Close existing popup
+function workCellClick(e, studentId, cellIdx, monthKey){
   document.getElementById('wa-popup')?.remove();
   _waCellPopup=null;
 
@@ -5431,16 +5653,15 @@ function workCellClick(studentId, cellIdx, monthKey){
   const cell=cells[cellIdx];
   if(!cell)return;
 
-  // Build popup
   const popup=document.createElement('div');
   popup.id='wa-popup';
   popup.className='wa-date-popup';
   popup.innerHTML=`
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:'Geist Mono',monospace">Lesson ${cell.num} · ${workMonthLabel(monthKey)}</div>
-    <input id="wa-popup-date" placeholder="Date (e.g. 16.01)" value="${esc(cell.date||'')}"/>
-    <div class="wa-date-popup-btns">
-      <button onclick="workCellSetStatus(${studentId},${cellIdx},'${monthKey}','done')"
-        style="background:#0c2216;color:#34a853;border:1px solid #1a4a28">✓ Done</button>
+    <input id="wa-popup-date" placeholder="Date e.g. 16.01" value="${esc(cell.date||'')}"/>
+    <div class="wa-date-popup-btns" style="margin-top:8px">
+      <button id="wa-btn-done" onclick="workCellSetStatus(${studentId},${cellIdx},'${monthKey}','done')"
+        style="background:#0c2216;color:#34a853;border:1px solid #1a4a28;outline:2px solid #34a853">✓ Done</button>
       <button onclick="workCellSetStatus(${studentId},${cellIdx},'${monthKey}','missed')"
         style="background:#1e0808;color:#e85a5a;border:1px solid #3a1212">✕ Missed</button>
       <button onclick="workCellSetStatus(${studentId},${cellIdx},'${monthKey}','empty')"
@@ -5449,27 +5670,22 @@ function workCellClick(studentId, cellIdx, monthKey){
   document.body.appendChild(popup);
   _waCellPopup={studentId,cellIdx,monthKey};
 
-  // Position near cursor — find the clicked cell element
-  const allCells=document.querySelectorAll('.wa-cell');
-  // Use mouse position via event — we'll position at center of viewport fallback
-  const rect=allCells[cellIdx]?.getBoundingClientRect();
-  if(rect){
-    let x=rect.left, y=rect.bottom+6;
-    if(x+170>window.innerWidth) x=window.innerWidth-175;
-    if(y+120>window.innerHeight) y=rect.top-120;
-    popup.style.cssText=`left:${Math.max(6,x)}px;top:${Math.max(6,y)}px`;
-  } else {
-    popup.style.cssText='left:50%;top:50%;transform:translate(-50%,-50%)';
-  }
+  // Position near click
+  let x=e.clientX, y=e.clientY+10;
+  if(x+170>window.innerWidth) x=window.innerWidth-175;
+  if(y+120>window.innerHeight) y=e.clientY-120;
+  popup.style.cssText=`left:${Math.max(6,x)}px;top:${Math.max(6,y)}px`;
 
-  // Close on outside click
-  setTimeout(()=>{
-    document.addEventListener('mousedown',_waClosePopup,{once:true});
-  },0);
-  document.getElementById('wa-popup-date').focus();
-  document.getElementById('wa-popup-date').addEventListener('keydown',e=>{
-    if(e.key==='Enter') workCellSaveDate();
-    if(e.key==='Escape') {document.getElementById('wa-popup')?.remove();}
+  setTimeout(()=>{ document.addEventListener('mousedown',_waClosePopup,{once:true}); },0);
+
+  const inp=document.getElementById('wa-popup-date');
+  inp.focus(); inp.select();
+  inp.addEventListener('keydown',ev=>{
+    if(ev.key==='Enter'){
+      ev.preventDefault();
+      workCellSetStatus(studentId,cellIdx,monthKey,'done'); // Enter = Done by default
+    }
+    if(ev.key==='Escape') document.getElementById('wa-popup')?.remove();
   });
 }
 
@@ -5479,7 +5695,6 @@ function _waClosePopup(e){
 }
 
 function workCellSetStatus(studentId, cellIdx, monthKey, status){
-  // Save date from input first
   const dateVal=document.getElementById('wa-popup-date')?.value.trim()||'';
   const att=workData.attendance[studentId]||[];
   const cells=att.filter(c=>c.month===monthKey);
@@ -5487,22 +5702,7 @@ function workCellSetStatus(studentId, cellIdx, monthKey, status){
   if(cell){ cell.status=status; if(dateVal) cell.date=dateVal; }
   workSave();
   document.getElementById('wa-popup')?.remove();
-  workRenderSidebar();
-  workRenderAttendance();
-  workRenderHomework();
-}
-
-function workCellSaveDate(){
-  const dateVal=document.getElementById('wa-popup-date')?.value.trim()||'';
-  if(!_waCellPopup)return;
-  const{studentId,cellIdx,monthKey}=_waCellPopup;
-  const att=workData.attendance[studentId]||[];
-  const cells=att.filter(c=>c.month===monthKey);
-  const cell=cells[cellIdx];
-  if(cell) cell.date=dateVal;
-  workSave();
-  document.getElementById('wa-popup')?.remove();
-  workRenderAttendance();
+  workRenderSidebar(); workRenderAttendance(); workRenderHomework();
 }
 
 // ── HOMEWORK RENDER ──
@@ -5515,40 +5715,39 @@ function workRenderHomework(){
     return;
   }
 
-  // For each student show their done lessons (from attendance) with HW status
   let html=`<div class="hw-table-wrap"><table class="hw-table">
     <thead><tr>
-      <th>Student</th>
-      <th>Lesson</th>
-      <th>Date</th>
-      <th>Homework</th>
-      <th>Notes</th>
+      <th style="color:var(--ink)">Student</th>
+      <th style="color:var(--ink)">#</th>
+      <th style="color:var(--ink)">Date</th>
+      <th style="color:var(--ink)">Homework</th>
+      <th style="color:var(--ink)">Notes</th>
     </tr></thead><tbody>`;
 
   workData.students.forEach(s=>{
     const att=(workData.attendance[s.id]||[]).filter(c=>c.month===workCurrentMonth&&(c.status==='done'||c.status==='missed'));
-    const hw=workData.homework[s.id]||[];
-
     if(!att.length){
-      html+=`<tr><td class="hw-row-name">${esc(s.name)}</td>
-        <td colspan="4" style="color:var(--subtle);font-size:12px">No lessons recorded yet</td></tr>`;
+      html+=`<tr>
+        <td class="hw-row-name" style="color:${s.color||'#4285f4'}">${esc(s.name)}</td>
+        <td colspan="4" style="color:var(--subtle);font-size:12px;font-style:italic">No lessons recorded</td>
+      </tr><tr><td colspan="5" style="height:6px"></td></tr>`;
       return;
     }
 
+    const hw=workData.homework[s.id]||[];
     att.forEach((cell,i)=>{
       const hwRec=hw.find(h=>h.month===workCurrentMonth&&h.num===cell.num)||{};
       const curHw=hwRec.hw||'';
       const curNote=hwRec.note||'';
-      const hwColors={'':'var(--border)',sent:'#06b6d4',checked:'#34a853'};
-      html+=`<tr style="${cell.status==='missed'?'opacity:.5':''}">
-        <td class="hw-row-name">${i===0?esc(s.name):''}</td>
-        <td style="font-size:12px;font-family:'Geist Mono',monospace;color:${cell.status==='done'?'#34a853':'#e85a5a'}">
-          ${cell.status==='done'?'✓':'✕'} #${cell.num}
+      html+=`<tr style="${cell.status==='missed'?'opacity:.45':''}">
+        <td class="hw-row-name" style="color:${i===0?(s.color||'#4285f4'):'transparent'}">${i===0?esc(s.name):''}</td>
+        <td style="font-size:12px;font-family:'Geist Mono',monospace;color:${cell.status==='done'?'#34a853':'#e85a5a'};font-weight:600">
+          ${cell.status==='done'?'✓':'✕'} ${cell.num}
         </td>
         <td class="hw-cell-date">${esc(cell.date||'—')}</td>
         <td>
           <select onchange="workSetHw(${s.id},${cell.num},'${workCurrentMonth}',this.value)"
-            style="padding:4px 8px;background:var(--surface);border:1px solid ${hwColors[curHw]};border-radius:6px;color:${hwColors[curHw]||'var(--muted)'};font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none">
+            style="padding:4px 10px;background:${curHw==='checked'?'#0a2014':curHw==='sent'?'#0a1a2e':'var(--surface)'};border:1px solid ${curHw==='checked'?'#34a853':curHw==='sent'?'#06b6d4':'var(--border)'};border-radius:6px;color:var(--ink);font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none;min-width:130px">
             <option value=""       ${!curHw?'selected':''}>— no HW</option>
             <option value="sent"   ${curHw==='sent'?'selected':''}>📤 Sent</option>
             <option value="checked"${curHw==='checked'?'selected':''}>✅ Checked</option>
@@ -5557,13 +5756,11 @@ function workRenderHomework(){
         <td>
           <input value="${esc(curNote)}" placeholder="note…"
             onchange="workSetHwNote(${s.id},${cell.num},'${workCurrentMonth}',this.value)"
-            style="background:none;border:none;border-bottom:1px solid var(--border-light);color:var(--muted);font-size:12px;font-family:'Geist',sans-serif;outline:none;width:160px;padding:2px 4px"/>
+            style="background:none;border:none;border-bottom:1px solid var(--border-light);color:var(--ink);font-size:12px;font-family:'Geist',sans-serif;outline:none;width:180px;padding:2px 4px"/>
         </td>
       </tr>`;
     });
-
-    // Separator between students
-    html+=`<tr><td colspan="5" style="padding:4px 0;border-bottom:1px solid var(--border)"></td></tr>`;
+    html+=`<tr><td colspan="5" style="height:8px;border-bottom:1px solid var(--border)"></td></tr>`;
   });
 
   html+=`</tbody></table></div>`;
@@ -5575,8 +5772,7 @@ function workSetHw(studentId, lessonNum, monthKey, status){
   const hw=workData.homework[studentId];
   let rec=hw.find(h=>h.month===monthKey&&h.num===lessonNum);
   if(!rec){ rec={month:monthKey,num:lessonNum,hw:'',note:''}; hw.push(rec); }
-  rec.hw=status;
-  workSave();
+  rec.hw=status; workSave();
 }
 
 function workSetHwNote(studentId, lessonNum, monthKey, note){
@@ -5584,8 +5780,7 @@ function workSetHwNote(studentId, lessonNum, monthKey, note){
   const hw=workData.homework[studentId];
   let rec=hw.find(h=>h.month===monthKey&&h.num===lessonNum);
   if(!rec){ rec={month:monthKey,num:lessonNum,hw:'',note:''}; hw.push(rec); }
-  rec.note=note;
-  workSave();
+  rec.note=note; workSave();
 }
 
 // ── INIT ──
