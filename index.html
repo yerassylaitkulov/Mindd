@@ -5557,14 +5557,16 @@ function workRenderAttendance(){
         html+=`<button onclick="event.stopPropagation();workSetSubOnPage(${s.id})" style="padding:2px 10px;background:none;border:1px dashed #252320;border-radius:4px;color:var(--subtle);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif;margin:4px">+ Set subscription</button>`;
       } else {
         att.forEach((cell,i)=>{
-          // Full index in att array (all attendance, not just filtered)
           const fullIdx=(workData.attendance[s.id]||[]).indexOf(cell);
           const cls=cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
           const hn=hasNote(cell);
+          // Show planned date (dimmed blue) for empty cells without a confirmed date
+          const isPlanned=cell.status==='empty'&&!cell.date&&!!cell._plannedFull;
+          const displayDate=cell.date||_fmt_ddmm(cell._plannedFull)||'';
           html+=`<div class="wa-cell ${cls}${hn?' wc-has-note':''}"
             onclick="event.stopPropagation();workCellClick(event,${s.id},${fullIdx})"
-            title="Lesson ${cell.num}${cell.date?' · '+cell.date:''}${hn?' · has notes':''}">
-            <span class="wc-date">${esc(cell.date||' ')}</span>
+            title="Lesson ${cell.num}${displayDate?' · '+displayDate+'':''} ${isPlanned?'(planned, click to confirm)':''}${hn?' · has notes':''}">
+            <span class="wc-date" style="${isPlanned?'opacity:.5;color:#8ab4f8':''}">${esc(displayDate||' ')}</span>
             <span class="wc-num">${cell.num}</span>
           </div>`;
         });
@@ -5948,14 +5950,21 @@ function workEditStudentModal(id){
     <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:7px">Color</label>
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px">${colorPicker}</div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px">
       <div>
         <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Month group</label>
         <input id="wm-month" value="${mg}" placeholder="YYYY-MM"
           style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--ink);font-size:13px;outline:none;box-sizing:border-box;font-family:'Geist Mono',monospace"/>
       </div>
       <div>
-        <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Lessons</label>
+        <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">First lesson date</label>
+        <input id="wm-firstdate" value="${s.firstDate||''}" placeholder="YYYY-MM-DD  e.g. 2026-03-30"
+          style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--ink);font-size:13px;outline:none;box-sizing:border-box;font-family:'Geist Mono',monospace"/>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div>
+        <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Lessons in subscription</label>
         <input id="wm-lessons" type="number" min="0" value="${totalLessons||''}" placeholder="e.g. 12"
           style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--ink);font-size:13px;outline:none;box-sizing:border-box;font-family:'Geist Mono',monospace"/>
       </div>
@@ -5981,8 +5990,11 @@ function workEditStudentModal(id){
     <button onclick="workModalAddSched()" style="padding:5px 14px;background:none;border:1px dashed var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:12px;font-family:'Geist',sans-serif;margin-bottom:16px">+ Add time slot</button>
 
     ${!isNew?`<button onclick="workSyncScheduleToCalendar(${s.id})"
-      style="display:block;width:100%;padding:8px;background:#0a1a2e;border:1px solid #1a3a5a;border-radius:6px;color:#8ab4f8;cursor:pointer;font-size:12px;font-family:'Geist',sans-serif;margin-bottom:16px">
-      📅 Create recurring calendar events from schedule</button>`:''}
+      style="display:block;width:100%;padding:8px;background:#0a1a2e;border:1px solid #1a3a5a;border-radius:6px;color:#8ab4f8;cursor:pointer;font-size:12px;font-family:'Geist',sans-serif;margin-bottom:8px">
+      📅 Sync to calendar (creates events for all planned lessons)</button>
+    <button onclick="_workRefillAndSync(${s.id})"
+      style="display:block;width:100%;padding:8px;background:#0a180a;border:1px solid #1a3a1a;border-radius:6px;color:#34a853;cursor:pointer;font-size:12px;font-family:'Geist',sans-serif;margin-bottom:16px">
+      🔄 Re-fill dates from schedule + sync calendar</button>`:''}
 
     <div style="display:flex;gap:10px;justify-content:space-between;margin-top:4px">
       ${!isNew?`<button onclick="workArchiveStudent(${s.id});document.getElementById('work-edit-modal').remove()"
@@ -6076,10 +6088,12 @@ function workModalSave(id){
   const color=window._wmStudent?.color||'#4285f4';
   const schedule=window._wmStudent?.schedule||[];
 
+  const firstDate=document.getElementById('wm-firstdate')?.value.trim()||'';
+
   if(id===null){
     // Create new
     const newId=Date.now();
-    const student={id:newId,name,color,subs:{},schedule,price:{},monthGroup:mg,archived};
+    const student={id:newId,name,color,subs:{},schedule,price:{},monthGroup:mg,archived,firstDate};
     if(n>0){ student.subs[mg]=n; }
     if(price>0){ student.price[mg]=price; }
     workData.students.push(student);
@@ -6087,15 +6101,20 @@ function workModalSave(id){
     if(!workData.homework[newId])   workData.homework[newId]=[];
     // Build attendance cells
     if(n>0){
-      workData.attendance[newId]=Array.from({length:n},(_,i)=>({num:i+1,month:mg,date:'',status:'empty'}));
+      const cells=Array.from({length:n},(_,i)=>({num:i+1,month:mg,date:'',status:'empty'}));
+      workData.attendance[newId]=cells;
+      if(schedule.length&&firstDate) _workAutoFillDates(newId,mg,cells,firstDate);
     }
     // Ensure month exists
     if(!workData.months.find(m=>m.key===mg)) workData.months.push({key:mg,label:workMonthLabel(mg)});
+    // Auto-sync to calendar
+    if(schedule.length&&firstDate) setTimeout(()=>_workSyncToCalendar(newId,firstDate),100);
   } else {
     const s=workData.students.find(x=>x.id===id);
     if(!s)return;
     const oldN=(s.subs||{})[mg]||0;
     s.name=name; s.color=color; s.schedule=schedule; s.archived=archived; s.monthGroup=mg;
+    if(firstDate) s.firstDate=firstDate;
     if(!s.price)s.price={};
     if(price>0) s.price[mg]=price; else delete s.price[mg];
     if(!s.subs) s.subs={};
@@ -6108,7 +6127,8 @@ function workModalSave(id){
       const newCells=Array.from({length:n},(_,i)=>existing[i]||{num:i+1,month:mg,date:'',status:'empty'});
       newCells.forEach((c,i)=>c.num=i+1);
       workData.attendance[id]=[...other,...newCells];
-      _workAutoFillDates(id, mg, newCells);
+      _workAutoFillDates(id, mg, newCells, s.firstDate||firstDate||'');
+      if(s.schedule?.length&&(s.firstDate||firstDate)) setTimeout(()=>_workSyncToCalendar(id,s.firstDate||firstDate),100);
     }
   }
   workSave();
@@ -6125,24 +6145,11 @@ function workModalSave(id){
 }
 
 function workSyncScheduleToCalendar(id){
-  const s=workData.students.find(x=>x.id===id);if(!s||!s.schedule?.length)return;
-  let created=0;
-  s.schedule.forEach(slot=>{
-    const today=new Date();
-    const dayDiff=(slot.dow-today.getDay()+7)%7||7;
-    const target=new Date(today);
-    target.setDate(today.getDate()+dayDiff);
-    const dk=dkey(target);
-    if(!calEvts[dk])calEvts[dk]=[];
-    const [sh,sm]=(slot.time||'09:00').split(':').map(Number);
-    const durMins=slot.duration||60;
-    const eh=Math.floor((sh*60+sm+durMins)/60), em=(sh*60+sm+durMins)%60;
-    const endTime=String(eh).padStart(2,'0')+':'+String(em).padStart(2,'0');
-    calEvts[dk].push({title:s.name,start:slot.time||'09:00',end:endTime,repeat:'weekly',repeatEvery:1,color:'blue',id:Date.now()+created});
-    created++;
-  });
-  if(created){save();renderCal();}
-  alert(`Created ${created} recurring event${created!==1?'s':''} for ${s.name}`);
+  const s=workData.students.find(x=>x.id===id);if(!s)return;
+  if(!s.schedule?.length){ alert('No schedule set. Add schedule slots below first.'); return; }
+  if(!s.firstDate){ alert('No first lesson date set. Please enter the first lesson date field above.'); return; }
+  _workSyncToCalendar(id, s.firstDate);
+  document.getElementById('work-edit-modal')?.remove();
 }
 
 
@@ -6720,41 +6727,174 @@ function workCreateNoteForStudent(name){
 }
 
 // ── AUTO-FILL PLANNED DATES FROM SCHEDULE ──
-function _workAutoFillDates(sid, monthKey, cells){
+
+// ── STUDENT ROW MENU (⋯ button) ──
+function workStudentMenu(e, sid){
+  e.stopPropagation();
+  document.getElementById('student-row-menu')?.remove();
+  const menu=document.createElement('div');
+  menu.id='student-row-menu';
+  menu.className='sg-ctx-menu';
+  menu.innerHTML=`
+    <div class="sg-ctx-item" onclick="workEditStudentModal(${sid})">✏ Edit student</div>
+    <div class="sg-ctx-item" onclick="workOpenStudentPage(${sid})">👤 Open page</div>
+    <div class="sg-ctx-sep"></div>
+    <div class="sg-ctx-item" onclick="_workRefillAndSync(${sid})">🔄 Re-fill dates + sync calendar</div>
+    <div class="sg-ctx-sep"></div>
+    <div class="sg-ctx-item danger" onclick="workArchiveStudent(${sid})">🗄 Archive</div>`;
+  let x=e.clientX, y=e.clientY+4;
+  if(x+220>window.innerWidth) x=window.innerWidth-225;
+  if(y+180>window.innerHeight) y=e.clientY-180;
+  menu.style.cssText=`left:${Math.max(4,x)}px;top:${Math.max(4,y)}px`;
+  document.body.appendChild(menu);
+  const close=ev=>{ if(!menu.contains(ev.target)){menu.remove();document.removeEventListener('mousedown',close);} };
+  setTimeout(()=>document.addEventListener('mousedown',close),0);
+}
+
+// Re-fill all empty cells from schedule + push to calendar
+function _workRefillAndSync(sid){
+  const s=workData.students.find(x=>x.id===sid);if(!s)return;
+  const mg=s.monthGroup||workCurrentMonth;
+  if(!s.schedule?.length){ alert('No schedule set. Edit student to add a schedule first.'); return; }
+  if(!s.firstDate){ alert('No first lesson date set. Edit student to add the first lesson date.'); return; }
+  const att=workData.attendance[sid]||[];
+  const cells=att.filter(c=>c.month===mg);
+  // Clear planned dates on empty cells (keep confirmed ones)
+  cells.forEach(c=>{ if(c.status==='empty'&&!c._manualDate){ c.date=''; c._plannedTs=0; c._plannedFull=''; } });
+  _workAutoFillDates(sid, mg, cells, s.firstDate);
+  workSave();
+  workRenderSidebar(); workRenderAttendance();
+  _workSyncToCalendar(sid, s.firstDate).then(()=>{
+    if(curView==='calendar') renderCal();
+  });
+  document.getElementById('student-row-menu')?.remove();
+  document.getElementById('work-edit-modal')?.remove();
+}
+
+// ── AUTO-FILL DATES FROM SCHEDULE ──
+// startDateStr: YYYY-MM-DD — the first lesson date
+function _workAutoFillDates(sid, monthKey, cells, startDateStr){
   const s = workData.students.find(x=>x.id===sid);
   if(!s||!s.schedule||!s.schedule.length) return;
+  if(!startDateStr) return;
 
-  // Generate upcoming lesson dates from schedule
-  const [y,m] = monthKey.split('-').map(Number);
-  // Look ahead 3 months from the monthKey
-  const startDate = new Date(y, m-1, 1);
-  const endDate   = new Date(y, m+2, 0); // 3 months ahead
+  // Parse start date
+  const startDate = new Date(startDateStr + 'T12:00:00');
+  if(isNaN(startDate.getTime())) return;
 
-  const upcomingDates = [];
+  // Build all scheduled dates starting from startDate, going 6 months ahead
+  const endDate = new Date(startDate);
+  endDate.setMonth(endDate.getMonth()+6);
+
+  const scheduledDates = [];
   s.schedule.forEach(slot => {
     const d = new Date(startDate);
-    // Advance to first occurrence of this weekday
-    while(d.getDay() !== slot.dow) d.setDate(d.getDate()+1);
+    // Move to first occurrence of this weekday >= startDate
+    const diff = (slot.dow - d.getDay() + 7) % 7;
+    d.setDate(d.getDate() + diff); // 0 = same day if it matches
     while(d <= endDate){
-      upcomingDates.push({date:d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0'), ts:d.getTime()});
+      scheduledDates.push({
+        ts: d.getTime(),
+        display: d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0'),
+        full: dkey(d)   // YYYY-MM-DD for calendar
+      });
       d.setDate(d.getDate()+7);
     }
   });
-  upcomingDates.sort((a,b)=>a.ts-b.ts);
+  scheduledDates.sort((a,b)=>a.ts-b.ts);
+  // Deduplicate (in case two slots land on same day)
+  const seen=new Set();
+  const unique=scheduledDates.filter(x=>{ if(seen.has(x.ts))return false; seen.add(x.ts); return true; });
 
-  // Fill empty cells with upcoming dates (only cells without a date already)
-  let di = 0;
-  // Skip dates that are in the past
-  const now = Date.now();
-  while(di < upcomingDates.length && upcomingDates[di].ts < now - 86400000) di++;
-
-  cells.forEach(cell => {
-    if(cell.date || cell.status !== 'empty') return; // already has date or filled
-    if(di < upcomingDates.length){
-      cell.date = upcomingDates[di].date;
+  // Fill cells in order — skip cells that already have a manually set date
+  let di=0;
+  cells.forEach(cell=>{
+    if(cell.status!=='empty') return; // already done/missed — keep their date
+    if(cell._manualDate) return;       // user overrode — keep it
+    if(di<unique.length){
+      cell.date = unique[di].display;
+      cell._plannedTs = unique[di].ts;
+      cell._plannedFull = unique[di].full;
       di++;
     }
   });
+}
+
+// Format date as DD.MM from YYYY-MM-DD
+function _fmt_ddmm(dk){
+  if(!dk) return '';
+  const[y,m,d]=dk.split('-');
+  return parseInt(d)+'.'+m;
+}
+
+// ── SYNC SCHEDULE TO CALENDAR ──
+// Creates/updates events "StudentName + Pixels" for each planned lesson
+async function _workSyncToCalendar(sid, firstDateStr){
+  const s=workData.students.find(x=>x.id===sid);
+  if(!s) return;
+  const att=workData.attendance[sid]||[];
+  const name=s.name;
+  const title=name+' + Pixels';
+
+  // Build map of planned dates from attendance cells
+  const plannedDates=[]; // {dk:'YYYY-MM-DD', start:'HH:MM', end:'HH:MM'}
+  att.forEach(cell=>{
+    if(cell.status!=='empty'&&cell.status!=='done'&&cell.status!=='missed') return;
+    // Use _plannedFull if available, otherwise parse cell.date
+    const fullDate=cell._plannedFull||_cellDateToFullDate(cell.date,firstDateStr);
+    if(!fullDate) return;
+    // Find the matching schedule slot time for this day
+    const d=new Date(fullDate+'T12:00:00');
+    const dow=d.getDay();
+    const slot=s.schedule?.find(sl=>sl.dow===dow);
+    const startTime=slot?.time||'09:00';
+    const [sh,sm]=startTime.split(':').map(Number);
+    const durMin=slot?.duration||60;
+    const eh=Math.floor((sh*60+sm+durMin)/60), em=(sh*60+sm+durMin)%60;
+    const endTime=String(eh).padStart(2,'0')+':'+String(em).padStart(2,'0');
+    plannedDates.push({dk:fullDate,start:startTime,end:endTime});
+  });
+
+  if(!plannedDates.length) return;
+
+  // Remove old work-synced events for this student
+  Object.keys(calEvts).forEach(dk=>{
+    calEvts[dk]=(calEvts[dk]||[]).filter(e=>!(e._workStudentId===sid));
+  });
+
+  // Add new events
+  plannedDates.forEach(({dk,start,end})=>{
+    if(!calEvts[dk]) calEvts[dk]=[];
+    // Skip if already has a non-work event with same title
+    const existing=calEvts[dk].find(e=>e.title===title&&!e._workStudentId);
+    if(!existing){
+      calEvts[dk].push({
+        title,
+        start,
+        end,
+        color:'blue',
+        _workStudentId: sid,
+        _fromWork: true
+      });
+    }
+  });
+
+  save();
+  if(curView==='calendar') renderCal();
+  console.log(`[Work] Synced ${plannedDates.length} events for ${name} to calendar`);
+}
+
+// Parse "DD.MM" into YYYY-MM-DD using a reference year from firstDateStr or current year
+function _cellDateToFullDate(displayDate, refDateStr){
+  if(!displayDate||!displayDate.includes('.')) return '';
+  const parts=displayDate.split('.');
+  if(parts.length!==2) return '';
+  const d=parseInt(parts[0]), m=parseInt(parts[1]);
+  const refYear=refDateStr?parseInt(refDateStr.split('-')[0]):new Date().getFullYear();
+  // If month is earlier than ref month, assume next year
+  const refMonth=refDateStr?parseInt(refDateStr.split('-')[1]):new Date().getMonth()+1;
+  const year=(m<refMonth-1)?refYear+1:refYear;
+  return `${year}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
 
 // ── INIT ──
