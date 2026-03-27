@@ -444,61 +444,77 @@ canvas#gc{width:100%;height:100%;display:block}
 
 /* ── WORK TRACKER ── */
 .work-layout{display:flex;flex:1;overflow:hidden;height:100%}
-.work-sidebar{width:200px;flex-shrink:0;background:#0a0a08;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.work-sidebar{width:190px;flex-shrink:0;background:#0a0a08;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
 .work-sidebar-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
 .work-sidebar-title{font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.08em;font-family:'Geist Mono',monospace}
 .work-add-btn{background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:16px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;transition:all .12s;line-height:1}
 .work-add-btn:hover{border-color:#06b6d4;color:#06b6d4}
 .work-student-list{flex:1;overflow-y:auto;scrollbar-width:none;padding:6px 8px}
 .work-student-list::-webkit-scrollbar{display:none}
-.work-student{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;transition:background .1s;user-select:none;position:relative}
+.work-student{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;transition:background .1s;user-select:none}
 .work-student:hover{background:rgba(255,255,255,.05)}
-.work-student.active{background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.2)}
+.work-student.active{background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.18)}
 .work-student .ws-name{flex:1;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.work-student .ws-count{font-size:10px;font-family:'Geist Mono',monospace;color:var(--muted);background:var(--surface2);padding:1px 6px;border-radius:99px;flex-shrink:0}
-.work-student .ws-del{opacity:0;font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:3px;flex-shrink:0}
+.work-student .ws-badge{font-size:10px;font-family:'Geist Mono',monospace;padding:1px 6px;border-radius:99px;flex-shrink:0;background:var(--surface2)}
+.work-student .ws-del{opacity:0;font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:3px}
 .work-student:hover .ws-del{opacity:1}
 .work-student .ws-del:hover{color:var(--red)}
-.work-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
-.work-top-bar{display:flex;align-items:center;gap:16px;padding:10px 18px;border-bottom:1px solid var(--border);flex-shrink:0;background:#0d0d0b;flex-wrap:wrap}
-.work-month-nav{display:flex;align-items:center;gap:10px}
+.work-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* section tabs */
+.work-section-tabs{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);flex-shrink:0;background:#0d0d0b;padding:0 8px}
+.work-sec-tab{padding:10px 18px;font-size:13px;font-family:'Geist',sans-serif;color:var(--muted);cursor:pointer;background:none;border:none;border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px}
+.work-sec-tab:hover{color:var(--ink)}
+.work-sec-tab.active{color:#06b6d4;border-bottom-color:#06b6d4;font-weight:500}
+.work-month-nav{display:flex;align-items:center;gap:8px;padding:0 8px}
 .work-nav-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px 8px;border-radius:4px;transition:color .1s}
 .work-nav-btn:hover{color:var(--ink)}
-.work-month-label{font-size:16px;font-weight:600;color:var(--ink);min-width:130px;text-align:center;font-family:'Geist',sans-serif}
-.work-legend{display:flex;align-items:center;gap:10px}
-.work-leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.work-leg-dot.done{background:#34a853}
-.work-leg-dot.planned{background:#3d3a35}
-.work-leg-dot.missed{background:#e85a5a}
-.work-leg-lbl{font-size:12px;color:var(--muted)}
-.work-stats{margin-left:auto;display:flex;gap:14px;font-size:12px;font-family:'Geist Mono',monospace}
-.work-stat{color:var(--muted)}
-.work-stat span{font-weight:700}
-.work-stat span.done{color:#34a853}
-.work-stat span.planned{color:#8ab4f8}
-.work-stat span.missed{color:#e85a5a}
-.work-grid-wrap{flex:1;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;padding:16px}
+.work-month-label{font-size:14px;font-weight:600;color:var(--ink);min-width:130px;text-align:center;font-family:'Geist',sans-serif}
+.work-section{flex:1;display:none;overflow:hidden;flex-direction:column}
+.work-section.active{display:flex}
+.work-grid-wrap{flex:1;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .work-grid-wrap::-webkit-scrollbar{width:5px;height:5px}
 .work-grid-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-/* grid */
-.work-grid{display:grid;gap:0;width:max-content;min-width:100%}
-.work-row{display:contents}
-.work-cell-hd{font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;padding:0 6px 8px;text-align:center;user-select:none;position:sticky;top:0;background:var(--bg);z-index:2;white-space:nowrap}
-.work-cell-hd.today-col{color:#c8303a;font-weight:700}
-.work-row-hd{font-size:12.5px;color:var(--ink);padding:0 14px 0 0;display:flex;align-items:center;font-weight:500;white-space:nowrap;height:36px;position:sticky;left:0;background:var(--bg);z-index:1;gap:6px}
-.work-row-hd-sub{font-size:10px;color:var(--muted);font-weight:400}
-.work-cell{width:36px;height:36px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-family:'Geist Mono',monospace;color:transparent;transition:all .1s;border:1px solid transparent;position:relative;flex-shrink:0}
-.work-cell:hover{border-color:rgba(255,255,255,.15)!important;transform:scale(1.1)}
-.work-cell.status-none{background:transparent;border:1px dashed #252320}
-.work-cell.status-done{background:#0f2818;border-color:#1a4a28}
-.work-cell.status-done::after{content:'✓';color:#34a853;font-size:13px;font-weight:700}
-.work-cell.status-planned{background:#1a1816;border-color:#2e2b26}
-.work-cell.status-planned::after{content:'○';color:#6b6760;font-size:14px}
-.work-cell.status-missed{background:#1e0808;border-color:#3a1010}
-.work-cell.status-missed::after{content:'✕';color:#e85a5a;font-size:12px;font-weight:700}
-.work-cell.today-col{border-color:#c8303a!important;opacity:1}
-.work-add-lesson-row{display:flex;align-items:center;gap:10px;padding:12px 0 4px}
-.work-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--subtle)}
+/* attendance pixel cells */
+.wa-table{padding:20px;min-width:100%}
+.wa-student-row{margin-bottom:20px}
+.wa-row-head{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.wa-row-name{font-size:14px;font-weight:600;color:var(--ink)}
+.wa-row-meta{font-size:12px;font-family:'Geist Mono',monospace;color:var(--muted)}
+.wa-progress{flex:1;max-width:200px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.wa-progress-fill{height:100%;border-radius:3px;transition:width .4s}
+.wa-set-btn{padding:2px 10px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif;transition:all .1s}
+.wa-set-btn:hover{border-color:#06b6d4;color:#06b6d4}
+.wa-cells{display:flex;flex-wrap:wrap;gap:4px}
+/* the cell itself */
+.wa-cell{width:52px;height:52px;border-radius:6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:all .12s;position:relative;flex-shrink:0;border:1px solid transparent;user-select:none}
+.wa-cell:hover{transform:scale(1.06)}
+.wa-cell.wc-empty{background:#141210;border:1px dashed #2e2b26}
+.wa-cell.wc-done{background:#0c2216;border-color:#1a4a28}
+.wa-cell.wc-missed{background:#1e0a0a;border-color:#3a1212}
+.wa-cell .wc-date{font-size:9.5px;font-family:'Geist Mono',monospace;font-weight:600;line-height:1}
+.wa-cell.wc-empty .wc-date{color:#3d3a35}
+.wa-cell.wc-done .wc-date{color:#34a853}
+.wa-cell.wc-missed .wc-date{color:#e85a5a}
+.wa-cell .wc-num{font-size:11px;font-family:'Geist Mono',monospace;font-weight:700;line-height:1}
+.wa-cell.wc-empty .wc-num{color:#2e2b26}
+.wa-cell.wc-done .wc-num{color:#5af07a}
+.wa-cell.wc-missed .wc-num{color:#f07a7a}
+.wa-cell .wc-icon{font-size:14px;line-height:1}
+/* date popup */
+.wa-date-popup{position:fixed;background:#1a1816;border:1px solid #3a3630;border-radius:8px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.8);z-index:3000;min-width:160px}
+.wa-date-popup input{width:100%;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:13px;font-family:'Geist Mono',monospace;outline:none;box-sizing:border-box}
+.wa-date-popup input:focus{border-color:#06b6d4}
+.wa-date-popup-btns{display:flex;gap:6px;margin-top:8px}
+.wa-date-popup-btns button{flex:1;padding:5px;font-size:12px;border-radius:5px;border:none;cursor:pointer;font-family:'Geist',sans-serif;font-weight:500}
+/* homework table */
+.hw-table-wrap{padding:20px}
+.hw-table{border-collapse:collapse;width:100%}
+.hw-table th{padding:8px 14px;text-align:left;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;border-bottom:2px solid var(--border);white-space:nowrap}
+.hw-table td{padding:6px 14px;font-size:13px;border-bottom:1px solid var(--border-light);vertical-align:middle}
+.hw-row-name{font-weight:600;color:var(--ink)}
+.hw-cell-date{font-family:'Geist Mono',monospace;font-size:12px;color:var(--muted)}
+.hw-status-sel{padding:4px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none;background:var(--surface)}
+.work-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px}
 .work-empty-icon{font-size:40px}
 .work-empty-text{font-size:16px;color:var(--muted);font-family:'Instrument Serif',serif;font-style:italic}
 .work-empty-sub{font-size:12px;color:var(--subtle)}
@@ -840,7 +856,7 @@ canvas#gc{width:100%;height:100%;display:block}
     <!-- WORK TRACKER -->
     <div class="view" id="view-work">
       <div class="work-layout">
-        <!-- Sidebar: student list -->
+        <!-- Sidebar -->
         <div class="work-sidebar">
           <div class="work-sidebar-head">
             <span class="work-sidebar-title">Students</span>
@@ -848,23 +864,26 @@ canvas#gc{width:100%;height:100%;display:block}
           </div>
           <div class="work-student-list" id="work-student-list"></div>
         </div>
-        <!-- Main: lesson grid -->
+        <!-- Main area: two sections stacked -->
         <div class="work-main">
-          <div class="work-top-bar">
+          <!-- Section tabs -->
+          <div class="work-section-tabs">
+            <button class="work-sec-tab active" id="wsec-attendance" onclick="workShowSection('attendance')">📅 Attendance</button>
+            <button class="work-sec-tab" id="wsec-homework" onclick="workShowSection('homework')">📝 Homework</button>
+            <div style="flex:1"></div>
             <div class="work-month-nav">
               <button class="work-nav-btn" onclick="workPrevMonth()">‹</button>
               <span class="work-month-label" id="work-month-label"></span>
               <button class="work-nav-btn" onclick="workNextMonth()">›</button>
             </div>
-            <div class="work-legend">
-              <span class="work-leg-dot done"></span><span class="work-leg-lbl">Done</span>
-              <span class="work-leg-dot planned"></span><span class="work-leg-lbl">Planned</span>
-              <span class="work-leg-dot missed"></span><span class="work-leg-lbl">Missed</span>
-            </div>
-            <div class="work-stats" id="work-stats"></div>
           </div>
-          <div class="work-grid-wrap">
-            <div class="work-grid" id="work-grid"></div>
+          <!-- Attendance section -->
+          <div class="work-section active" id="work-sec-attendance">
+            <div class="work-grid-wrap" id="work-attendance-wrap"></div>
+          </div>
+          <!-- Homework section -->
+          <div class="work-section" id="work-sec-homework">
+            <div class="work-grid-wrap" id="work-hw-wrap"></div>
           </div>
         </div>
       </div>
@@ -5204,290 +5223,369 @@ function finRenderAnalytics(entries, cats, incomeSources, openBal, totalIncome, 
 
 
 // ══════════════════════════════════════════
-// WORK TRACKER — Lesson Tracker
+// WORK TRACKER
 // ══════════════════════════════════════════
-// Data: workData = { students:[{id,name}], lessons:{studentId:[{date,status}]} }
-// status: 'done' | 'planned' | 'missed' | null (remove)
+// Data model:
+// workData.students = [{id, name, subs:{monthKey: totalLessons}}]
+// workData.attendance = {studentId: [{num:1..N, date:'DD.MM', status:'done'|'missed'}]}
+// workData.homework   = {studentId: [{date:'YYYY-MM-DD', lesson:N, hw:'sent'|'checked'|null, note:''}]}
 
-let workData = { students:[], lessons:{} };
-let workCurrentMonth = (() => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); })();
+let workData = { students:[], attendance:{}, homework:{} };
+let workCurrentMonth = (() => {const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})();
 let workActiveStudent = null;
+let workActiveSection = 'attendance';
 let _workInited = false;
-const WORK_SK = 'mind_work_v1';
+const WORK_SK = 'mind_work_v3';
 
-function workLoad()  { try { workData = JSON.parse(localStorage.getItem(WORK_SK)||'{"students":[],"lessons":{}}'); } catch(_){workData={students:[],lessons:{}}}}
-function workSave()  { localStorage.setItem(WORK_SK, JSON.stringify(workData)); }
+function workLoad(){try{workData=JSON.parse(localStorage.getItem(WORK_SK)||'{"students":[],"attendance":{},"homework":{}}');}catch(_){workData={students:[],attendance:{},homework:{}};}}
+function workSave(){localStorage.setItem(WORK_SK,JSON.stringify(workData));}
 
-function workInit() {
-  if (!_workInited) { workLoad(); _workInited=true; }
+function workInit(){
+  if(!_workInited){workLoad();_workInited=true;}
+  if(!workActiveStudent&&workData.students.length) workActiveStudent=workData.students[0].id;
   workRenderSidebar();
-  workRenderGrid();
+  workRenderAttendance();
+  workRenderHomework();
+}
+
+// ── SECTION TOGGLE ──
+function workShowSection(sec){
+  workActiveSection = sec;
+  document.getElementById('work-sec-attendance').classList.toggle('active', sec==='attendance');
+  document.getElementById('work-sec-homework').classList.toggle('active', sec==='homework');
+  document.getElementById('wsec-attendance').classList.toggle('active', sec==='attendance');
+  document.getElementById('wsec-homework').classList.toggle('active', sec==='homework');
+  if(sec==='homework') workRenderHomework();
 }
 
 // ── MONTH NAV ──
-function workPrevMonth() {
-  const [y,m] = workCurrentMonth.split('-').map(Number);
-  const d = new Date(y, m-2, 1);
-  workCurrentMonth = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-  workRenderGrid();
+function workPrevMonth(){
+  const[y,m]=workCurrentMonth.split('-').map(Number);
+  const d=new Date(y,m-2,1);
+  workCurrentMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  workRenderAttendance(); workRenderHomework();
+  document.getElementById('work-month-label').textContent=workMonthLabel(workCurrentMonth);
 }
-function workNextMonth() {
-  const [y,m] = workCurrentMonth.split('-').map(Number);
-  const d = new Date(y, m, 1);
-  workCurrentMonth = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-  workRenderGrid();
+function workNextMonth(){
+  const[y,m]=workCurrentMonth.split('-').map(Number);
+  const d=new Date(y,m,1);
+  workCurrentMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  workRenderAttendance(); workRenderHomework();
+  document.getElementById('work-month-label').textContent=workMonthLabel(workCurrentMonth);
 }
-function workMonthLabel(key) {
-  const [y,m] = key.split('-').map(Number);
-  return ['January','February','March','April','May','June','July','August','September','October','November','December'][m-1]+' '+y;
+function workMonthLabel(key){
+  const[y,m]=key.split('-').map(Number);
+  return['January','February','March','April','May','June','July','August','September','October','November','December'][m-1]+' '+y;
 }
 
 // ── STUDENTS ──
-function workAddStudent() {
-  const name = prompt('Student name:','');
-  if (!name?.trim()) return;
-  const id = Date.now();
-  workData.students.push({id, name:name.trim()});
-  workData.lessons[id] = [];
+function workAddStudent(){
+  const name=prompt('Student name:','');
+  if(!name?.trim())return;
+  const id=Date.now();
+  workData.students.push({id,name:name.trim(),subs:{}});
+  workData.attendance[id]=[];
+  workData.homework[id]=[];
   workSave();
-  workActiveStudent = id;
+  workActiveStudent=id;
   workRenderSidebar();
-  workRenderGrid();
+  workRenderAttendance();
+  workRenderHomework();
 }
-
-function workDeleteStudent(id) {
-  if (!confirm('Delete this student and all their lessons?')) return;
-  workData.students = workData.students.filter(s=>s.id!==id);
-  delete workData.lessons[id];
-  if (workActiveStudent===id) workActiveStudent = workData.students[0]?.id||null;
-  workSave();
+function workDeleteStudent(id){
+  if(!confirm('Delete this student and all records?'))return;
+  workData.students=workData.students.filter(s=>s.id!==id);
+  delete workData.attendance[id];
+  delete workData.homework[id];
+  if(workActiveStudent===id) workActiveStudent=workData.students[0]?.id||null;
+  workSave();workRenderSidebar();workRenderAttendance();workRenderHomework();
+}
+function workRenameStudent(id){
+  const s=workData.students.find(x=>x.id===id);if(!s)return;
+  const name=prompt('New name:',s.name);
+  if(name?.trim()){s.name=name.trim();workSave();workRenderSidebar();workRenderAttendance();}
+}
+function workSelectStudent(id){
+  workActiveStudent=id;
   workRenderSidebar();
-  workRenderGrid();
+  workRenderAttendance();
+  workRenderHomework();
 }
 
-function workRenameStudent(id) {
-  const student = workData.students.find(s=>s.id===id);
-  if (!student) return;
-  const name = prompt('New name:', student.name);
-  if (name?.trim()) { student.name = name.trim(); workSave(); workRenderSidebar(); workRenderGrid(); }
-}
-
-function workSelectStudent(id) {
-  workActiveStudent = id;
-  workRenderSidebar();
-  workRenderGrid();
-}
-
-function workRenderSidebar() {
-  const list = document.getElementById('work-student-list');
-  if (!list) return;
-  if (!workData.students.length) {
-    list.innerHTML = '<div style="padding:20px 10px;text-align:center;font-size:12px;color:var(--muted)">Add a student<br>to get started</div>';
-    return;
+function workRenderSidebar(){
+  const list=document.getElementById('work-student-list');
+  if(!list)return;
+  if(!workData.students.length){
+    list.innerHTML='<div style="padding:20px 10px;text-align:center;font-size:12px;color:var(--muted)">Add a student</div>';return;
   }
-  list.innerHTML = workData.students.map(s => {
-    const lessons = workData.lessons[s.id]||[];
-    const done = lessons.filter(l=>l.status==='done').length;
-    const active = s.id === workActiveStudent;
-    return `<div class="work-student${active?' active':''}" onclick="workSelectStudent(${s.id})" ondblclick="workRenameStudent(${s.id})">
+  list.innerHTML=workData.students.map(s=>{
+    const att=workData.attendance[s.id]||[];
+    const done=att.filter(c=>c.status==='done').length;
+    const total=(s.subs||{})[workCurrentMonth]||0;
+    const active=s.id===workActiveStudent;
+    return`<div class="work-student${active?' active':''}" onclick="workSelectStudent(${s.id})" ondblclick="workRenameStudent(${s.id})">
       <span class="ws-name">${esc(s.name)}</span>
-      <span class="ws-count" style="color:#34a853">${done}</span>
+      ${total?`<span class="ws-badge" style="color:${done>=total?'#34a853':'#8ab4f8'}">${done}/${total}</span>`:`<span class="ws-badge" style="color:#34a853">${done}✓</span>`}
       <button class="ws-del" onclick="event.stopPropagation();workDeleteStudent(${s.id})">✕</button>
     </div>`;
   }).join('');
 }
 
-// ── GRID RENDER ──
-function workRenderGrid() {
-  const wrap = document.querySelector('.work-grid-wrap');
-  if (!wrap) return;
+// ── SET SUBSCRIPTION SIZE ──
+function workSetSubscription(studentId, monthKey){
+  const s=workData.students.find(x=>x.id===studentId);if(!s)return;
+  if(!s.subs)s.subs={};
+  const cur=(s.subs[monthKey]||0);
+  const val=prompt(`Lessons in subscription for ${s.name} (${workMonthLabel(monthKey)}):`,cur||'');
+  if(val===null)return;
+  const n=parseInt(val);
+  if(isNaN(n)||n<0)return;
+  const old=s.subs[monthKey]||0;
+  s.subs[monthKey]=n;
+  // Grow or shrink the attendance cells for this month
+  let att=workData.attendance[studentId]||[];
+  // Keep only cells not belonging to this month, then rebuild this month's cells
+  // Cells are keyed by a simple index (1..N) with an optional date label
+  // We store them as a flat array per student, tagged with a monthKey
+  const otherMonths=att.filter(c=>c.month!==monthKey);
+  const thisMonth=att.filter(c=>c.month===monthKey);
+  const newCells=Array.from({length:n},(_,i)=>{
+    const existing=thisMonth[i];
+    return existing||{num:i+1,month:monthKey,date:'',status:'empty'};
+  });
+  // Renumber
+  newCells.forEach((c,i)=>c.num=i+1);
+  workData.attendance[studentId]=[...otherMonths,...newCells];
+  workSave();
+  workRenderSidebar();
+  workRenderAttendance();
+}
 
-  document.getElementById('work-month-label').textContent = workMonthLabel(workCurrentMonth);
+// ── ATTENDANCE RENDER ──
+function workRenderAttendance(){
+  const wrap=document.getElementById('work-attendance-wrap');
+  if(!wrap)return;
+  document.getElementById('work-month-label').textContent=workMonthLabel(workCurrentMonth);
 
-  if (!workData.students.length) {
-    wrap.innerHTML = `<div class="work-empty">
-      <div class="work-empty-icon">📖</div>
-      <div class="work-empty-text">No students yet</div>
-      <div class="work-empty-sub">Click ＋ in the sidebar to add a student</div>
-    </div>`;
+  if(!workData.students.length){
+    wrap.innerHTML=`<div class="work-empty"><div class="work-empty-icon">📅</div><div class="work-empty-text">No students yet</div><div class="work-empty-sub">Click ＋ to add a student</div></div>`;
     return;
   }
 
-  if (!workActiveStudent) workActiveStudent = workData.students[0]?.id;
-  const student = workData.students.find(s => s.id === workActiveStudent);
-  if (!student) return;
+  // Render ALL students in one scrollable view (like the screenshot)
+  let html='<div class="wa-table">';
 
-  // Show current month + next month for subscription carry-over
-  const months = [workCurrentMonth, workNextMonthKey(workCurrentMonth)];
-  const allDates = [];
-  months.forEach(mk => {
-    const [y, m] = mk.split('-').map(Number);
-    const days = new Date(y, m, 0).getDate();
-    for (let d = 1; d <= days; d++) {
-      const dk = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      allDates.push({ dk, day: d, mk, dow: new Date(dk+'T12:00:00').getDay() });
+  workData.students.forEach(s=>{
+    const att=(workData.attendance[s.id]||[]).filter(c=>c.month===workCurrentMonth);
+    const total=(s.subs||{})[workCurrentMonth]||0;
+    const done=att.filter(c=>c.status==='done').length;
+    const missed=att.filter(c=>c.status==='missed').length;
+    const pct=total>0?Math.round(done/total*100):0;
+    const isActive=s.id===workActiveStudent;
+
+    html+=`<div class="wa-student-row" onclick="workSelectStudent(${s.id})" style="${isActive?'opacity:1':'opacity:.85'}">
+      <div class="wa-row-head">
+        <span class="wa-row-name" style="${isActive?'color:#06b6d4':''}">${esc(s.name)}</span>
+        <span class="wa-row-meta">${done}✓ ${missed>0?missed+'✕ ':''}</span>
+        ${total?`<div class="wa-progress"><div class="wa-progress-fill" style="width:${pct}%;background:${done>=total?'#34a853':'#4285f4'}"></div></div>
+        <span class="wa-row-meta" style="color:${done>=total?'#34a853':'#8ab4f8'}">${done}/${total} · ${pct}%</span>`:
+        `<span class="wa-row-meta" style="color:#3d3a35">no subscription set</span>`}
+        <button class="wa-set-btn" onclick="event.stopPropagation();workSetSubscription(${s.id},'${workCurrentMonth}')">
+          ${total?'Edit':'＋ Set'} subscription
+        </button>
+      </div>
+      <div class="wa-cells">`;
+
+    if(total===0){
+      html+=`<div style="padding:8px 0;font-size:12px;color:var(--subtle)">Set subscription size to see cells</div>`;
+    } else {
+      att.forEach((cell,i)=>{
+        const cls=cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
+        const icon=cell.status==='done'?'✓':cell.status==='missed'?'✕':'';
+        html+=`<div class="wa-cell ${cls}"
+          onclick="event.stopPropagation();workCellClick(${s.id},${i},'${workCurrentMonth}')"
+          title="Lesson ${cell.num}${cell.date?' · '+cell.date:''} · Click to change">
+          <span class="wc-date">${esc(cell.date||'—')}</span>
+          <span class="wc-num">${cell.num}</span>
+          ${icon?`<span class="wc-icon">${icon}</span>`:''}
+        </div>`;
+      });
     }
+
+    html+=`</div></div>`;
   });
 
-  const today = dkey(new Date());
-  const lessons = workData.lessons[student.id] || [];
-  const lessonMap = {};
-  lessons.forEach(l => { lessonMap[l.date] = l; });
+  html+='</div>';
+  wrap.innerHTML=html;
+}
 
-  // Stats for current month
-  const curLessons = lessons.filter(l => l.date.startsWith(workCurrentMonth));
-  const done    = curLessons.filter(l => l.status === 'done').length;
-  const planned = curLessons.filter(l => l.status === 'planned').length;
-  const missed  = curLessons.filter(l => l.status === 'missed').length;
-  const total   = (student.monthLessons || {})[workCurrentMonth] || 0;
-  const hwSent  = curLessons.filter(l => l.hw === 'sent' || l.hw === 'checked').length;
-  const hwChk   = curLessons.filter(l => l.hw === 'checked').length;
-  const pct     = total > 0 ? Math.round(done / total * 100) : 0;
+// ── CELL CLICK → popup ──
+let _waCellPopup=null;
+function workCellClick(studentId, cellIdx, monthKey){
+  // Close existing popup
+  document.getElementById('wa-popup')?.remove();
+  _waCellPopup=null;
 
-  const statsEl = document.getElementById('work-stats');
-  if (statsEl) statsEl.innerHTML = `
-    <div class="work-stat">Done: <span class="done">${done}${total ? ' / '+total : ''}</span></div>
-    <div class="work-stat">Planned: <span class="planned">${planned}</span></div>
-    <div class="work-stat">Missed: <span class="missed">${missed}</span></div>
-    <div class="work-stat">HW: <span style="color:#06b6d4">${hwChk}✓${hwSent - hwChk > 0 ? ' '+( hwSent - hwChk)+'📤' : ''}</span></div>
-    <button onclick="workSetMonthTotal(${student.id})" style="padding:2px 10px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif">Set total</button>
-  `;
+  const att=workData.attendance[studentId]||[];
+  const cells=att.filter(c=>c.month===monthKey);
+  const cell=cells[cellIdx];
+  if(!cell)return;
 
-  const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-  let html = `<div style="padding:16px;overflow:auto;height:100%;box-sizing:border-box">`;
-
-  // Progress bar
-  if (total) {
-    html += `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-      <span style="font-size:14px;font-weight:600;color:var(--ink)">${esc(student.name)}</span>
-      <span style="font-size:13px;font-weight:700;color:${done>=total?'#34a853':'#8ab4f8'};font-family:'Geist Mono',monospace">${done} / ${total} lessons</span>
-      <div style="flex:1;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;max-width:300px">
-        <div style="height:100%;width:${pct}%;background:${done>=total?'#34a853':'#4285f4'};border-radius:4px;transition:width .4s"></div>
-      </div>
-      <span style="font-size:12px;color:var(--muted);font-family:'Geist Mono',monospace">${pct}%</span>
+  // Build popup
+  const popup=document.createElement('div');
+  popup.id='wa-popup';
+  popup.className='wa-date-popup';
+  popup.innerHTML=`
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:'Geist Mono',monospace">Lesson ${cell.num} · ${workMonthLabel(monthKey)}</div>
+    <input id="wa-popup-date" placeholder="Date (e.g. 16.01)" value="${esc(cell.date||'')}"/>
+    <div class="wa-date-popup-btns">
+      <button onclick="workCellSetStatus(${studentId},${cellIdx},'${monthKey}','done')"
+        style="background:#0c2216;color:#34a853;border:1px solid #1a4a28">✓ Done</button>
+      <button onclick="workCellSetStatus(${studentId},${cellIdx},'${monthKey}','missed')"
+        style="background:#1e0808;color:#e85a5a;border:1px solid #3a1212">✕ Missed</button>
+      <button onclick="workCellSetStatus(${studentId},${cellIdx},'${monthKey}','empty')"
+        style="background:var(--surface);color:var(--muted);border:1px solid var(--border)">— Clear</button>
     </div>`;
+  document.body.appendChild(popup);
+  _waCellPopup={studentId,cellIdx,monthKey};
+
+  // Position near cursor — find the clicked cell element
+  const allCells=document.querySelectorAll('.wa-cell');
+  // Use mouse position via event — we'll position at center of viewport fallback
+  const rect=allCells[cellIdx]?.getBoundingClientRect();
+  if(rect){
+    let x=rect.left, y=rect.bottom+6;
+    if(x+170>window.innerWidth) x=window.innerWidth-175;
+    if(y+120>window.innerHeight) y=rect.top-120;
+    popup.style.cssText=`left:${Math.max(6,x)}px;top:${Math.max(6,y)}px`;
+  } else {
+    popup.style.cssText='left:50%;top:50%;transform:translate(-50%,-50%)';
   }
 
-  html += `<table style="border-collapse:collapse;width:max-content;min-width:100%">
-    <thead><tr style="position:sticky;top:0;z-index:2;background:var(--bg)">
-      <th style="padding:6px 12px;text-align:left;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;border-bottom:1px solid var(--border);white-space:nowrap;min-width:100px">Date</th>
-      <th style="padding:6px 8px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;border-bottom:1px solid var(--border);text-align:center">Day</th>
-      <th style="padding:6px 16px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;border-bottom:1px solid var(--border);min-width:130px">Lesson</th>
-      <th style="padding:6px 16px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;border-bottom:1px solid var(--border);min-width:140px">Homework</th>
-      <th style="padding:6px 12px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;border-bottom:1px solid var(--border);min-width:140px">Notes</th>
-    </tr></thead>
-    <tbody>`;
+  // Close on outside click
+  setTimeout(()=>{
+    document.addEventListener('mousedown',_waClosePopup,{once:true});
+  },0);
+  document.getElementById('wa-popup-date').focus();
+  document.getElementById('wa-popup-date').addEventListener('keydown',e=>{
+    if(e.key==='Enter') workCellSaveDate();
+    if(e.key==='Escape') {document.getElementById('wa-popup')?.remove();}
+  });
+}
 
-  let lastMk = null;
-  allDates.forEach(({ dk, day, mk, dow }) => {
-    const l = lessonMap[dk];
-    const isToday = dk === today;
-    const isWeekend = dow === 0 || dow === 6;
+function _waClosePopup(e){
+  const p=document.getElementById('wa-popup');
+  if(p&&!p.contains(e.target)) p.remove();
+}
 
-    // Month divider row
-    if (mk !== lastMk) {
-      lastMk = mk;
-      const [y2, m2] = mk.split('-').map(Number);
-      const mTotal = (student.monthLessons || {})[mk] || 0;
-      const mDone  = lessons.filter(x => x.date.startsWith(mk) && x.status === 'done').length;
-      html += `<tr>
-        <td colspan="5" style="padding:10px 12px 5px;background:#0a0a08;border-top:2px solid #1a1a2e;border-bottom:1px solid var(--border)">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="font-size:11px;font-weight:700;color:#8ab4f8;font-family:'Geist Mono',monospace;letter-spacing:.06em">${MONTHS_SHORT[m2-1].toUpperCase()} ${y2}</span>
-            ${mTotal ? `<span style="font-size:11px;color:${mDone>=mTotal?'#34a853':'#8ab4f8'};font-family:'Geist Mono',monospace">${mDone}/${mTotal} done</span>` : ''}
-            <button onclick="workSetMonthTotalForKey(${student.id},'${mk}')" style="padding:1px 9px;background:none;border:1px solid #1a1a2e;border-radius:3px;color:#3d3a35;cursor:pointer;font-size:10px;font-family:'Geist',sans-serif">set total</button>
-          </div>
+function workCellSetStatus(studentId, cellIdx, monthKey, status){
+  // Save date from input first
+  const dateVal=document.getElementById('wa-popup-date')?.value.trim()||'';
+  const att=workData.attendance[studentId]||[];
+  const cells=att.filter(c=>c.month===monthKey);
+  const cell=cells[cellIdx];
+  if(cell){ cell.status=status; if(dateVal) cell.date=dateVal; }
+  workSave();
+  document.getElementById('wa-popup')?.remove();
+  workRenderSidebar();
+  workRenderAttendance();
+  workRenderHomework();
+}
+
+function workCellSaveDate(){
+  const dateVal=document.getElementById('wa-popup-date')?.value.trim()||'';
+  if(!_waCellPopup)return;
+  const{studentId,cellIdx,monthKey}=_waCellPopup;
+  const att=workData.attendance[studentId]||[];
+  const cells=att.filter(c=>c.month===monthKey);
+  const cell=cells[cellIdx];
+  if(cell) cell.date=dateVal;
+  workSave();
+  document.getElementById('wa-popup')?.remove();
+  workRenderAttendance();
+}
+
+// ── HOMEWORK RENDER ──
+function workRenderHomework(){
+  const wrap=document.getElementById('work-hw-wrap');
+  if(!wrap)return;
+
+  if(!workData.students.length){
+    wrap.innerHTML=`<div class="work-empty"><div class="work-empty-icon">📝</div><div class="work-empty-text">No students yet</div></div>`;
+    return;
+  }
+
+  // For each student show their done lessons (from attendance) with HW status
+  let html=`<div class="hw-table-wrap"><table class="hw-table">
+    <thead><tr>
+      <th>Student</th>
+      <th>Lesson</th>
+      <th>Date</th>
+      <th>Homework</th>
+      <th>Notes</th>
+    </tr></thead><tbody>`;
+
+  workData.students.forEach(s=>{
+    const att=(workData.attendance[s.id]||[]).filter(c=>c.month===workCurrentMonth&&(c.status==='done'||c.status==='missed'));
+    const hw=workData.homework[s.id]||[];
+
+    if(!att.length){
+      html+=`<tr><td class="hw-row-name">${esc(s.name)}</td>
+        <td colspan="4" style="color:var(--subtle);font-size:12px">No lessons recorded yet</td></tr>`;
+      return;
+    }
+
+    att.forEach((cell,i)=>{
+      const hwRec=hw.find(h=>h.month===workCurrentMonth&&h.num===cell.num)||{};
+      const curHw=hwRec.hw||'';
+      const curNote=hwRec.note||'';
+      const hwColors={'':'var(--border)',sent:'#06b6d4',checked:'#34a853'};
+      html+=`<tr style="${cell.status==='missed'?'opacity:.5':''}">
+        <td class="hw-row-name">${i===0?esc(s.name):''}</td>
+        <td style="font-size:12px;font-family:'Geist Mono',monospace;color:${cell.status==='done'?'#34a853':'#e85a5a'}">
+          ${cell.status==='done'?'✓':'✕'} #${cell.num}
+        </td>
+        <td class="hw-cell-date">${esc(cell.date||'—')}</td>
+        <td>
+          <select onchange="workSetHw(${s.id},${cell.num},'${workCurrentMonth}',this.value)"
+            style="padding:4px 8px;background:var(--surface);border:1px solid ${hwColors[curHw]};border-radius:6px;color:${hwColors[curHw]||'var(--muted)'};font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none">
+            <option value=""       ${!curHw?'selected':''}>— no HW</option>
+            <option value="sent"   ${curHw==='sent'?'selected':''}>📤 Sent</option>
+            <option value="checked"${curHw==='checked'?'selected':''}>✅ Checked</option>
+          </select>
+        </td>
+        <td>
+          <input value="${esc(curNote)}" placeholder="note…"
+            onchange="workSetHwNote(${s.id},${cell.num},'${workCurrentMonth}',this.value)"
+            style="background:none;border:none;border-bottom:1px solid var(--border-light);color:var(--muted);font-size:12px;font-family:'Geist',sans-serif;outline:none;width:160px;padding:2px 4px"/>
         </td>
       </tr>`;
-    }
+    });
 
-    const curStatus = l?.status || 'none';
-    const curHw = l?.hw || '';
-    const statusColors = { none:'var(--border)', planned:'#4285f4', done:'#34a853', missed:'#e85a5a' };
-    const hwColors = { '':'var(--border)', sent:'#06b6d4', checked:'#34a853' };
-    const rowBg = isToday ? 'background:#111008' : isWeekend ? 'background:#0a0a08' : '';
-
-    html += `<tr style="${rowBg}${isToday ? ';outline:1px solid #c8303a' : ''}">
-      <td style="padding:4px 12px;font-size:12px;color:${isToday ? '#c8303a' : isWeekend ? '#3d3a35' : 'var(--ink)'};font-family:'Geist Mono',monospace;white-space:nowrap">
-        ${dk}${isToday ? ' ◀' : ''}
-      </td>
-      <td style="padding:4px 8px;font-size:11px;color:var(--muted);text-align:center">${DOW[dow]}</td>
-      <td style="padding:4px 16px">
-        <select onchange="workSetStatus(${student.id},'${dk}',this.value)"
-          style="padding:4px 8px;background:${curStatus==='done'?'#0f2818':curStatus==='planned'?'#0a1a2e':curStatus==='missed'?'#1e0808':'var(--surface)'};border:1px solid ${statusColors[curStatus]};border-radius:6px;color:${statusColors[curStatus]};font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none;width:130px">
-          <option value="none"    ${curStatus==='none'    ?'selected':''}>— none</option>
-          <option value="planned" ${curStatus==='planned' ?'selected':''}>○ Planned</option>
-          <option value="done"    ${curStatus==='done'    ?'selected':''}>✓ Done</option>
-          <option value="missed"  ${curStatus==='missed'  ?'selected':''}>✕ Missed</option>
-        </select>
-      </td>
-      <td style="padding:4px 16px">
-        <select onchange="workSetHw(${student.id},'${dk}',this.value)"
-          style="padding:4px 8px;background:var(--surface);border:1px solid ${hwColors[curHw]};border-radius:6px;color:${hwColors[curHw]};font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none;width:138px">
-          <option value=""        ${!curHw       ?'selected':''}>— no HW</option>
-          <option value="sent"    ${curHw==='sent'   ?'selected':''}>📤 Sent</option>
-          <option value="checked" ${curHw==='checked'?'selected':''}>✅ Checked</option>
-        </select>
-      </td>
-      <td style="padding:4px 12px">
-        <input placeholder="note…" value="${esc(l?.note||'')}"
-          onchange="workSetNote(${student.id},'${dk}',this.value)"
-          style="background:none;border:none;border-bottom:1px solid var(--border-light);color:var(--muted);font-size:12px;font-family:'Geist',sans-serif;outline:none;width:150px;padding:2px 4px"/>
-      </td>
-    </tr>`;
+    // Separator between students
+    html+=`<tr><td colspan="5" style="padding:4px 0;border-bottom:1px solid var(--border)"></td></tr>`;
   });
 
-  html += `</tbody></table></div>`;
-  wrap.innerHTML = html;
+  html+=`</tbody></table></div>`;
+  wrap.innerHTML=html;
 }
 
-function workNextMonthKey(key) {
-  const [y, m] = key.split('-').map(Number);
-  const d = new Date(y, m, 1);
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-}
-
-function workSetStatus(studentId, dk, status) {
-  let lessons = workData.lessons[studentId] || [];
-  let l = lessons.find(x => x.date === dk);
-  if (status === 'none') {
-    workData.lessons[studentId] = lessons.filter(x => x.date !== dk);
-  } else if (l) {
-    l.status = status;
-  } else {
-    lessons.push({ date: dk, status, hw: null, note: '' });
-    workData.lessons[studentId] = lessons;
-  }
-  workSave(); workRenderSidebar(); workRenderGrid();
-}
-
-function workSetHw(studentId, dk, hw) {
-  let lessons = workData.lessons[studentId] || [];
-  let l = lessons.find(x => x.date === dk);
-  if (!l) { lessons.push({ date: dk, status: 'none', hw: hw || null, note: '' }); workData.lessons[studentId] = lessons; }
-  else l.hw = hw || null;
-  workSave(); workRenderSidebar();
-}
-
-function workSetNote(studentId, dk, note) {
-  let lessons = workData.lessons[studentId] || [];
-  let l = lessons.find(x => x.date === dk);
-  if (!l) { lessons.push({ date: dk, status: 'none', hw: null, note }); workData.lessons[studentId] = lessons; }
-  else l.note = note;
+function workSetHw(studentId, lessonNum, monthKey, status){
+  if(!workData.homework[studentId]) workData.homework[studentId]=[];
+  const hw=workData.homework[studentId];
+  let rec=hw.find(h=>h.month===monthKey&&h.num===lessonNum);
+  if(!rec){ rec={month:monthKey,num:lessonNum,hw:'',note:''}; hw.push(rec); }
+  rec.hw=status;
   workSave();
 }
 
-function workSetMonthTotalForKey(id, mk) {
-  const s = workData.students.find(x => x.id === id);
-  if (!s) return;
-  if (!s.monthLessons) s.monthLessons = {};
-  const cur = s.monthLessons[mk] || 0;
-  const val = prompt(`Total lessons for ${s.name} in ${workMonthLabel(mk)}:`, cur || '');
-  if (val === null) return;
-  const n = parseInt(val);
-  if (!isNaN(n) && n >= 0) { s.monthLessons[mk] = n; workSave(); workRenderSidebar(); workRenderGrid(); }
+function workSetHwNote(studentId, lessonNum, monthKey, note){
+  if(!workData.homework[studentId]) workData.homework[studentId]=[];
+  const hw=workData.homework[studentId];
+  let rec=hw.find(h=>h.month===monthKey&&h.num===lessonNum);
+  if(!rec){ rec={month:monthKey,num:lessonNum,hw:'',note:''}; hw.push(rec); }
+  rec.note=note;
+  workSave();
 }
 
 // ── INIT ──
