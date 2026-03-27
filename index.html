@@ -475,31 +475,31 @@ canvas#gc{width:100%;height:100%;display:block}
 .work-grid-wrap::-webkit-scrollbar{width:5px;height:5px}
 .work-grid-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 /* attendance pixel cells */
-.wa-table{padding:20px;min-width:100%}
-.wa-student-row{margin-bottom:20px}
-.wa-row-head{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-.wa-row-name{font-size:14px;font-weight:600;color:var(--ink)}
-.wa-row-meta{font-size:12px;font-family:'Geist Mono',monospace;color:var(--muted)}
+.wa-table{padding:12px 16px;min-width:100%}
+.wa-student-row{margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-light)}
+.wa-row-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.wa-row-name{font-size:13px;font-weight:600;color:var(--ink)}
+.wa-row-meta{font-size:11px;font-family:'Geist Mono',monospace;color:var(--muted)}
 .wa-progress{flex:1;max-width:200px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
 .wa-progress-fill{height:100%;border-radius:3px;transition:width .4s}
 .wa-set-btn{padding:2px 10px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif;transition:all .1s}
 .wa-set-btn:hover{border-color:#06b6d4;color:#06b6d4}
-.wa-cells{display:flex;flex-wrap:wrap;gap:4px}
+.wa-cells{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
 /* the cell itself */
-.wa-cell{width:52px;height:52px;border-radius:6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:all .12s;position:relative;flex-shrink:0;border:1px solid transparent;user-select:none}
-.wa-cell:hover{transform:scale(1.06)}
+.wa-cell{width:40px;height:40px;border-radius:5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0px;transition:all .1s;position:relative;flex-shrink:0;border:1px solid transparent;user-select:none}
+.wa-cell:hover{transform:scale(1.08)}
 .wa-cell.wc-empty{background:#141210;border:1px dashed #2e2b26}
 .wa-cell.wc-done{background:#0c2216;border-color:#1a4a28}
 .wa-cell.wc-missed{background:#1e0a0a;border-color:#3a1212}
-.wa-cell .wc-date{font-size:9.5px;font-family:'Geist Mono',monospace;font-weight:600;line-height:1}
+.wa-cell .wc-date{font-size:8.5px;font-family:'Geist Mono',monospace;font-weight:600;line-height:1}
 .wa-cell.wc-empty .wc-date{color:#3d3a35}
 .wa-cell.wc-done .wc-date{color:#34a853}
 .wa-cell.wc-missed .wc-date{color:#e85a5a}
-.wa-cell .wc-num{font-size:11px;font-family:'Geist Mono',monospace;font-weight:700;line-height:1}
+.wa-cell .wc-num{font-size:10px;font-family:'Geist Mono',monospace;font-weight:700;line-height:1}
 .wa-cell.wc-empty .wc-num{color:#2e2b26}
 .wa-cell.wc-done .wc-num{color:#5af07a}
 .wa-cell.wc-missed .wc-num{color:#f07a7a}
-.wa-cell .wc-icon{font-size:14px;line-height:1}
+.wa-cell .wc-icon{font-size:11px;line-height:1}
 /* date popup */
 .wa-date-popup{position:fixed;background:#1a1816;border:1px solid #3a3630;border-radius:8px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.8);z-index:3000;min-width:160px}
 .wa-date-popup input{width:100%;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:13px;font-family:'Geist Mono',monospace;outline:none;box-sizing:border-box}
@@ -517,10 +517,10 @@ canvas#gc{width:100%;height:100%;display:block}
 .ws-archived{opacity:.45;filter:grayscale(.5)}
 .work-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px}
 /* month groups */
-.wa-month-group{margin-bottom:24px}
-.wa-month-hd{display:flex;align-items:center;gap:10px;padding:10px 0 8px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.wa-month-group{margin-bottom:16px}
+.wa-month-hd{display:flex;align-items:center;gap:8px;padding:6px 0 5px;border-bottom:1px solid var(--border);margin-bottom:8px}
 .wa-month-icon{font-size:16px}
-.wa-month-label{font-size:15px;font-weight:700;color:var(--ink);font-family:'Instrument Serif',serif;font-style:italic;cursor:pointer}
+.wa-month-label{font-size:14px;font-weight:700;color:var(--ink);font-family:'Instrument Serif',serif;font-style:italic;cursor:pointer}
 .wa-month-label:hover{color:#06b6d4}
 .wa-active .wa-row-name{color:#06b6d4}
 .wa-color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
@@ -1711,6 +1711,36 @@ function fmtTime(t){
   if(!t)return'';const[h,m]=t.split(':').map(Number);
   const ampm=h<12?'AM':'PM';const h12=h===0?12:h>12?h-12:h;
   return m===0?h12+' '+ampm:h12+':'+pad(m)+' '+ampm;
+}
+// Build AM/PM time picker HTML — returns two selects that call onChange(value) with '09:00' format
+function _ampmPicker(currentTime, onChange){
+  const[h24,m]=( currentTime||'09:00').split(':').map(Number);
+  const ampm=h24<12?'AM':'PM';
+  const h12=h24===0?12:h24>12?h24-12:h24;
+  const hOpts=[12,1,2,3,4,5,6,7,8,9,10,11].map(h=>`<option value="${h}" ${h===h12?'selected':''}>${h}</option>`).join('');
+  const mOpts=['00','15','30','45'].map(mv=>`<option value="${mv}" ${parseInt(mv)===m?'selected':''}>${mv}</option>`).join('');
+  const ap=['AM','PM'].map(a=>`<option value="${a}" ${a===ampm?'selected':''}>${a}</option>`).join('');
+  const id='ap'+Math.random().toString(36).slice(2,7);
+  return `<div style="display:flex;gap:3px;align-items:center" id="${id}">
+    <select onchange="_ampmChange('${id}','${onChange}')"
+      style="padding:3px 6px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer;min-width:38px">
+      ${hOpts}</select>
+    <span style="color:var(--muted);font-size:11px">:</span>
+    <select onchange="_ampmChange('${id}','${onChange}')"
+      style="padding:3px 6px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer;min-width:42px">
+      ${mOpts}</select>
+    <select onchange="_ampmChange('${id}','${onChange}')"
+      style="padding:3px 6px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+      ${ap}</select>
+  </div>`;
+}
+function _ampmChange(containerId, onChangeFn){
+  const el=document.getElementById(containerId);if(!el)return;
+  const [hSel,mSel,apSel]=el.querySelectorAll('select');
+  const h12=parseInt(hSel.value), m=mSel.value, ap=apSel.value;
+  let h24=h12; if(ap==='AM'&&h12===12)h24=0; else if(ap==='PM'&&h12!==12)h24=h12+12;
+  const timeStr=String(h24).padStart(2,'0')+':'+m;
+  try{ eval(onChangeFn+'("'+timeStr+'")')} catch(_){}
 }
 function calcDur(s,e){
   if(!s||!e)return'';
@@ -3454,9 +3484,17 @@ function _openFocusOverlay(noteId, titleVal, bodyHTML) {
   const ov = document.createElement('div');
   ov.className = 'note-focus-overlay';
   ov.id = 'note-focus-overlay';
+  // Get note topic for the topic selector
+  const _noteForTopic = noteId ? notes.find(n=>n.id===noteId) : null;
+  const _currentTopic = _noteForTopic?.topic || '';
+
   ov.innerHTML = `
     <div class="note-focus-header">
       <input class="note-focus-title" id="nf-title" placeholder="Title…" autocomplete="off" spellcheck="true"/>
+      <select id="nf-topic" onchange="nfTopicChange()" style="padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:12px;outline:none;cursor:pointer;font-family:'Geist',sans-serif">
+        <option value="">No topic</option>
+        ${topics.map(t=>`<option value="${esc(t)}" ${_currentTopic===t?'selected':''}>${esc(t)}</option>`).join('')}
+      </select>
       <button class="note-focus-exit" onclick="exitFocusMode()">Done ↩</button>
     </div>
     <div class="note-focus-body" id="nf-body" contenteditable="true"
@@ -3507,18 +3545,37 @@ function _openFocusOverlay(noteId, titleVal, bodyHTML) {
   }, 40);
 }
 
+function nfTopicChange() {
+  // Live update topic on the note immediately
+  const topicEl = document.getElementById('nf-topic');
+  const fTopicEl = document.getElementById('f-topic');
+  if (topicEl && fTopicEl) {
+    fTopicEl.value = topicEl.value;
+    draftChanged();
+  }
+}
+
 function exitFocusMode() {
   if (!_focusOverlay) return;
   document.removeEventListener('mousedown', _onDocMousedown);
   _hideSelToolbar();
   document.getElementById('f-title').value =
     document.getElementById('nf-title')?.value || '';
+  // Save topic
+  const nfTopic = document.getElementById('nf-topic')?.value || '';
+  const fTopic = document.getElementById('f-topic');
+  if (fTopic) fTopic.value = nfTopic;
+  if (_focusNoteId) {
+    const n = notes.find(x=>x.id===_focusNoteId);
+    if (n) n.topic = nfTopic;
+  }
   _syncBody();
   commitDraft();
   _focusOverlay.remove();
   _focusOverlay = null;
   _focusNoteId  = null;
   renderNotes();
+  renderTopics();
 }
 
 function _syncBody() {
@@ -5453,15 +5510,16 @@ function workRenderAttendance(){
       const total=att.length;
       const pct=total>0?Math.round(done/total*100):0;
 
-      html+=`<div class="wa-student-row" onclick="workEditStudentModal(${s.id})" draggable="true" ondragstart="workDragStart(event,${s.id})">
+      html+=`<div class="wa-student-row" draggable="true" ondragstart="workDragStart(event,${s.id})">
         <div class="wa-row-head">
           <div class="wa-color-dot" style="background:${s.color||'#4285f4'}"></div>
-          <span class="wa-row-name">${esc(s.name)}</span>
+          <span class="wa-row-name" onclick="workOpenStudentPage(${s.id})" style="cursor:pointer" title="Open student page">${esc(s.name)}</span>
           <span class="wa-row-meta">${done}✓${missed?' '+missed+'✕':''}</span>
           ${total?`<div class="wa-progress"><div class="wa-progress-fill" style="width:${pct}%;background:${done>=total?'#34a853':'#4285f4'}"></div></div>
           <span class="wa-row-meta" style="color:${done>=total?'#34a853':'#8ab4f8'};font-weight:600">${done}/${total}</span>`:''}
+          <button onclick="event.stopPropagation();workEditStudentModal(${s.id})" style="margin-left:auto;padding:2px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--subtle);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif;flex-shrink:0">⚙</button>
         </div>
-        <div class="wa-cells" onclick="event.stopPropagation()">`;
+        <div class="wa-cells">`;
 
       att.forEach((cell,i)=>{
         const cls=cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
@@ -5644,8 +5702,14 @@ function workEditStudentModal(id){
         style="padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
         ${DOW.map((d,di)=>`<option value="${di}" ${slot.dow==di?'selected':''}>${d}</option>`).join('')}
       </select>
-      <input type="time" value="${slot.time||'09:00'}" onchange="workModalSchedUpdate(${i},'time',this.value)"
-        style="padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none"/>
+      ${(()=>{const t=slot.time||'09:00';const[h24,min]=t.split(':').map(Number);const ap=h24<12?'AM':'PM';const h12=h24===0?12:h24>12?h24-12:h24;return`<div style="display:flex;gap:3px;align-items:center">
+        <select onchange="workModalSchedTimeChange(${i},this.parentElement)" style="padding:3px 5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+          ${[12,1,2,3,4,5,6,7,8,9,10,11].map(h=>`<option value="${''+h}" ${h===h12?'selected':''}>${h}</option>`).join('')}
+        </select>:<select onchange="workModalSchedTimeChange(${i},this.parentElement)" style="padding:3px 5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer;min-width:42px">
+          ${['00','15','30','45'].map(mv=>`<option value="${mv}" ${parseInt(mv)===min?'selected':''}>${mv}</option>`).join('')}
+        </select><select onchange="workModalSchedTimeChange(${i},this.parentElement)" style="padding:3px 5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+          <option value="AM" ${ap==='AM'?'selected':''}>AM</option><option value="PM" ${ap==='PM'?'selected':''}>PM</option>
+        </select></div>`;})()}
       <input type="number" value="${slot.duration||60}" min="15" max="180" step="15" onchange="workModalSchedUpdate(${i},'duration',this.value)"
         style="width:52px;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:12px;outline:none;text-align:center"/>
       <span style="font-size:11px;color:var(--subtle)">min</span>
@@ -5756,8 +5820,14 @@ function workModalAddSched(){
         style="padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
         ${DOW.map((d,di)=>`<option value="${di}" ${slot.dow==di?'selected':''}>${d}</option>`).join('')}
       </select>
-      <input type="time" value="${slot.time}" onchange="workModalSchedUpdate(${i},'time',this.value)"
-        style="padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none"/>
+      ${(()=>{const t=slot.time||'09:00';const[h24,min]=t.split(':').map(Number);const ap=h24<12?'AM':'PM';const h12=h24===0?12:h24>12?h24-12:h24;return`<div style="display:flex;gap:3px;align-items:center">
+        <select onchange="workModalSchedTimeChange(${i},this.parentElement)" style="padding:3px 5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+          ${[12,1,2,3,4,5,6,7,8,9,10,11].map(h=>`<option value="${''+h}" ${h===h12?'selected':''}>${h}</option>`).join('')}
+        </select>:<select onchange="workModalSchedTimeChange(${i},this.parentElement)" style="padding:3px 5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer;min-width:42px">
+          ${['00','15','30','45'].map(mv=>`<option value="${mv}" ${parseInt(mv)===min?'selected':''}>${mv}</option>`).join('')}
+        </select><select onchange="workModalSchedTimeChange(${i},this.parentElement)" style="padding:3px 5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+          <option value="AM" ${ap==='AM'?'selected':''}>AM</option><option value="PM" ${ap==='PM'?'selected':''}>PM</option>
+        </select></div>`;})()}
       <input type="number" value="${slot.duration}" min="15" max="180" step="15" onchange="workModalSchedUpdate(${i},'duration',this.value)"
         style="width:52px;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:12px;outline:none;text-align:center"/>
       <span style="font-size:11px;color:var(--subtle)">min</span>
@@ -5769,6 +5839,16 @@ function workModalAddSched(){
   }
 }
 function workModalSchedUpdate(i,field,val){ if(window._wmStudent?.schedule?.[i]) window._wmStudent.schedule[i][field]=field==='dow'?parseInt(val):val; }
+function workModalSchedTimeChange(i, container){
+  const sels=container.querySelectorAll('select');
+  if(sels.length<3)return;
+  const h12=parseInt(sels[0].value), mins=sels[1].value, ap=sels[2].value;
+  let h24=h12;
+  if(ap==='AM'&&h12===12) h24=0;
+  else if(ap==='PM'&&h12!==12) h24=h12+12;
+  const timeStr=String(h24).padStart(2,'0')+':'+mins;
+  workModalSchedUpdate(i,'time',timeStr);
+}
 function workModalRemoveSched(i){ if(window._wmStudent?.schedule) window._wmStudent.schedule.splice(i,1); workEditStudentModal(window._wmStudent.id); }
 
 function workModalSave(id){
@@ -6026,6 +6106,187 @@ function workRenderFinances(){
   wrap.innerHTML = html;
 }
 
+
+// ══════════════════════════════════════════
+// STUDENT PAGE — full detail view
+// ══════════════════════════════════════════
+function workOpenStudentPage(id){
+  document.getElementById('student-page')?.remove();
+  const s = workData.students.find(x=>x.id===id);
+  if(!s) return;
+
+  const att = workData.attendance[id] || [];
+  const hw  = workData.homework[id]   || [];
+  const mg  = s.monthGroup || workCurrentMonth;
+  const DOW = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const DOWS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  // Attendance cells for month group
+  const mgAtt = att.filter(c=>c.month===mg);
+  const done   = mgAtt.filter(c=>c.status==='done').length;
+  const total  = mgAtt.length;
+  const pct    = total>0?Math.round(done/total*100):0;
+  const price  = (s.price||{})[mg]||0;
+
+  // Schedule display
+  const schedHTML = (s.schedule||[]).length
+    ? (s.schedule||[]).map(slot=>{
+        const[h24,m]=(slot.time||'09:00').split(':').map(Number);
+        const ap=h24<12?'AM':'PM'; const h12=h24===0?12:h24>12?h24-12:h24;
+        return`<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light)">
+          <span style="font-size:13px;color:var(--ink);font-weight:500;min-width:50px">${DOWS[slot.dow]||''}</span>
+          <span style="font-size:13px;color:#8ab4f8;font-family:'Geist Mono',monospace">${h12}:${String(m).padStart(2,'0')} ${ap}</span>
+          <span style="font-size:12px;color:var(--muted)">${slot.duration||60} min</span>
+        </div>`;
+      }).join('')
+    : '<span style="color:var(--subtle);font-size:12px;font-style:italic">No schedule set</span>';
+
+  // Calendar events for this student
+  const calEvents = [];
+  Object.entries(calEvts||{}).forEach(([dk,evts])=>{
+    (evts||[]).forEach(evt=>{
+      if(evt.title&&evt.title.toLowerCase().includes(s.name.toLowerCase())){
+        calEvents.push({dk,evt});
+      }
+    });
+  });
+  calEvents.sort((a,b)=>a.dk.localeCompare(b.dk));
+  const calHTML = calEvents.slice(-8).map(({dk,evt})=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border-light)">
+      <span style="font-size:11px;font-family:'Geist Mono',monospace;color:var(--muted);min-width:80px">${dk}</span>
+      <span style="font-size:12px;color:var(--ink)">${esc(evt.title)}</span>
+      ${evt.start?`<span style="font-size:11px;color:#8ab4f8;font-family:'Geist Mono',monospace">${fmtTime(evt.start)}${evt.end?' – '+fmtTime(evt.end):''}</span>`:''}
+    </div>`).join('') || '<span style="color:var(--subtle);font-size:12px;font-style:italic">No calendar events found</span>';
+
+  // Kanban tasks mentioning student
+  const tasks = [];
+  Object.entries(kanban||{}).forEach(([col,items])=>{
+    (items||[]).forEach(item=>{
+      if(item.text&&item.text.toLowerCase().includes(s.name.toLowerCase())){
+        tasks.push({col,item});
+      }
+    });
+  });
+  const tasksHTML = tasks.length
+    ? tasks.map(({col,item})=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light)">
+        <span style="font-size:10px;padding:2px 7px;background:var(--surface2);border-radius:99px;color:var(--muted);font-family:'Geist Mono',monospace">${esc(col)}</span>
+        <span style="font-size:12px;color:var(--ink)">${esc(item.text)}</span>
+      </div>`).join('')
+    : '<span style="color:var(--subtle);font-size:12px;font-style:italic">No kanban tasks found</span>';
+
+  // Notes mentioning student
+  const studentNotes = (notes||[]).filter(n=>(n.title+n.body).toLowerCase().includes(s.name.toLowerCase()));
+  const notesHTML = studentNotes.length
+    ? studentNotes.map(n=>`<div onclick="editNoteFocus(${n.id})" style="padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:6px;transition:border-color .1s" onmouseover="this.style.borderColor='#06b6d4'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:3px">${esc(n.title||'(untitled)')}</div>
+        <div style="font-size:11px;color:var(--subtle)">${n.topic||'no topic'} · ${n.date||''}</div>
+      </div>`).join('')
+    : '<span style="color:var(--subtle);font-size:12px;font-style:italic">No notes found mentioning this student</span>';
+
+  // Attendance cell grid
+  const cellsHTML = mgAtt.map((cell,i)=>{
+    const cls = cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
+    return`<div class="wa-cell ${cls}" onclick="workCellClick(event,${id},${att.indexOf(cell)})" title="Lesson ${cell.num}${cell.date?' · '+cell.date:''}">
+      <span class="wc-date">${esc(cell.date||'·')}</span>
+      <span class="wc-num">${cell.num}</span>
+      <span class="wc-icon">${cell.status==='done'?'✓':cell.status==='missed'?'✕':''}</span>
+    </div>`;
+  }).join('');
+
+  const page = document.createElement('div');
+  page.id = 'student-page';
+  page.style.cssText = 'position:fixed;inset:0;z-index:4000;background:#0e0d0b;overflow-y:auto;animation:fi .15s ease';
+  page.innerHTML = `
+    <div style="max-width:900px;margin:0 auto;padding:28px 24px">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px">
+        <button onclick="document.getElementById('student-page').remove()" 
+          style="padding:6px 14px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif;font-size:13px">← Back</button>
+        <div style="width:16px;height:16px;border-radius:50%;background:${s.color||'#4285f4'}"></div>
+        <h1 style="font-size:24px;font-weight:700;color:var(--ink);margin:0;font-family:'Instrument Serif',serif;font-style:italic">${esc(s.name)}</h1>
+        ${s.archived?'<span style="padding:3px 10px;background:var(--surface2);border-radius:99px;font-size:11px;color:var(--muted)">Archived</span>':''}
+        <button onclick="workEditStudentModal(${id})" 
+          style="margin-left:auto;padding:7px 18px;background:#06b6d4;color:#0a0a08;border:none;border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;font-weight:700">Edit student</button>
+      </div>
+
+      <!-- Stats row -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Lessons</div>
+          <div style="font-size:22px;font-weight:700;color:${done>=total&&total>0?'#34a853':'var(--ink)'};font-family:'Geist Mono',monospace">${done}/${total||'—'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">${pct}% complete</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Price</div>
+          <div style="font-size:22px;font-weight:700;color:#34d399;font-family:'Geist Mono',monospace">${price?price.toLocaleString('ru-KZ')+' ₸':'—'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">${workMonthLabel(mg)}</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Homework</div>
+          <div style="font-size:22px;font-weight:700;color:#06b6d4;font-family:'Geist Mono',monospace">${hw.filter(h=>h.hw==='checked').length}✅</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">${hw.filter(h=>h.hw==='sent').length} sent</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Month</div>
+          <div style="font-size:16px;font-weight:700;color:var(--ink);font-family:'Geist',sans-serif;margin-top:4px">${workMonthLabel(mg).split(' ')[0]}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">${mg}</div>
+        </div>
+      </div>
+
+      <!-- Two column layout -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+        <!-- Schedule -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+            📅 Schedule
+            <button onclick="workEditStudentModal(${id})" style="font-size:11px;padding:2px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer">Edit</button>
+          </div>
+          ${schedHTML}
+        </div>
+        <!-- Calendar events -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:12px">🗓 Recent calendar events</div>
+          ${calHTML}
+        </div>
+      </div>
+
+      <!-- Attendance -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px">
+        <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:10px;display:flex;align-items:center;gap:10px">
+          📊 Attendance — ${workMonthLabel(mg)}
+          ${total>0?`<div style="flex:1;max-width:160px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${done>=total?'#34a853':'#4285f4'};border-radius:3px"></div></div>
+          <span style="font-size:11px;color:${done>=total?'#34a853':'#8ab4f8'};font-family:'Geist Mono',monospace">${done}/${total}</span>`:''}
+        </div>
+        <div class="wa-cells">${cellsHTML||'<span style="color:var(--subtle);font-size:12px;font-style:italic">No subscription set — edit student to add lessons</span>'}</div>
+      </div>
+
+      <!-- Two column: kanban + notes -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:12px">✅ Kanban tasks</div>
+          ${tasksHTML}
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:12px">📝 Notes
+            <button onclick="workCreateNoteForStudent('${esc(s.name)}')" style="margin-left:8px;font-size:11px;padding:2px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer">+ New note</button>
+          </div>
+          ${notesHTML}
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(page);
+}
+
+function workCreateNoteForStudent(name){
+  document.getElementById('student-page')?.remove();
+  // Create a new note pre-titled with student name and switch to notes tab
+  const n = {id:Date.now(),title:name,body:'',tags:[],topic:'',quick:false,
+    date:new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
+    dateKey:dkey(new Date())};
+  notes.unshift(n); save(); updateCounts(); renderTopics();
+  show('notes');
+  setTimeout(()=>editNoteFocus(n.id), 100);
+}
 // ── INIT ──
 renderTagSel();
 renderTopics();
