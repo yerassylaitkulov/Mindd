@@ -2421,7 +2421,7 @@ function capSave(){
       if(!calEvts[dk])calEvts[dk]=[];
       calEvts[dk].push(newEvt);
       gcalCreateEvent(newEvt, dk);
-      pushToNotion(val,dk,start,end);
+      pushToNotion(val,dk,start,end).then(nid=>{ if(nid) newEvt.notionId=nid; save(); });
     }
     save();closeAllCal();renderCal();
   };
@@ -2825,22 +2825,44 @@ const NOTION_PROXY = 'https://notion-proxy.yerassylaitkulov.workers.dev';
 
 async function notionSync() {
   const btn = document.getElementById('notion-sync-btn');
-  btn.className = 'notion-sync-btn syncing';
-  btn.textContent = '⏳ Syncing…';
+  if (btn) { btn.className = 'notion-sync-btn syncing'; btn.textContent = '⏳ Syncing…'; }
   try {
-    // Fetch events from Notion
     const resp = await fetch(NOTION_PROXY + '/get');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const events = await resp.json();
+    const notionEvents = await resp.json();
 
-    // Merge into calEvts — only add ones not already present by Notion ID
-    let added = 0;
-    events.forEach(evt => {
-      if (!evt.day) return;
+    // Build index of Notion events by ID for fast lookup
+    const notionById = {};
+    notionEvents.forEach(evt => { if (evt.id) notionById[evt.id] = evt; });
+
+    // 1. Remove fromNotion events that no longer exist in Notion
+    Object.keys(calEvts).forEach(dk => {
+      calEvts[dk] = (calEvts[dk] || []).filter(e => {
+        if (!e.fromNotion || !e.notionId) return true; // keep local events
+        return !!notionById[e.notionId]; // keep only if still in Notion
+      });
+    });
+
+    // 2. Add or update events from Notion
+    notionEvents.forEach(evt => {
+      if (!evt.day || !evt.title) return;
       if (!calEvts[evt.day]) calEvts[evt.day] = [];
-      // check if already synced (by notion id)
-      const exists = calEvts[evt.day].some(e => e.notionId === evt.id);
-      if (!exists) {
+      const existing = calEvts[evt.day].find(e => e.notionId === evt.id);
+      if (existing) {
+        // Update if changed
+        existing.title = evt.title;
+        existing.start = evt.start || null;
+        existing.end   = evt.end   || null;
+      } else {
+        // Check if this event moved to a different day
+        let foundOtherDay = false;
+        Object.keys(calEvts).forEach(dk => {
+          const idx = (calEvts[dk]||[]).findIndex(e => e.notionId === evt.id);
+          if (idx > -1 && dk !== evt.day) {
+            calEvts[dk].splice(idx, 1); // remove from old day
+            foundOtherDay = true;
+          }
+        });
         calEvts[evt.day].push({
           title: evt.title,
           start: evt.start || null,
@@ -2848,34 +2870,72 @@ async function notionSync() {
           notionId: evt.id,
           fromNotion: true
         });
-        added++;
       }
     });
 
+    // 3. Push local-only events (created on website, not yet in Notion) to Notion
+    const localOnlyEvents = [];
+    Object.entries(calEvts).forEach(([dk, evts]) => {
+      (evts||[]).forEach(evt => {
+        if (!evt.fromNotion && !evt.fromGcal && !evt.notionId && evt.title) {
+          localOnlyEvents.push({ title:evt.title, day:dk, start:evt.start, end:evt.end, _evt:evt });
+        }
+      });
+    });
+    for (const item of localOnlyEvents) {
+      try {
+        const r = await fetch(NOTION_PROXY + '/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title:item.title, day:item.day, start:item.start, end:item.end })
+        });
+        if (r.ok) {
+          const data = await r.json();
+          if (data?.id) item._evt.notionId = data.id;
+        }
+      } catch(_) {}
+    }
+
     save();
     renderCal();
-    btn.className = 'notion-sync-btn ok';
-    btn.textContent = '✓ Synced (' + events.length + ')';
-    setTimeout(() => { btn.className = 'notion-sync-btn'; btn.innerHTML = '🔄 Sync Notion'; }, 3000);
+    if (btn) {
+      btn.className = 'notion-sync-btn ok';
+      btn.textContent = `✓ ${notionEvents.length} synced`;
+      setTimeout(() => { btn.className='notion-sync-btn'; btn.innerHTML='🔄 Sync Notion'; }, 2500);
+    }
+    console.log('Notion sync OK:', notionEvents.length, 'events');
   } catch(err) {
     console.error('Notion sync error:', err);
-    btn.className = 'notion-sync-btn err';
-    btn.textContent = '✕ Sync failed';
-    setTimeout(() => { btn.className = 'notion-sync-btn'; btn.innerHTML = '🔄 Sync Notion'; }, 3000);
+    if (btn) {
+      btn.className = 'notion-sync-btn err';
+      btn.textContent = '✕ Sync failed';
+      setTimeout(() => { btn.className='notion-sync-btn'; btn.innerHTML='🔄 Sync Notion'; }, 3000);
+    }
   }
+}
+
+// Auto-sync Notion on load
+function notionAutoSync() {
+  notionSync();
+  setInterval(() => notionSync(), 2 * 60 * 1000); // every 2 minutes
 }
 
 // Push a new event to Notion when added via modal
 async function pushToNotion(title, day, start, end) {
   try {
-    await fetch(NOTION_PROXY + '/add', {
+    const r = await fetch(NOTION_PROXY + '/add', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, day, start, end })
     });
+    if (r.ok) {
+      const data = await r.json();
+      return data?.id || null;
+    }
   } catch(e) {
     console.warn('Could not push to Notion:', e);
   }
+  return null;
 }
 
 
@@ -3571,17 +3631,54 @@ function _showSelToolbar(rect) {
         <option value="2.5">2.5×</option>
         <option value="3">3.0×</option>
       </select>
+      <div class="nst-sep"></div>
+      <button class="nst-btn" onmousedown="nstInsertTable(event)" title="Insert Table" style="font-size:12px;gap:3px">⊞ Table</button>
+      <button class="nst-btn" onmousedown="nstInsertHr(event)" title="Insert Divider" style="font-size:12px">― Rule</button>
+      <button class="nst-btn" onmousedown="nstInsertLink(event)" title="Insert Link" style="font-size:12px">🔗 Link</button>
+      <button class="nst-btn" onmousedown="nstInsertCallout(event)" title="Insert Callout / Info box" style="font-size:12px">💡 Callout</button>
     </div>
   `;
 
   document.body.appendChild(tb);
   _selToolbar = tb;
 
-  // Wire color pickers
-  document.getElementById('nst-fc-lbl').addEventListener('click', () => { _saveEditorSel(); document.getElementById('nst-fc').click(); });
-  document.getElementById('nst-fc').addEventListener('input', e => { _restoreEditorSel(); document.execCommand('foreColor', false, e.target.value); const bar=document.getElementById('nst-fc-bar'); if(bar)bar.style.background=e.target.value; _syncBody(); draftChanged(); });
-  document.getElementById('nst-hc-lbl').addEventListener('click', () => { _saveEditorSel(); document.getElementById('nst-hc').click(); });
-  document.getElementById('nst-hc').addEventListener('input', e => { _restoreEditorSel(); document.execCommand('hiliteColor', false, e.target.value); const bar=document.getElementById('nst-hc-bar'); if(bar)bar.style.background=e.target.value; _syncBody(); draftChanged(); });
+  // Wire color pickers — save sel on mousedown, restore on input
+  document.getElementById('nst-fc-lbl').addEventListener('mousedown', e => {
+    e.preventDefault(); // keep selection
+    _saveEditorSel();
+    setTimeout(() => document.getElementById('nst-fc').click(), 0);
+  });
+  document.getElementById('nst-fc').addEventListener('input', e => {
+    const body = document.getElementById('nf-body');
+    if (!body) return;
+    body.focus();
+    if (_savedEditorRange) {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(_savedEditorRange.cloneRange());
+    }
+    document.execCommand('foreColor', false, e.target.value);
+    const bar = document.getElementById('nst-fc-bar'); if(bar) bar.style.background = e.target.value;
+    _syncBody(); draftChanged();
+  });
+  document.getElementById('nst-hc-lbl').addEventListener('mousedown', e => {
+    e.preventDefault();
+    _saveEditorSel();
+    setTimeout(() => document.getElementById('nst-hc').click(), 0);
+  });
+  document.getElementById('nst-hc').addEventListener('input', e => {
+    const body = document.getElementById('nf-body');
+    if (!body) return;
+    body.focus();
+    if (_savedEditorRange) {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(_savedEditorRange.cloneRange());
+    }
+    document.execCommand('hiliteColor', false, e.target.value);
+    const bar = document.getElementById('nst-hc-bar'); if(bar) bar.style.background = e.target.value;
+    _syncBody(); draftChanged();
+  });
 
   // Position above selection, centered
   const tbW = 530, tbH = 82;
@@ -3881,8 +3978,127 @@ function _currentLi() {
 // We only intercept: Escape, and the two edge cases browser gets wrong:
 //   • Backspace on first-and-only empty LI → exit list
 //   • Enter on empty LI at end → exit list (browser already does this in Chrome but not Safari)
+
+// ── NOTE INSERT FUNCTIONS ──
+function nstInsertTable(e) {
+  e.preventDefault();
+  _hideSelToolbar();
+  const body = document.getElementById('nf-body');
+  if (!body) return;
+  if (_savedEditorRange) {
+    body.focus();
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_savedEditorRange.cloneRange());
+  }
+  const rows = parseInt(prompt('Rows:', '3') || '3');
+  const cols = parseInt(prompt('Columns:', '3') || '3');
+  if (!rows || !cols || rows < 1 || cols < 1) return;
+  const colW = Math.floor(100 / cols);
+  const headerRow = '<tr>' + Array(cols).fill(0).map((_,i) =>
+    `<th style="border:1px solid #3d3a35;padding:6px 10px;background:#1a1816;color:#e8e4dc;font-weight:600;min-width:80px;text-align:left">Header ${i+1}</th>`
+  ).join('') + '</tr>';
+  const dataRows = Array(rows - 1).fill(0).map(() =>
+    '<tr>' + Array(cols).fill(0).map(() =>
+      '<td contenteditable="true" style="border:1px solid #2e2b26;padding:6px 10px;min-width:80px;vertical-align:top"></td>'
+    ).join('') + '</tr>'
+  ).join('');
+  const table = `<br><table style="border-collapse:collapse;width:100%;margin:8px 0;font-size:13px">${headerRow}${dataRows}</table><br>`;
+  document.execCommand('insertHTML', false, table);
+  _syncBody(); draftChanged();
+}
+
+function nstInsertHr(e) {
+  e.preventDefault();
+  const body = document.getElementById('nf-body');
+  if (!body) return;
+  if (_savedEditorRange) { body.focus(); const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(_savedEditorRange.cloneRange()); }
+  document.execCommand('insertHTML', false, '<br><hr style="border:none;border-top:1px solid #2e2b26;margin:12px 0"/><br>');
+  _syncBody(); draftChanged(); _hideSelToolbar();
+}
+
+function nstInsertLink(e) {
+  e.preventDefault();
+  _hideSelToolbar();
+  const body = document.getElementById('nf-body');
+  if (!body) return;
+  if (_savedEditorRange) { body.focus(); const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(_savedEditorRange.cloneRange()); }
+  const url = prompt('Enter URL:');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  _syncBody(); draftChanged();
+}
+
+function nstInsertCallout(e) {
+  e.preventDefault();
+  const body = document.getElementById('nf-body');
+  if (!body) return;
+  if (_savedEditorRange) { body.focus(); const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(_savedEditorRange.cloneRange()); }
+  const type = prompt('Callout type (info/warn/tip/quote):', 'info') || 'info';
+  const colors = { info:'#1a2e4a:#4a9af8:💡', warn:'#2e1a0a:#f8a44a:⚠️', tip:'#0a2e1a:#4af868:✅', quote:'#1a1a2e:#8ab4f8:💬' };
+  const [bg,border,icon] = (colors[type.toLowerCase()]||colors.info).split(':');
+  const html = `<br><div contenteditable="true" style="background:${bg};border-left:3px solid ${border};border-radius:6px;padding:12px 16px;margin:8px 0;font-size:13px;line-height:1.6"><span style="margin-right:8px">${icon}</span>Write your callout here…</div><br>`;
+  document.execCommand('insertHTML', false, html);
+  _syncBody(); draftChanged();
+}
+// ── SMART TYPOGRAPHY ──
+function _smartTypo(e) {
+  if (e.key === ' ' || e.key === 'Enter' || e.key === 'Tab') {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    if (range.startContainer.nodeType !== 3) return; // only text nodes
+    const node = range.startContainer;
+    const text = node.textContent;
+    const pos  = range.startOffset;
+    const before = text.slice(0, pos);
+
+    // Replacement rules: [pattern, replacement]
+    const rules = [
+      [/--$/, '—'],           // -- → — (em dash)
+      [/->$/, '→'],           // -> → →
+      [/<-$/, '←'],           // <- → ←
+      [/=>$/, '⇒'],           // => → ⇒
+      [/<=>(.*?)$/, '⇔'],     // <=> → ⇔
+      [/\(c\)$/i, '©'],       // (c) → ©
+      [/\(r\)$/i, '®'],       // (r) → ®
+      [/\(tm\)$/i, '™'],      // (tm) → ™
+      [/\.\.\.$/, '…'],       // ... → …
+      [/1\/2$/, '½'],         // 1/2 → ½
+      [/1\/4$/, '¼'],         // 1/4 → ¼
+      [/3\/4$/, '¾'],         // 3/4 → ¾
+    ];
+
+    for (const [pat, rep] of rules) {
+      const m = before.match(pat);
+      if (m) {
+        e.preventDefault();
+        const matchLen = m[0].length;
+        const newText = text.slice(0, pos - matchLen) + rep + text.slice(pos);
+        node.textContent = newText;
+        // Place cursor after replacement
+        const newRange = document.createRange();
+        const newPos = pos - matchLen + rep.length;
+        newRange.setStart(node, newPos);
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+        // If space or enter triggered, insert the space/enter too
+        if (e.key === ' ') document.execCommand('insertText', false, ' ');
+        else if (e.key === 'Enter') document.execCommand('insertParagraph', false);
+        _syncBody(); draftChanged();
+        return;
+      }
+    }
+  }
+}
+
 function _editorKey(e) {
   if (e.key === 'Escape') { exitFocusMode(); return; }
+
+  // Smart typography — run before other handling
+  _smartTypo(e);
+  if (e.defaultPrevented) return;
 
   const sel = window.getSelection();
   if (!sel || !sel.rangeCount) return;
@@ -5204,6 +5420,7 @@ renderNotes();
 updateCounts();
 loadCfg();
 gcalInit();
+notionAutoSync();
 </script>
 </body>
 </html>
