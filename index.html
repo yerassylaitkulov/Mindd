@@ -268,7 +268,11 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .gcal-btn.connected{border-color:#0f9d58;color:#0f9d58}
 .gcal-btn.syncing{border-color:#4285f4;color:#4285f4;animation:cpulse 1s infinite}
 .gcal-btn.err{border-color:var(--red);color:var(--red)}
-.notion-sync-btn{display:none}
+.notion-sync-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:12px;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s;white-space:nowrap}
+.notion-sync-btn:hover{border-color:#a259ff;color:#a259ff}
+.notion-sync-btn.syncing{border-color:#a259ff;color:#a259ff;animation:cpulse 1s infinite}
+.notion-sync-btn.ok{border-color:#34a853;color:#34a853}
+.notion-sync-btn.err{border-color:var(--red);color:var(--red)}
 @keyframes cpulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes popin{from{opacity:0;transform:scale(.96) translateY(-4px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -858,6 +862,7 @@ canvas#gc{width:100%;height:100%;display:block}
               <button class="cal-vbtn" id="cvbtn-month" onclick="setCalView('month')">Month</button>
             </div>
             <span class="gcal-status" id="gcal-btn"></span>
+            <button class="notion-sync-btn" id="notion-sync-btn" onclick="notionSync()" title="Sync with Notion">🔄 Notion</button>
           </div>
           <div id="cal-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0"></div>
         </div>
@@ -2947,7 +2952,7 @@ async function notionSync() {
     const localOnlyEvents = [];
     Object.entries(calEvts).forEach(([dk, evts]) => {
       (evts||[]).forEach(evt => {
-        if (!evt.fromNotion && !evt.fromGcal && !evt.notionId && evt.title) {
+        if (!evt.fromNotion && !evt.notionId && evt.title) { // push all events without notionId
           localOnlyEvents.push({ title:evt.title, day:dk, start:evt.start, end:evt.end, _evt:evt });
         }
       });
@@ -2970,8 +2975,8 @@ async function notionSync() {
     renderCal();
     if (btn) {
       btn.className = 'notion-sync-btn ok';
-      btn.textContent = `✓ ${notionEvents.length} synced`;
-      setTimeout(() => { btn.className='notion-sync-btn'; btn.innerHTML='🔄 Sync Notion'; }, 2500);
+      btn.textContent = '✓ ' + notionEvents.length + ' events';
+      setTimeout(() => { btn.className='notion-sync-btn'; btn.innerHTML='🔄 Notion'; }, 2500);
     }
     console.log('Notion sync OK:', notionEvents.length, 'events');
   } catch(err) {
@@ -2979,7 +2984,7 @@ async function notionSync() {
     if (btn) {
       btn.className = 'notion-sync-btn err';
       btn.textContent = '✕ Sync failed';
-      setTimeout(() => { btn.className='notion-sync-btn'; btn.innerHTML='🔄 Sync Notion'; }, 3000);
+      setTimeout(() => { btn.className='notion-sync-btn'; btn.innerHTML='🔄 Notion'; }, 3000);
     }
   }
 }
@@ -5436,7 +5441,7 @@ function workRenderSidebar(){
       const total=(s.subs||{})[s.monthGroup]||0;
       const mgShort=workMonthLabel(s.monthGroup).slice(0,3).toUpperCase();
       return`<div class="work-student${s.archived?' ws-archived':''}"
-        onclick="workEditStudentModal(${s.id})"
+        onclick="workOpenStudentPage(${s.id})"
         draggable="true" ondragstart="workDragStart(event,${s.id})"
         style="border-left:3px solid ${s.color||'#4285f4'}">
         <div style="flex:1;min-width:0">
@@ -5455,7 +5460,7 @@ function workRenderSidebar(){
       const total=(s.subs||{})[s.monthGroup]||0;
       const mgShort=workMonthLabel(s.monthGroup).slice(0,3).toUpperCase();
       return`<div class="work-student ws-archived"
-        onclick="workEditStudentModal(${s.id})"
+        onclick="workOpenStudentPage(${s.id})"
         draggable="true" ondragstart="workDragStart(event,${s.id})"
         style="border-left:3px solid #3d3a35">
         <div style="flex:1;min-width:0">
@@ -5898,6 +5903,14 @@ function workModalSave(id){
   workSave();
   document.getElementById('work-edit-modal').remove();
   workRenderSidebar(); workRenderAttendance(); workRenderHomework();
+  // Refresh student page if open
+  const sp = document.getElementById('student-page');
+  if(sp && id !== null) workOpenStudentPage(id);
+  else if(sp && id === null) {
+    // new student — reopen page for newly created student
+    const newS = workData.students[workData.students.length-1];
+    if(newS) workOpenStudentPage(newS.id);
+  }
 }
 
 function workSyncScheduleToCalendar(id){
@@ -5968,7 +5981,7 @@ function workRenderArchive(){
       const hwSent    = hw.filter(h => h.month === s.monthGroup && (h.hw === 'sent' || h.hw === 'checked')).length;
       const hwChecked = hw.filter(h => h.month === s.monthGroup && h.hw === 'checked').length;
 
-      html += `<div class="wa-student-row" onclick="workEditStudentModal(${s.id})" style="opacity:.7;cursor:pointer">
+      html += `<div class="wa-student-row" onclick="workOpenStudentPage(${s.id})" style="opacity:.7;cursor:pointer">
         <div class="wa-row-head">
           <div class="wa-color-dot" style="background:#3d3a35"></div>
           <span class="wa-row-name" style="color:var(--muted)">${esc(s.name)}</span>
@@ -6054,7 +6067,7 @@ function workRenderFinances(){
       const pct    = total>0 ? Math.round(done/total*100) : 0;
       const price  = (s.price||{})[mk] || 0;
 
-      html += `<tr style="border-bottom:1px solid var(--border-light);${s.archived?'opacity:.45':''}cursor:pointer" onclick="workEditStudentModal(${s.id})">
+      html += `<tr style="border-bottom:1px solid var(--border-light);${s.archived?'opacity:.45':''}cursor:pointer" onclick="workOpenStudentPage(${s.id})">
         <td style="padding:8px 12px">
           <div style="display:flex;align-items:center;gap:8px">
             <div style="width:8px;height:8px;border-radius:50%;background:${s.color||'#4285f4'};flex-shrink:0"></div>
@@ -6206,7 +6219,9 @@ function workOpenStudentPage(id){
         <h1 style="font-size:24px;font-weight:700;color:var(--ink);margin:0;font-family:'Instrument Serif',serif;font-style:italic">${esc(s.name)}</h1>
         ${s.archived?'<span style="padding:3px 10px;background:var(--surface2);border-radius:99px;font-size:11px;color:var(--muted)">Archived</span>':''}
         <button onclick="workEditStudentModal(${id})" 
-          style="margin-left:auto;padding:7px 18px;background:#06b6d4;color:#0a0a08;border:none;border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;font-weight:700">Edit student</button>
+          style="margin-left:auto;padding:7px 18px;background:#06b6d4;color:#0a0a08;border:none;border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;font-weight:700">✏ Edit</button>
+        <button onclick="workSetSubOnPage(${id})" 
+          style="padding:7px 14px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;color:var(--muted)">Set lessons</button>
       </div>
 
       <!-- Stats row -->
@@ -6275,6 +6290,30 @@ function workOpenStudentPage(id){
       </div>
     </div>`;
   document.body.appendChild(page);
+}
+
+function workSetSubOnPage(id){
+  const s = workData.students.find(x=>x.id===id);
+  if(!s) return;
+  const mg = s.monthGroup||workCurrentMonth;
+  const cur = (s.subs||{})[mg]||0;
+  const val = prompt(`Lessons in subscription for ${s.name}
+(${workMonthLabel(mg)}):`, cur||'');
+  if(val===null) return;
+  const n = parseInt(val);
+  if(isNaN(n)||n<0) return;
+  if(!s.subs) s.subs={};
+  s.subs[mg]=n;
+  const att=workData.attendance[id]||[];
+  const other=att.filter(c=>c.month!==mg);
+  const existing=att.filter(c=>c.month===mg);
+  const newCells=Array.from({length:n},(_,i)=>existing[i]||{num:i+1,month:mg,date:'',status:'empty'});
+  newCells.forEach((c,i)=>c.num=i+1);
+  workData.attendance[id]=[...other,...newCells];
+  workSave();
+  workRenderSidebar(); workRenderAttendance();
+  // Refresh student page if open
+  if(document.getElementById('student-page')) workOpenStudentPage(id);
 }
 
 function workCreateNoteForStudent(name){
