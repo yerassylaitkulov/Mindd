@@ -479,31 +479,34 @@ canvas#gc{width:100%;height:100%;display:block}
 .work-grid-wrap::-webkit-scrollbar{width:5px;height:5px}
 .work-grid-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 /* attendance pixel cells */
-.wa-table{padding:12px 16px;min-width:100%}
-.wa-student-row{margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-light)}
-.wa-row-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.wa-row-name{font-size:13px;font-weight:600;color:var(--ink)}
-.wa-row-meta{font-size:11px;font-family:'Geist Mono',monospace;color:var(--muted)}
+.wa-table{padding:0;min-width:100%}
+/* One row per student: name col + cells inline */
+.wa-student-row{display:flex;align-items:flex-start;gap:0;border-bottom:1px solid #141210;min-height:36px}
+.wa-student-row:hover{background:rgba(255,255,255,.02)}
+.wa-name-col{width:130px;flex-shrink:0;display:flex;align-items:center;padding:6px 10px 6px 14px;gap:6px;cursor:pointer;position:sticky;left:0;background:inherit;z-index:2}
+.wa-name-col:hover .wa-row-name{color:#06b6d4}
+.wa-row-name{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.wa-row-meta{font-size:10px;font-family:'Geist Mono',monospace;color:var(--muted)}
 .wa-progress{flex:1;max-width:200px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
 .wa-progress-fill{height:100%;border-radius:3px;transition:width .4s}
 .wa-set-btn{padding:2px 10px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif;transition:all .1s}
 .wa-set-btn:hover{border-color:#06b6d4;color:#06b6d4}
-.wa-cells{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
-/* the cell itself */
-.wa-cell{width:40px;height:40px;border-radius:5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0px;transition:all .1s;position:relative;flex-shrink:0;border:1px solid transparent;user-select:none}
-.wa-cell:hover{transform:scale(1.08)}
-.wa-cell.wc-empty{background:#141210;border:1px dashed #2e2b26}
+.wa-cells{display:flex;flex-wrap:nowrap;gap:2px;padding:4px 6px;align-items:center;overflow-x:visible;flex-wrap:wrap}
+/* Cell: small, no icon, just date + number */
+.wa-cell{width:32px;height:32px;border-radius:4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;transition:all .1s;flex-shrink:0;border:1px solid transparent;user-select:none;position:relative}
+.wa-cell:hover{transform:scale(1.12);z-index:5}
+.wa-cell.wc-empty{background:#141210;border:1px dashed #252320}
 .wa-cell.wc-done{background:#0c2216;border-color:#1a4a28}
 .wa-cell.wc-missed{background:#1e0a0a;border-color:#3a1212}
-.wa-cell .wc-date{font-size:8.5px;font-family:'Geist Mono',monospace;font-weight:600;line-height:1}
-.wa-cell.wc-empty .wc-date{color:#3d3a35}
-.wa-cell.wc-done .wc-date{color:#34a853}
+.wa-cell.wc-has-note::after{content:'';position:absolute;top:2px;right:2px;width:4px;height:4px;border-radius:50%;background:#8ab4f8}
+.wa-cell .wc-date{font-size:8px;font-family:'Geist Mono',monospace;font-weight:700;line-height:1}
+.wa-cell.wc-empty .wc-date{color:#2e2b26}
+.wa-cell.wc-done .wc-date{color:#5af07a}
 .wa-cell.wc-missed .wc-date{color:#e85a5a}
-.wa-cell .wc-num{font-size:10px;font-family:'Geist Mono',monospace;font-weight:700;line-height:1}
+.wa-cell .wc-num{font-size:9px;font-family:'Geist Mono',monospace;font-weight:600;line-height:1;opacity:.7}
 .wa-cell.wc-empty .wc-num{color:#2e2b26}
-.wa-cell.wc-done .wc-num{color:#5af07a}
-.wa-cell.wc-missed .wc-num{color:#f07a7a}
-.wa-cell .wc-icon{font-size:11px;line-height:1}
+.wa-cell.wc-done .wc-num{color:#34a853}
+.wa-cell.wc-missed .wc-num{color:#c84a4a}
 /* date popup */
 .wa-date-popup{position:fixed;background:#1a1816;border:1px solid #3a3630;border-radius:8px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.8);z-index:3000;min-width:160px}
 .wa-date-popup input{width:100%;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:13px;font-family:'Geist Mono',monospace;outline:none;box-sizing:border-box}
@@ -521,13 +524,13 @@ canvas#gc{width:100%;height:100%;display:block}
 .ws-archived{opacity:.45;filter:grayscale(.5)}
 .work-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px}
 /* month groups */
-.wa-month-group{margin-bottom:16px}
-.wa-month-hd{display:flex;align-items:center;gap:8px;padding:6px 0 5px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.wa-month-group{margin-bottom:0}
+.wa-month-hd{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#0d0d0b;border-top:2px solid var(--border);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
 .wa-month-icon{font-size:16px}
-.wa-month-label{font-size:14px;font-weight:700;color:var(--ink);font-family:'Instrument Serif',serif;font-style:italic;cursor:pointer}
+.wa-month-label{font-size:13px;font-weight:700;color:#8ab4f8;font-family:'Geist Mono',monospace;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
 .wa-month-label:hover{color:#06b6d4}
 .wa-active .wa-row-name{color:#06b6d4}
-.wa-color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.wa-color-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 /* sidebar color bar */
 .work-student{border-left:3px solid transparent}
 .work-empty-icon{font-size:40px}
@@ -5488,24 +5491,36 @@ function workDropOnMonth(e,mk){
 function workRenderAttendance(){
   const wrap=document.getElementById('work-attendance-wrap');
   if(!wrap)return;
+  document.getElementById('work-month-label').textContent=workMonthLabel(workCurrentMonth);
+
   const active=workData.students.filter(s=>!s.archived);
   if(!active.length){
     wrap.innerHTML=`<div class="work-empty"><div class="work-empty-icon">📅</div><div class="work-empty-text">No active students</div><div class="work-empty-sub">Click ＋ to add one</div></div>`;
     return;
   }
+
   // Group by monthGroup
   const groups={};
   active.forEach(s=>{ const mg=s.monthGroup||'?'; if(!groups[mg])groups[mg]=[]; groups[mg].push(s); });
   const monthKeys=Object.keys(groups).sort();
 
+  // Month accent colors
+  const MONTH_COLORS=['#4285f4','#34a853','#f59e0b','#e85a5a','#8b5cf6','#06b6d4','#f472b6','#10b981'];
+  let mci=0;
+  const monthColor={};
+  monthKeys.forEach(mk=>{ monthColor[mk]=MONTH_COLORS[mci++%MONTH_COLORS.length]; });
+
   let html='<div class="wa-table">';
   monthKeys.forEach(mk=>{
     const mObj=workData.months.find(m=>m.key===mk);
     const mLabel=mObj?.label||workMonthLabel(mk)||mk;
+    const mc=monthColor[mk];
+
     html+=`<div class="wa-month-group" ondragover="event.preventDefault()" ondrop="workDropOnMonth(event,'${mk}')">
-      <div class="wa-month-hd">
-        <span class="wa-month-label" ondblclick="workRenameGroup('${mk}')">${esc(mLabel)}</span>
-        <span style="font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-left:4px">${mk}</span>
+      <div class="wa-month-hd" style="border-left:3px solid ${mc}">
+        <span class="wa-month-label" style="color:${mc}" ondblclick="workRenameGroup('${mk}')">${esc(mLabel)}</span>
+        <span style="font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace">${mk}</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--subtle)">${groups[mk].length} student${groups[mk].length!==1?'s':''}</span>
       </div>`;
 
     groups[mk].forEach(s=>{
@@ -5513,39 +5528,46 @@ function workRenderAttendance(){
       const done=att.filter(c=>c.status==='done').length;
       const missed=att.filter(c=>c.status==='missed').length;
       const total=att.length;
-      const pct=total>0?Math.round(done/total*100):0;
+      const lessonNotes=workData.lessonNotes||{};
 
-      html+=`<div class="wa-student-row" draggable="true" ondragstart="workDragStart(event,${s.id})">
-        <div class="wa-row-head">
+      // Check if any cells have notes
+      const hasNote=(cell)=>!!(lessonNotes[s.id]&&lessonNotes[s.id][cell.num]);
+
+      html+=`<div class="wa-student-row" draggable="true" ondragstart="workDragStart(event,${s.id})" style="border-left:3px solid ${s.color||'#4285f4'}20">
+        <div class="wa-name-col" onclick="workOpenStudentPage(${s.id})" title="Open ${esc(s.name)}'s page">
           <div class="wa-color-dot" style="background:${s.color||'#4285f4'}"></div>
-          <span class="wa-row-name" onclick="workOpenStudentPage(${s.id})" style="cursor:pointer" title="Open student page">${esc(s.name)}</span>
-          <span class="wa-row-meta">${done}✓${missed?' '+missed+'✕':''}</span>
-          ${total?`<div class="wa-progress"><div class="wa-progress-fill" style="width:${pct}%;background:${done>=total?'#34a853':'#4285f4'}"></div></div>
-          <span class="wa-row-meta" style="color:${done>=total?'#34a853':'#8ab4f8'};font-weight:600">${done}/${total}</span>`:''}
-          <button onclick="event.stopPropagation();workEditStudentModal(${s.id})" style="margin-left:auto;padding:2px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--subtle);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif;flex-shrink:0">⚙</button>
+          <div style="flex:1;min-width:0">
+            <div class="wa-row-name">${esc(s.name)}</div>
+            ${total?`<div class="wa-row-meta" style="color:${done>=total?'#34a853':'var(--muted)'}">${done}/${total}</div>`:'<div class="wa-row-meta" style="color:var(--subtle)">—</div>'}
+          </div>
+          <button onclick="event.stopPropagation();workEditStudentModal(${s.id})" style="padding:2px 5px;background:none;border:none;color:var(--subtle);cursor:pointer;font-size:11px;opacity:0;transition:opacity .1s" class="wa-gear-btn">⚙</button>
         </div>
         <div class="wa-cells">`;
 
-      att.forEach((cell,i)=>{
-        const cls=cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
-        html+=`<div class="wa-cell ${cls}"
-          onclick="workCellClick(event,${s.id},${i})"
-          title="Lesson ${cell.num}${cell.date?' · '+cell.date:''}">
-          <span class="wc-date">${esc(cell.date||'·')}</span>
-          <span class="wc-num">${cell.num}</span>
-          <span class="wc-icon">${cell.status==='done'?'✓':cell.status==='missed'?'✕':''}</span>
-        </div>`;
-      });
-
-      if(!att.length) html+=`<span style="font-size:12px;color:var(--subtle);font-style:italic">Open student to set subscription</span>`;
+      if(!att.length){
+        html+=`<button onclick="event.stopPropagation();workSetSubOnPage(${s.id})" style="padding:2px 10px;background:none;border:1px dashed #252320;border-radius:4px;color:var(--subtle);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif;margin:4px">+ Set subscription</button>`;
+      } else {
+        att.forEach((cell,i)=>{
+          // Full index in att array (all attendance, not just filtered)
+          const fullIdx=(workData.attendance[s.id]||[]).indexOf(cell);
+          const cls=cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
+          const hn=hasNote(cell);
+          html+=`<div class="wa-cell ${cls}${hn?' wc-has-note':''}"
+            onclick="event.stopPropagation();workCellClick(event,${s.id},${fullIdx})"
+            title="Lesson ${cell.num}${cell.date?' · '+cell.date:''}${hn?' · has notes':''}">
+            <span class="wc-date">${esc(cell.date||' ')}</span>
+            <span class="wc-num">${cell.num}</span>
+          </div>`;
+        });
+      }
       html+=`</div></div>`;
     });
     html+=`</div>`;
   });
-  html+='</div>';
+  html+=`</div>
+  <style>.wa-student-row:hover .wa-gear-btn{opacity:1!important}</style>`;
   wrap.innerHTML=html;
 }
-
 function workRenameGroup(mk){
   const obj=workData.months.find(m=>m.key===mk);
   const label=prompt('Rename month group:',obj?.label||workMonthLabel(mk));
@@ -5555,56 +5577,150 @@ function workRenameGroup(mk){
   workSave(); workRenderAttendance();
 }
 
-// ── CELL CLICK ──
-let _waCellPopup=null;
+// ── CELL CLICK → opens lesson notes page ──
 function workCellClick(e, sid, cellIdx){
   e.stopPropagation();
-  document.getElementById('wa-popup')?.remove();
+  const s=workData.students.find(x=>x.id===sid);if(!s)return;
+  const att=workData.attendance[sid]||[];
+  const cell=att[cellIdx];if(!cell)return;
+  workOpenLessonPage(sid, cellIdx);
+}
+
+function workCellSet(sid, cellIdx, status, date){
+  const att=workData.attendance[sid]||[];
+  const cell=att[cellIdx];
+  if(cell){ cell.status=status; if(date!==undefined) cell.date=date; }
+  workSave(); workRenderSidebar(); workRenderAttendance(); workRenderHomework();
+}
+
+// ── LESSON NOTES PAGE ──
+// lessonNotes[sid][lessonNum] = {vocabulary:str, grammar:str, speaking:str, homework:str, general:str}
+function workOpenLessonPage(sid, cellIdx){
+  document.getElementById('lesson-page')?.remove();
   const s=workData.students.find(x=>x.id===sid);if(!s)return;
   const att=workData.attendance[sid]||[];
   const cell=att[cellIdx];if(!cell)return;
 
-  const popup=document.createElement('div');
-  popup.id='wa-popup'; popup.className='wa-date-popup';
-  popup.innerHTML=`
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:'Geist Mono',monospace">${esc(s.name)} · Lesson ${cell.num}</div>
-    <input id="wa-popup-date" placeholder="Date e.g. 16.01" value="${esc(cell.date||'')}"/>
-    <div class="wa-date-popup-btns" style="margin-top:8px">
-      <button id="wa-btn-done" onclick="workCellSet(${sid},${cellIdx},'done')"
-        style="background:#0c2216;color:#34a853;border:1px solid #1a4a28;outline:2px solid #34a853;outline-offset:1px">✓ Done</button>
-      <button onclick="workCellSet(${sid},${cellIdx},'missed')"
-        style="background:#1e0808;color:#e85a5a;border:1px solid #3a1212">✕ Missed</button>
-      <button onclick="workCellSet(${sid},${cellIdx},'empty')"
-        style="background:var(--surface);color:var(--muted);border:1px solid var(--border)">— Clear</button>
+  if(!workData.lessonNotes) workData.lessonNotes={};
+  if(!workData.lessonNotes[sid]) workData.lessonNotes[sid]={};
+  const noteKey=cell.num;
+  if(!workData.lessonNotes[sid][noteKey]) workData.lessonNotes[sid][noteKey]={vocabulary:'',grammar:'',speaking:'',listening:'',homework:'',general:''};
+  const ln=workData.lessonNotes[sid][noteKey];
+
+  const CATS=[
+    {key:'vocabulary', icon:'📖', label:'Vocabulary',   ph:'New words, phrases, expressions learned…'},
+    {key:'grammar',    icon:'📐', label:'Grammar',      ph:'Grammar points covered, rules, structures…'},
+    {key:'speaking',   icon:'🗣', label:'Speaking',     ph:'Speaking activities, topics discussed…'},
+    {key:'listening',  icon:'👂', label:'Listening',    ph:'Listening exercises, comprehension notes…'},
+    {key:'homework',   icon:'✏️', label:'Homework',     ph:'Homework assigned, what to prepare…'},
+    {key:'general',    icon:'💡', label:'General',      ph:'Other observations, student progress, notes…'},
+  ];
+
+  const page=document.createElement('div');
+  page.id='lesson-page';
+  page.style.cssText='position:fixed;inset:0;z-index:5000;background:#0e0d0b;overflow-y:auto;animation:fi .15s ease';
+
+  // Status bar info
+  const[h24,m]=(cell.date||'').split('.').length===2?['','']:['',''];
+  const statusColor=cell.status==='done'?'#34a853':cell.status==='missed'?'#e85a5a':'#6b6760';
+
+  page.innerHTML=`
+    <div style="max-width:860px;margin:0 auto;padding:24px 24px 60px">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+        <button onclick="document.getElementById('lesson-page').remove()"
+          style="padding:6px 14px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif;font-size:13px">← Back</button>
+        <div style="width:10px;height:10px;border-radius:50%;background:${s.color||'#4285f4'}"></div>
+        <div>
+          <span style="font-size:18px;font-weight:700;color:var(--ink);font-family:'Instrument Serif',serif;font-style:italic">${esc(s.name)}</span>
+          <span style="font-size:14px;color:var(--muted);margin-left:10px">Lesson ${cell.num}</span>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+          <!-- Date input -->
+          <input id="lp-date" value="${esc(cell.date||'')}" placeholder="Date e.g. 16.01"
+            style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-size:13px;font-family:'Geist Mono',monospace;outline:none;width:110px"
+            oninput="workCellSet(${sid},${cellIdx},workData.attendance[${sid}][${cellIdx}].status,this.value)"
+            onkeydown="if(event.key==='Enter')this.blur()"/>
+          <!-- Status buttons -->
+          <div style="display:flex;gap:4px">
+            <button onclick="workLessonSetStatus(${sid},${cellIdx},'done',this)"
+              style="padding:5px 12px;border-radius:6px;border:1px solid #1a4a28;background:${cell.status==='done'?'#0c2216':'none'};color:${cell.status==='done'?'#34a853':'var(--muted)'};cursor:pointer;font-size:12px;font-family:'Geist',sans-serif;font-weight:600"
+              id="lp-btn-done">✓ Done</button>
+            <button onclick="workLessonSetStatus(${sid},${cellIdx},'missed',this)"
+              style="padding:5px 12px;border-radius:6px;border:1px solid #3a1212;background:${cell.status==='missed'?'#1e0808':'none'};color:${cell.status==='missed'?'#e85a5a':'var(--muted)'};cursor:pointer;font-size:12px;font-family:'Geist',sans-serif;font-weight:600"
+              id="lp-btn-missed">✕ Missed</button>
+            <button onclick="workLessonSetStatus(${sid},${cellIdx},'empty',this)"
+              style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:${cell.status==='empty'?'var(--surface2)':'none'};color:var(--muted);cursor:pointer;font-size:12px;font-family:'Geist',sans-serif"
+              id="lp-btn-empty">— Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Note categories grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        ${CATS.map(cat=>`
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;background:#0d0d0b">
+              <span style="font-size:15px">${cat.icon}</span>
+              <span style="font-size:12px;font-weight:600;color:var(--ink);font-family:'Geist',sans-serif">${cat.label}</span>
+            </div>
+            <textarea
+              id="lp-${cat.key}"
+              placeholder="${cat.ph}"
+              onchange="workSaveLessonNote(${sid},${noteKey},'${cat.key}',this.value)"
+              oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+              style="width:100%;min-height:90px;padding:12px 14px;background:none;border:none;outline:none;color:var(--ink);font-size:13px;font-family:'Geist',sans-serif;resize:none;line-height:1.6;box-sizing:border-box"
+            >${esc(ln[cat.key]||'')}</textarea>
+          </div>`).join('')}
+      </div>
+
+      <!-- Nav: prev/next lesson -->
+      <div style="display:flex;justify-content:space-between;margin-top:24px">
+        <button onclick="workNavLesson(${sid},${cellIdx},-1)"
+          style="padding:8px 18px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif;font-size:13px">← Prev lesson</button>
+        <button onclick="workNavLesson(${sid},${cellIdx},1)"
+          style="padding:8px 18px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif;font-size:13px">Next lesson →</button>
+      </div>
     </div>`;
-  document.body.appendChild(popup);
-  _waCellPopup={sid,cellIdx};
 
-  let x=e.clientX, y=e.clientY+10;
-  if(x+170>window.innerWidth) x=window.innerWidth-175;
-  if(y+130>window.innerHeight) y=e.clientY-130;
-  popup.style.cssText=`left:${Math.max(6,x)}px;top:${Math.max(6,y)}px`;
+  document.body.appendChild(page);
 
-  setTimeout(()=>document.addEventListener('mousedown',_waClosePopup,{once:true}),0);
-  const inp=document.getElementById('wa-popup-date');
-  inp.focus(); inp.select();
-  inp.addEventListener('keydown',ev=>{
-    if(ev.key==='Enter'){ ev.preventDefault(); workCellSet(sid,cellIdx,'done'); }
-    if(ev.key==='Escape') document.getElementById('wa-popup')?.remove();
+  // Auto-resize textareas
+  page.querySelectorAll('textarea').forEach(ta=>{
+    ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px';
+  });
+
+  page.addEventListener('keydown',e=>{ if(e.key==='Escape') page.remove(); });
+}
+
+function workLessonSetStatus(sid, cellIdx, status, btn){
+  const date=document.getElementById('lp-date')?.value.trim()||'';
+  workCellSet(sid, cellIdx, status, date||undefined);
+  // Update button styles
+  ['done','missed','empty'].forEach(s=>{
+    const b=document.getElementById('lp-btn-'+s);
+    if(!b)return;
+    b.style.background=s===status?(s==='done'?'#0c2216':s==='missed'?'#1e0808':'var(--surface2)'):'none';
+    b.style.color=s===status?(s==='done'?'#34a853':s==='missed'?'#e85a5a':'var(--muted)'):'var(--muted)';
   });
 }
 
-function _waClosePopup(e){ const p=document.getElementById('wa-popup'); if(p&&!p.contains(e.target))p.remove(); }
-
-function workCellSet(sid, cellIdx, status){
-  const dateVal=document.getElementById('wa-popup-date')?.value.trim()||'';
-  const att=workData.attendance[sid]||[];
-  const cell=att[cellIdx];
-  if(cell){ cell.status=status; if(dateVal)cell.date=dateVal; else if(status==='empty')cell.date=''; }
-  workSave(); document.getElementById('wa-popup')?.remove();
-  workRenderSidebar(); workRenderAttendance(); workRenderHomework();
+function workSaveLessonNote(sid, lessonNum, field, value){
+  if(!workData.lessonNotes) workData.lessonNotes={};
+  if(!workData.lessonNotes[sid]) workData.lessonNotes[sid]={};
+  if(!workData.lessonNotes[sid][lessonNum]) workData.lessonNotes[sid][lessonNum]={vocabulary:'',grammar:'',speaking:'',listening:'',homework:'',general:''};
+  workData.lessonNotes[sid][lessonNum][field]=value;
+  workSave();
 }
 
+function workNavLesson(sid, currentIdx, dir){
+  const att=workData.attendance[sid]||[];
+  const newIdx=currentIdx+dir;
+  if(newIdx>=0&&newIdx<att.length){
+    document.getElementById('lesson-page')?.remove();
+    workOpenLessonPage(sid,newIdx);
+  }
+}
 // ── HOMEWORK ──
 function workRenderHomework(){
   const wrap=document.getElementById('work-hw-wrap');
