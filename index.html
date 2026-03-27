@@ -5330,46 +5330,63 @@ let workData = null;
 let workCurrentMonth = (()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})();
 let workActiveSection = 'attendance';
 let _workInited = false;
-const WORK_SK   = 'mind_work_v7';
-const WORK_VER  = 7; // bump this whenever prefill data changes
+const WORK_SK   = 'mind_work_v8';
+const WORK_VER  = 8; // bump this whenever prefill data changes
 
 function workLoad(){
-  try{
-    const saved = localStorage.getItem(WORK_SK);
-    workData = saved ? JSON.parse(saved) : null;
-  } catch(_){ workData=null; }
+  let saved = null;
+  try{ saved = JSON.parse(localStorage.getItem(WORK_SK)||'null'); } catch(_){}
 
-  if(!workData || (workData._ver||0) < WORK_VER){
-    // First load or outdated — start from prefill but preserve any user edits
+  if(!saved || (saved._ver||0) < WORK_VER){
+    // Version mismatch — reload from prefill cleanly.
+    // Preserve ONLY user-generated content: lessonNotes, homework, aim/aimStickers
+    // Everything else (students, monthGroup, subs, attendance dates) comes from prefill.
     const fresh = JSON.parse(JSON.stringify(WORK_PREFILL));
     fresh._ver = WORK_VER;
 
-    if(workData && workData.students && workData.students.length > 0){
-      // Merge: keep user's attendance/homework edits, add any missing prefill students
+    if(saved){
+      // Re-attach user-written data keyed by student id
       fresh.students.forEach(ps => {
-        const existing = workData.students.find(s => s.id === ps.id);
-        if(!existing){
-          fresh.students.push(ps);
-          fresh.attendance[ps.id] = workData.attendance?.[ps.id] || ps.attendance || JSON.parse(JSON.stringify(WORK_PREFILL.attendance[ps.id]||[]));
-          fresh.homework[ps.id]   = workData.homework?.[ps.id]   || [];
-        } else {
-          // Keep user's version of this student
-          const idx = fresh.students.findIndex(s=>s.id===ps.id);
-          fresh.students[idx] = existing;
-          fresh.attendance[ps.id] = workData.attendance?.[ps.id] || fresh.attendance[ps.id];
-          fresh.homework[ps.id]   = workData.homework?.[ps.id]   || [];
+        // Preserve aim text and stickers
+        const old = (saved.students||[]).find(s=>s.id===ps.id);
+        if(old){
+          if(old.aim)          ps.aim          = old.aim;
+          if(old.aimStickers)  ps.aimStickers  = old.aimStickers;
+          if(old.schedule?.length) ps.schedule = old.schedule;
+          if(old.firstDate)    ps.firstDate    = old.firstDate;
         }
+        // Preserve homework notes
+        if(saved.homework?.[ps.id]?.length){
+          fresh.homework[ps.id] = saved.homework[ps.id];
+        }
+        // Preserve lesson notes (vocabulary, grammar etc)
+        if(saved.lessonNotes?.[ps.id]){
+          if(!fresh.lessonNotes) fresh.lessonNotes={};
+          fresh.lessonNotes[ps.id] = saved.lessonNotes[ps.id];
+        }
+        // Preserve attendance STATUS and dates entered by user (not the month/num structure)
+        const savedAtt = (saved.attendance||{})[ps.id]||[];
+        const freshAtt = fresh.attendance[ps.id]||[];
+        freshAtt.forEach(fc=>{
+          const sc = savedAtt.find(c=>c.num===fc.num && c.month===fc.month);
+          if(sc){
+            if(sc.status && sc.status!=='empty') fc.status = sc.status;
+            if(sc.date)  fc.date  = sc.date;
+          }
+        });
       });
-      fresh.months = workData.months?.length ? workData.months : fresh.months;
     }
+
     workData = fresh;
     localStorage.setItem(WORK_SK, JSON.stringify(workData));
+  } else {
+    workData = saved;
   }
 
-  if(!workData.months)    workData.months=[];
-  if(!workData.attendance)workData.attendance={};
-  if(!workData.homework)  workData.homework={};
-  // Ensure all students have required fields
+  if(!workData.months)     workData.months=[];
+  if(!workData.attendance) workData.attendance={};
+  if(!workData.homework)   workData.homework={};
+  if(!workData.lessonNotes)workData.lessonNotes={};
   workData.students.forEach(s=>{
     if(!s.subs)     s.subs={};
     if(!s.schedule) s.schedule=[];
@@ -5380,28 +5397,82 @@ function workLoad(){
 function workSave(){ localStorage.setItem(WORK_SK, JSON.stringify(workData)); }
 
 function workInit(){
-  if(!_workInited){ workLoad(); _workInited=true; _workInitPlannedDates(); }
+  if(!_workInited){
+    workLoad();
+    _workInited=true;
+    _workInitPlannedDates();
+    // Auto-sync all active students with a schedule to calendar (after a short delay)
+    setTimeout(_workSyncAllToCalendar, 300);
+  }
   document.getElementById('work-month-label').textContent=workMonthLabel(workCurrentMonth);
   workRenderSidebar();
   workRenderAttendance();
+}
+
+function _workSyncAllToCalendar(){
+  workData.students.filter(s=>!s.archived&&s.schedule?.length).forEach(s=>{
+    const startDate = s.firstDate || _nextScheduledDate(
+      // use last done cell date as anchor
+      ((workData.attendance[s.id]||[])
+        .filter(c=>c.date&&(c.status==='done'||c.status==='missed'))
+        .slice(-1)[0]||{}).date || '',
+      s.schedule
+    ) || '';
+    _workSyncToCalendar(s.id, startDate);
+  });
 }
 
 // On first load: auto-fill planned dates for any student with schedule+firstDate
 // whose empty cells don't yet have _plannedFull set
 function _workInitPlannedDates(){
   let changed = false;
-  workData.students.forEach(s => {
-    if(!s.schedule?.length || !s.firstDate) return;
+  workData.students.filter(s=>!s.archived).forEach(s => {
+    if(!s.schedule?.length) return;
     const mg = s.monthGroup;
     const att = workData.attendance[s.id] || [];
     const cells = att.filter(c => c.month === mg);
-    const needsFill = cells.some(c => c.status === 'empty' && !c.date && !c._plannedFull);
+
+    // Determine start date: use firstDate, or fall back to last done lesson date
+    let startDate = s.firstDate || '';
+    if(!startDate){
+      // Find last done/missed cell with a date and compute next scheduled day from there
+      const doneCells = cells.filter(c => c.date && (c.status==='done'||c.status==='missed'));
+      if(doneCells.length){
+        // Pick the last done cell's date and advance one schedule cycle
+        const last = doneCells[doneCells.length-1];
+        startDate = _nextScheduledDate(last.date, s.schedule);
+      }
+    }
+    if(!startDate) return;
+
+    const needsFill = cells.some(c => c.status === 'empty' && !c._plannedFull);
     if(needsFill){
-      _workAutoFillDates(s.id, mg, cells, s.firstDate);
+      _workAutoFillDates(s.id, mg, cells, startDate);
       changed = true;
     }
   });
   if(changed) workSave();
+}
+
+// Given a DD.MM date and a schedule, find the next scheduled date after it
+function _nextScheduledDate(displayDate, schedule){
+  if(!displayDate||!schedule?.length) return '';
+  const parts = displayDate.split('.');
+  if(parts.length!==2) return '';
+  const d=parseInt(parts[0]), m=parseInt(parts[1]);
+  const year = m<=3 ? 2026 : 2025; // rough heuristic for current context
+  const base = new Date(year, m-1, d, 12);
+  base.setDate(base.getDate()+1); // start from day after
+  // Find nearest scheduled DOW
+  let best = null;
+  schedule.forEach(slot=>{
+    const t = new Date(base);
+    const diff = (slot.dow - t.getDay() + 7) % 7;
+    t.setDate(t.getDate() + diff);
+    if(!best || t < best) best = t;
+  });
+  if(!best) return '';
+  return best.getFullYear()+'-'+String(best.getMonth()+1).padStart(2,'0')+'-'+String(best.getDate()).padStart(2,'0');
 }
 
 // ── SECTION TOGGLE ──
@@ -6861,8 +6932,7 @@ async function _workSyncToCalendar(sid, firstDateStr){
   // Build map of planned dates from attendance cells
   const plannedDates=[]; // {dk:'YYYY-MM-DD', start:'HH:MM', end:'HH:MM'}
   att.forEach(cell=>{
-    if(cell.status!=='empty'&&cell.status!=='done'&&cell.status!=='missed') return;
-    // Use _plannedFull if available, otherwise parse cell.date
+    // Only sync cells that have a date (confirmed or planned)
     const fullDate=cell._plannedFull||_cellDateToFullDate(cell.date,firstDateStr);
     if(!fullDate) return;
     // Find the matching schedule slot time for this day
