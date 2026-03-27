@@ -481,9 +481,9 @@ canvas#gc{width:100%;height:100%;display:block}
 /* attendance pixel cells */
 .wa-table{padding:0;min-width:100%}
 /* One row per student: name col + cells inline */
-.wa-student-row{display:flex;align-items:flex-start;gap:0;border-bottom:1px solid #141210;min-height:36px}
+.wa-student-row{display:flex;align-items:flex-start;gap:0;border-bottom:1px solid #141210;min-height:44px}
 .wa-student-row:hover{background:rgba(255,255,255,.02)}
-.wa-name-col{width:130px;flex-shrink:0;display:flex;align-items:center;padding:6px 10px 6px 14px;gap:6px;cursor:pointer;position:sticky;left:0;background:inherit;z-index:2}
+.wa-name-col{width:150px;flex-shrink:0;display:flex;align-items:center;padding:7px 10px 7px 14px;gap:6px;cursor:pointer;position:sticky;left:0;background:inherit;z-index:2}
 .wa-name-col:hover .wa-row-name{color:#06b6d4}
 .wa-row-name{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
 .wa-row-meta{font-size:10px;font-family:'Geist Mono',monospace;color:var(--muted)}
@@ -491,19 +491,19 @@ canvas#gc{width:100%;height:100%;display:block}
 .wa-progress-fill{height:100%;border-radius:3px;transition:width .4s}
 .wa-set-btn{padding:2px 10px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif;transition:all .1s}
 .wa-set-btn:hover{border-color:#06b6d4;color:#06b6d4}
-.wa-cells{display:flex;flex-wrap:nowrap;gap:2px;padding:4px 6px;align-items:center;overflow-x:visible;flex-wrap:wrap}
+.wa-cells{display:flex;flex-wrap:wrap;gap:3px;padding:5px 8px;align-items:center}
 /* Cell: small, no icon, just date + number */
-.wa-cell{width:32px;height:32px;border-radius:4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;transition:all .1s;flex-shrink:0;border:1px solid transparent;user-select:none;position:relative}
+.wa-cell{width:44px;height:44px;border-radius:5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;transition:all .1s;flex-shrink:0;border:1px solid transparent;user-select:none;position:relative}
 .wa-cell:hover{transform:scale(1.12);z-index:5}
 .wa-cell.wc-empty{background:#141210;border:1px dashed #252320}
 .wa-cell.wc-done{background:#0c2216;border-color:#1a4a28}
 .wa-cell.wc-missed{background:#1e0a0a;border-color:#3a1212}
 .wa-cell.wc-has-note::after{content:'';position:absolute;top:2px;right:2px;width:4px;height:4px;border-radius:50%;background:#8ab4f8}
-.wa-cell .wc-date{font-size:8px;font-family:'Geist Mono',monospace;font-weight:700;line-height:1}
+.wa-cell .wc-date{font-size:9px;font-family:'Geist Mono',monospace;font-weight:700;line-height:1}
 .wa-cell.wc-empty .wc-date{color:#2e2b26}
 .wa-cell.wc-done .wc-date{color:#5af07a}
 .wa-cell.wc-missed .wc-date{color:#e85a5a}
-.wa-cell .wc-num{font-size:9px;font-family:'Geist Mono',monospace;font-weight:600;line-height:1;opacity:.7}
+.wa-cell .wc-num{font-size:10px;font-family:'Geist Mono',monospace;font-weight:600;line-height:1;opacity:.7}
 .wa-cell.wc-empty .wc-num{color:#2e2b26}
 .wa-cell.wc-done .wc-num{color:#34a853}
 .wa-cell.wc-missed .wc-num{color:#c84a4a}
@@ -2904,63 +2904,61 @@ const NOTION_PROXY = 'https://notion-proxy.yerassylaitkulov.workers.dev';
 async function notionSync() {
   const btn = document.getElementById('notion-sync-btn');
   if (btn) { btn.className = 'notion-sync-btn syncing'; btn.textContent = '⏳ Syncing…'; }
+  let pulled=0, pushed=0, errors=[];
   try {
+    // Pull from Notion
     const resp = await fetch(NOTION_PROXY + '/get');
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    if (!resp.ok) throw new Error('GET failed: HTTP ' + resp.status);
     const notionEvents = await resp.json();
+    pulled = notionEvents.length;
+    console.log('[Notion] Pulled', pulled, 'events');
 
-    // Build index of Notion events by ID for fast lookup
     const notionById = {};
     notionEvents.forEach(evt => { if (evt.id) notionById[evt.id] = evt; });
 
-    // 1. Remove fromNotion events that no longer exist in Notion
+    // Remove stale fromNotion events
     Object.keys(calEvts).forEach(dk => {
-      calEvts[dk] = (calEvts[dk] || []).filter(e => {
-        if (!e.fromNotion || !e.notionId) return true; // keep local events
-        return !!notionById[e.notionId]; // keep only if still in Notion
+      calEvts[dk] = (calEvts[dk]||[]).filter(e => {
+        if (!e.fromNotion || !e.notionId) return true;
+        return !!notionById[e.notionId];
       });
     });
 
-    // 2. Add or update events from Notion
+    // Add/update events from Notion
     notionEvents.forEach(evt => {
       if (!evt.day || !evt.title) return;
-      if (!calEvts[evt.day]) calEvts[evt.day] = [];
-      const existing = calEvts[evt.day].find(e => e.notionId === evt.id);
-      if (existing) {
-        // Update if changed
-        existing.title = evt.title;
-        existing.start = evt.start || null;
-        existing.end   = evt.end   || null;
-      } else {
-        // Check if this event moved to a different day
-        let foundOtherDay = false;
-        Object.keys(calEvts).forEach(dk => {
-          const idx = (calEvts[dk]||[]).findIndex(e => e.notionId === evt.id);
-          if (idx > -1 && dk !== evt.day) {
-            calEvts[dk].splice(idx, 1); // remove from old day
-            foundOtherDay = true;
+      let found = false;
+      Object.keys(calEvts).forEach(dk => {
+        const ex = (calEvts[dk]||[]).find(e => e.notionId === evt.id);
+        if (ex) {
+          found = true;
+          if (dk !== evt.day) {
+            calEvts[dk] = calEvts[dk].filter(e => e.notionId !== evt.id);
+            if (!calEvts[evt.day]) calEvts[evt.day] = [];
+            calEvts[evt.day].push({ title:evt.title, start:evt.start||null, end:evt.end||null, notionId:evt.id, fromNotion:true });
+          } else {
+            ex.title = evt.title; ex.start = evt.start||null; ex.end = evt.end||null;
           }
-        });
-        calEvts[evt.day].push({
-          title: evt.title,
-          start: evt.start || null,
-          end:   evt.end   || null,
-          notionId: evt.id,
-          fromNotion: true
-        });
+        }
+      });
+      if (!found) {
+        if (!calEvts[evt.day]) calEvts[evt.day] = [];
+        calEvts[evt.day].push({ title:evt.title, start:evt.start||null, end:evt.end||null, notionId:evt.id, fromNotion:true });
       }
     });
 
-    // 3. Push local-only events (created on website, not yet in Notion) to Notion
-    const localOnlyEvents = [];
+    // Push all local events without notionId
+    const toPush = [];
     Object.entries(calEvts).forEach(([dk, evts]) => {
       (evts||[]).forEach(evt => {
-        if (!evt.fromNotion && !evt.notionId && evt.title) { // push all events without notionId
-          localOnlyEvents.push({ title:evt.title, day:dk, start:evt.start, end:evt.end, _evt:evt });
+        if (!evt.notionId && evt.title && !evt.fromNotion) {
+          toPush.push({ title:evt.title, day:dk, start:evt.start||'', end:evt.end||'', _evt:evt });
         }
       });
     });
-    for (const item of localOnlyEvents) {
+    console.log('[Notion] Pushing', toPush.length, 'events');
+
+    for (const item of toPush) {
       try {
         const r = await fetch(NOTION_PROXY + '/add', {
           method: 'POST',
@@ -2968,26 +2966,34 @@ async function notionSync() {
           body: JSON.stringify({ title:item.title, day:item.day, start:item.start, end:item.end })
         });
         if (r.ok) {
-          const data = await r.json();
-          if (data?.id) item._evt.notionId = data.id;
+          let data = {};
+          try { data = await r.json(); } catch(_){}
+          if (data?.id) { item._evt.notionId = data.id; pushed++; }
+          else console.warn('[Notion] /add returned no id:', data);
+        } else {
+          const txt = await r.text().catch(()=>'');
+          errors.push('push HTTP'+r.status+': '+txt.slice(0,60));
+          console.warn('[Notion] push failed:', r.status, txt.slice(0,100));
         }
-      } catch(_) {}
+      } catch(e) { errors.push('push err: '+e.message); }
     }
 
-    save();
-    renderCal();
+    save(); renderCal();
+    const msg = pulled+'↓'+(pushed?'+'+pushed+'↑':'')+(errors.length?' ⚠'+errors.length:'');
     if (btn) {
-      btn.className = 'notion-sync-btn ok';
-      btn.textContent = '✓ ' + notionEvents.length + ' events';
-      setTimeout(() => { btn.className='notion-sync-btn'; btn.innerHTML='🔄 Notion'; }, 2500);
+      btn.className = errors.length ? 'notion-sync-btn err' : 'notion-sync-btn ok';
+      btn.textContent = '✓ ' + msg;
+      btn.title = errors.length ? errors.join('\n') : 'Pulled '+pulled+', pushed '+pushed;
+      setTimeout(() => { btn.className='notion-sync-btn'; btn.innerHTML='🔄 Notion'; btn.title=''; }, 4000);
     }
-    console.log('Notion sync OK:', notionEvents.length, 'events');
+    console.log('[Notion] Done:', msg);
   } catch(err) {
-    console.error('Notion sync error:', err);
+    console.error('[Notion] Error:', err);
     if (btn) {
       btn.className = 'notion-sync-btn err';
-      btn.textContent = '✕ Sync failed';
-      setTimeout(() => { btn.className='notion-sync-btn'; btn.innerHTML='🔄 Notion'; }, 3000);
+      btn.textContent = '✕ ' + (err.message||'failed').slice(0,30);
+      btn.title = err.message;
+      setTimeout(() => { btn.className='notion-sync-btn'; btn.innerHTML='🔄 Notion'; btn.title=''; }, 5000);
     }
   }
 }
@@ -5443,7 +5449,7 @@ function workRenderSidebar(){
       const done=att.filter(c=>c.status==='done').length;
       const total=(s.subs||{})[s.monthGroup]||0;
       const mgShort=workMonthLabel(s.monthGroup).slice(0,3).toUpperCase();
-      return`<div class="work-student${s.archived?' ws-archived':''}"
+      return`<div class="work-student${s.archived?' ws-archived':''}" oncontextmenu="event.preventDefault();workEditStudentModal(${s.id})"
         onclick="workOpenStudentPage(${s.id})"
         draggable="true" ondragstart="workDragStart(event,${s.id})"
         style="border-left:3px solid ${s.color||'#4285f4'}">
@@ -5534,7 +5540,7 @@ function workRenderAttendance(){
       const hasNote=(cell)=>!!(lessonNotes[s.id]&&lessonNotes[s.id][cell.num]);
 
       html+=`<div class="wa-student-row" draggable="true" ondragstart="workDragStart(event,${s.id})" style="border-left:3px solid ${s.color||'#4285f4'}20">
-        <div class="wa-name-col" onclick="workOpenStudentPage(${s.id})" title="Open ${esc(s.name)}'s page">
+        <div class="wa-name-col" onclick="workOpenStudentPage(${s.id})" oncontextmenu="event.preventDefault();event.stopPropagation();workEditStudentModal(${s.id})" title="Click → open page · Right-click → edit">
           <div class="wa-color-dot" style="background:${s.color||'#4285f4'}"></div>
           <div style="flex:1;min-width:0">
             <div class="wa-row-name">${esc(s.name)}</div>
@@ -5604,7 +5610,7 @@ function workOpenLessonPage(sid, cellIdx){
   if(!workData.lessonNotes) workData.lessonNotes={};
   if(!workData.lessonNotes[sid]) workData.lessonNotes[sid]={};
   const noteKey=cell.num;
-  if(!workData.lessonNotes[sid][noteKey]) workData.lessonNotes[sid][noteKey]={vocabulary:'',grammar:'',speaking:'',listening:'',homework:'',general:''};
+  if(!workData.lessonNotes[sid][noteKey]) workData.lessonNotes[sid][noteKey]={title:'',vocabulary:'',grammar:'',speaking:'',listening:'',homework:'',general:''};
   const ln=workData.lessonNotes[sid][noteKey];
 
   const CATS=[
@@ -5627,13 +5633,13 @@ function workOpenLessonPage(sid, cellIdx){
   page.innerHTML=`
     <div style="max-width:860px;margin:0 auto;padding:24px 24px 60px">
       <!-- Header -->
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
         <button onclick="document.getElementById('lesson-page').remove()"
           style="padding:6px 14px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif;font-size:13px">← Back</button>
         <div style="width:10px;height:10px;border-radius:50%;background:${s.color||'#4285f4'}"></div>
         <div>
-          <span style="font-size:18px;font-weight:700;color:var(--ink);font-family:'Instrument Serif',serif;font-style:italic">${esc(s.name)}</span>
-          <span style="font-size:14px;color:var(--muted);margin-left:10px">Lesson ${cell.num}</span>
+          <span style="font-size:16px;font-weight:700;color:var(--ink);font-family:'Instrument Serif',serif;font-style:italic;cursor:pointer" onclick="workOpenStudentPage(${sid})">${esc(s.name)}</span>
+          <span style="font-size:13px;color:var(--muted);margin-left:8px">· Lesson ${cell.num}</span>
         </div>
         <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
           <!-- Date input -->
@@ -5656,6 +5662,13 @@ function workOpenLessonPage(sid, cellIdx){
         </div>
       </div>
 
+      <!-- Lesson title -->
+      <div style="margin-bottom:14px">
+        <input id="lp-title" value="${esc(ln.title||'')}" placeholder="Lesson title (e.g. Present Perfect, Travel vocabulary…)"
+          oninput="workSaveLessonNote(${sid},${noteKey},'title',this.value)"
+          style="width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-size:15px;font-weight:500;font-family:'Geist',sans-serif;outline:none;box-sizing:border-box;transition:border-color .15s"
+          onfocus="this.style.borderColor='#06b6d4'" onblur="this.style.borderColor='var(--border)'"/>
+      </div>
       <!-- Note categories grid -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         ${CATS.map(cat=>`
@@ -6014,6 +6027,7 @@ function workModalSave(id){
       const newCells=Array.from({length:n},(_,i)=>existing[i]||{num:i+1,month:mg,date:'',status:'empty'});
       newCells.forEach((c,i)=>c.num=i+1);
       workData.attendance[id]=[...other,...newCells];
+      _workAutoFillDates(id, mg, newCells);
     }
   }
   workSave();
@@ -6058,72 +6072,65 @@ function workRenderArchive(){
 
   const archived = workData.students.filter(s => s.archived);
   if(!archived.length){
-    wrap.innerHTML = `<div class="work-empty">
-      <div class="work-empty-icon">🗄</div>
-      <div class="work-empty-text">No archived students</div>
-      <div class="work-empty-sub">Archive a student via their edit modal</div>
-    </div>`;
+    wrap.innerHTML = `<div class="work-empty"><div class="work-empty-icon">🗄</div><div class="work-empty-text">No archived students</div><div class="work-empty-sub">Archive a student from their page</div></div>`;
     return;
   }
 
-  // Group archived by monthGroup
   const groups = {};
-  archived.forEach(s => {
-    const mg = s.monthGroup || '?';
-    if(!groups[mg]) groups[mg] = [];
-    groups[mg].push(s);
-  });
+  archived.forEach(s => { const mg = s.monthGroup||'?'; if(!groups[mg])groups[mg]=[]; groups[mg].push(s); });
+  const MONTH_COLORS=['#4285f4','#34a853','#f59e0b','#e85a5a','#8b5cf6','#06b6d4','#f472b6','#10b981'];
+  let mci=0; const monthColor={};
+  Object.keys(groups).sort().forEach(mk=>{ monthColor[mk]=MONTH_COLORS[mci++%MONTH_COLORS.length]; });
 
   let html = '<div class="wa-table">';
-
   Object.keys(groups).sort().forEach(mk => {
-    const mObj = workData.months.find(m => m.key === mk);
+    const mObj = workData.months.find(m=>m.key===mk);
     const mLabel = mObj?.label || workMonthLabel(mk) || mk;
-
+    const mc = monthColor[mk];
     html += `<div class="wa-month-group">
-      <div class="wa-month-hd">
-        <span class="wa-month-label" style="color:var(--muted)">${esc(mLabel)}</span>
-        <span style="font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-left:4px">${mk}</span>
+      <div class="wa-month-hd" style="border-left:3px solid ${mc};opacity:.7">
+        <span class="wa-month-label" style="color:${mc}">${esc(mLabel)}</span>
+        <span style="font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace">${mk}</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--subtle);padding:1px 8px;background:var(--surface2);border-radius:4px">archived</span>
       </div>`;
 
     groups[mk].forEach(s => {
-      const att = (workData.attendance[s.id] || []).filter(c => c.month === s.monthGroup);
-      const done   = att.filter(c => c.status === 'done').length;
-      const missed = att.filter(c => c.status === 'missed').length;
+      const att = (workData.attendance[s.id]||[]).filter(c=>c.month===s.monthGroup);
+      const done   = att.filter(c=>c.status==='done').length;
+      const missed = att.filter(c=>c.status==='missed').length;
       const total  = att.length;
-      const pct    = total > 0 ? Math.round(done/total*100) : 0;
-      const price  = (s.price || {})[s.monthGroup] || 0;
-      const hw     = workData.homework[s.id] || [];
-      const hwSent    = hw.filter(h => h.month === s.monthGroup && (h.hw === 'sent' || h.hw === 'checked')).length;
-      const hwChecked = hw.filter(h => h.month === s.monthGroup && h.hw === 'checked').length;
+      const lessonNotes = workData.lessonNotes||{};
+      const hasNote=(cell)=>!!(lessonNotes[s.id]&&lessonNotes[s.id][cell.num]);
+      const fullAtt = workData.attendance[s.id]||[];
 
-      html += `<div class="wa-student-row" onclick="workOpenStudentPage(${s.id})" style="opacity:.7;cursor:pointer">
-        <div class="wa-row-head">
-          <div class="wa-color-dot" style="background:#3d3a35"></div>
-          <span class="wa-row-name" style="color:var(--muted)">${esc(s.name)}</span>
-          <span class="wa-row-meta">${done}✓ ${missed ? missed+'✕ ':''}</span>
-          ${total ? `<div class="wa-progress" style="max-width:120px"><div class="wa-progress-fill" style="width:${pct}%;background:${done>=total?'#34a853':'#4285f4'}"></div></div>
-          <span class="wa-row-meta" style="color:${done>=total?'#34a853':'var(--muted)'}">${done}/${total} · ${pct}%</span>` : ''}
-          ${price ? `<span class="wa-row-meta" style="color:#34d399;font-family:'Geist Mono',monospace;margin-left:8px">${price.toLocaleString('ru-KZ')} ₸</span>` : ''}
-          ${hwSent ? `<span class="wa-row-meta" style="color:#06b6d4">HW: ${hwChecked}✅${hwSent-hwChecked ? ' '+(hwSent-hwChecked)+'📤' : ''}</span>` : ''}
-          <button onclick="event.stopPropagation();workArchiveStudent(${s.id})" style="margin-left:auto;padding:2px 10px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif">Unarchive</button>
+      html += `<div class="wa-student-row" style="opacity:.65;border-left:3px solid ${s.color||'#4285f4'}18">
+        <div class="wa-name-col" onclick="workOpenStudentPage(${s.id})" oncontextmenu="event.preventDefault();event.stopPropagation();workEditStudentModal(${s.id})" title="Click → open · Right-click → edit" style="cursor:pointer">
+          <div class="wa-color-dot" style="background:${s.color||'#4285f4'}88"></div>
+          <div style="flex:1;min-width:0">
+            <div class="wa-row-name" style="color:#a0a0a0">${esc(s.name)}</div>
+            ${total?`<div class="wa-row-meta" style="color:${done>=total?'#34a853':'#8ab4f8'}">${done}/${total}</div>`:'<div class="wa-row-meta">—</div>'}
+          </div>
+          <button onclick="event.stopPropagation();workArchiveStudent(${s.id})" style="padding:1px 6px;background:none;border:1px solid #252320;border-radius:3px;color:#6b6760;cursor:pointer;font-size:10px;font-family:'Geist',sans-serif;flex-shrink:0">↑</button>
         </div>
-        <div class="wa-cells" onclick="event.stopPropagation()">
-          ${att.map((cell,i) => {
-            const cls = cell.status==='done' ? 'wc-done' : cell.status==='missed' ? 'wc-missed' : 'wc-empty';
-            return `<div class="wa-cell ${cls}" style="width:44px;height:44px;opacity:.8"
-              title="Lesson ${cell.num}${cell.date?' · '+cell.date:''}">
-              <span class="wc-date">${esc(cell.date||'·')}</span>
-              <span class="wc-num">${cell.num}</span>
-              <span class="wc-icon">${cell.status==='done'?'✓':cell.status==='missed'?'✕':''}</span>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>`;
+        <div class="wa-cells">`;
+
+      att.forEach((cell,i) => {
+        const fullIdx = fullAtt.indexOf(cell);
+        const cls = cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
+        const hn = hasNote(cell);
+        html += `<div class="wa-cell ${cls}${hn?' wc-has-note':''}"
+          onclick="event.stopPropagation();workOpenLessonPage(${s.id},${fullIdx})"
+          title="Lesson ${cell.num}${cell.date?' · '+cell.date:''}">
+          <span class="wc-date">${esc(cell.date||' ')}</span>
+          <span class="wc-num">${cell.num}</span>
+        </div>`;
+      });
+
+      if(!att.length) html += `<span style="font-size:11px;color:var(--subtle);font-style:italic;padding:0 8px">no subscription data</span>`;
+      html += `</div></div>`;
     });
     html += `</div>`;
   });
-
   html += '</div>';
   wrap.innerHTML = html;
 }
@@ -6442,6 +6449,45 @@ function workCreateNoteForStudent(name){
   show('notes');
   setTimeout(()=>editNoteFocus(n.id), 100);
 }
+
+// ── AUTO-FILL PLANNED DATES FROM SCHEDULE ──
+function _workAutoFillDates(sid, monthKey, cells){
+  const s = workData.students.find(x=>x.id===sid);
+  if(!s||!s.schedule||!s.schedule.length) return;
+
+  // Generate upcoming lesson dates from schedule
+  const [y,m] = monthKey.split('-').map(Number);
+  // Look ahead 3 months from the monthKey
+  const startDate = new Date(y, m-1, 1);
+  const endDate   = new Date(y, m+2, 0); // 3 months ahead
+
+  const upcomingDates = [];
+  s.schedule.forEach(slot => {
+    const d = new Date(startDate);
+    // Advance to first occurrence of this weekday
+    while(d.getDay() !== slot.dow) d.setDate(d.getDate()+1);
+    while(d <= endDate){
+      upcomingDates.push({date:d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0'), ts:d.getTime()});
+      d.setDate(d.getDate()+7);
+    }
+  });
+  upcomingDates.sort((a,b)=>a.ts-b.ts);
+
+  // Fill empty cells with upcoming dates (only cells without a date already)
+  let di = 0;
+  // Skip dates that are in the past
+  const now = Date.now();
+  while(di < upcomingDates.length && upcomingDates[di].ts < now - 86400000) di++;
+
+  cells.forEach(cell => {
+    if(cell.date || cell.status !== 'empty') return; // already has date or filled
+    if(di < upcomingDates.length){
+      cell.date = upcomingDates[di].date;
+      di++;
+    }
+  });
+}
+
 // ── INIT ──
 renderTagSel();
 renderTopics();
