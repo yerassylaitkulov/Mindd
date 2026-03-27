@@ -498,6 +498,9 @@ canvas#gc{width:100%;height:100%;display:block}
 .wa-cell.wc-empty{background:#141210;border:1px dashed #252320}
 .wa-cell.wc-done{background:#0c2216;border-color:#1a4a28}
 .wa-cell.wc-missed{background:#1e0a0a;border-color:#3a1212}
+.wa-cell.wc-planned{background:#051a1e;border-color:#06b6d4}
+.wa-cell.wc-planned .wc-date{color:#06b6d4}
+.wa-cell.wc-planned .wc-num{color:#067a8f}
 .wa-cell.wc-has-note::after{content:'';position:absolute;top:2px;right:2px;width:4px;height:4px;border-radius:50%;background:#8ab4f8}
 .wa-cell .wc-date{font-size:9px;font-family:'Geist Mono',monospace;font-weight:700;line-height:1}
 .wa-cell.wc-empty .wc-date{color:#2e2b26}
@@ -5734,50 +5737,128 @@ function workNavLesson(sid, currentIdx, dir){
     workOpenLessonPage(sid,newIdx);
   }
 }
-// ── HOMEWORK ──
+// ── HOMEWORK — compact cell-based layout ──
 function workRenderHomework(){
   const wrap=document.getElementById('work-hw-wrap');
   if(!wrap)return;
   const active=workData.students.filter(s=>!s.archived);
   if(!active.length){ wrap.innerHTML=`<div class="work-empty"><div class="work-empty-icon">📝</div><div class="work-empty-text">No students yet</div></div>`; return; }
 
-  let html=`<div class="hw-table-wrap"><table class="hw-table">
-    <thead><tr>
-      <th>Student</th><th>#</th><th>Date</th><th>Homework</th><th>Notes</th>
-    </tr></thead><tbody>`;
+  // Group by monthGroup same as attendance
+  const groups={};
+  active.forEach(s=>{ const mg=s.monthGroup||'?'; if(!groups[mg])groups[mg]=[]; groups[mg].push(s); });
+  const MONTH_COLORS=['#4285f4','#34a853','#f59e0b','#e85a5a','#8b5cf6','#06b6d4','#f472b6','#10b981'];
+  let mci=0; const monthColor={};
+  Object.keys(groups).sort().forEach(mk=>{ monthColor[mk]=MONTH_COLORS[mci++%MONTH_COLORS.length]; });
 
-  active.forEach(s=>{
-    const att=(workData.attendance[s.id]||[]).filter(c=>c.status==='done'||c.status==='missed');
-    if(!att.length){
-      html+=`<tr><td style="color:${s.color||'#4285f4'};font-weight:600">${esc(s.name)}</td>
-        <td colspan="4" style="color:var(--subtle);font-size:12px;font-style:italic">No lessons recorded</td></tr>
-      <tr><td colspan="5" style="height:6px;border-bottom:1px solid var(--border)"></td></tr>`;
-      return;
-    }
-    const hw=workData.homework[s.id]||[];
-    att.forEach((cell,i)=>{
-      const hwRec=hw.find(h=>h.month===cell.month&&h.num===cell.num)||{};
-      const curHw=hwRec.hw||'';
-      html+=`<tr style="${cell.status==='missed'?'opacity:.4':''}">
-        <td style="color:${i===0?(s.color||'#4285f4'):'transparent'};font-weight:600">${i===0?esc(s.name):''}</td>
-        <td style="font-family:'Geist Mono',monospace;font-size:12px;color:${cell.status==='done'?'#34a853':'#e85a5a'};font-weight:700">
-          ${cell.status==='done'?'✓':'✕'} ${cell.num}</td>
-        <td style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--muted)">${esc(cell.date||'—')}</td>
-        <td><select onchange="workSetHw(${s.id},${cell.num},this.value,'${cell.month}')"
-            style="padding:4px 10px;background:${curHw==='checked'?'#0a2014':curHw==='sent'?'#0a1a2e':'var(--surface)'};border:1px solid ${curHw==='checked'?'#34a853':curHw==='sent'?'#06b6d4':'var(--border)'};border-radius:6px;color:var(--ink);font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none;min-width:130px">
-            <option value="" ${!curHw?'selected':''}>— no HW</option>
-            <option value="sent" ${curHw==='sent'?'selected':''}>📤 Sent</option>
-            <option value="checked" ${curHw==='checked'?'selected':''}>✅ Checked</option>
-          </select></td>
-        <td><input value="${esc(hwRec.note||'')}" placeholder="note…"
-            onchange="workSetHwNote(${s.id},${cell.num},this.value,'${cell.month}')"
-            style="background:none;border:none;border-bottom:1px solid var(--border-light);color:var(--ink);font-size:12px;font-family:'Geist',sans-serif;outline:none;width:180px;padding:2px 4px"/></td>
-      </tr>`;
+  let html='<div class="wa-table">';
+  Object.keys(groups).sort().forEach(mk=>{
+    const mObj=workData.months.find(m=>m.key===mk);
+    const mLabel=mObj?.label||workMonthLabel(mk)||mk;
+    const mc=monthColor[mk];
+
+    html+=`<div class="wa-month-group">
+      <div class="wa-month-hd" style="border-left:3px solid ${mc}">
+        <span class="wa-month-label" style="color:${mc}">${esc(mLabel)}</span>
+        <span style="font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace">${mk}</span>
+      </div>`;
+
+    groups[mk].forEach(s=>{
+      const allAtt=workData.attendance[s.id]||[];
+      const mgAtt=allAtt.filter(c=>c.month===s.monthGroup);
+      const hw=workData.homework[s.id]||[];
+      const hwByNum={};
+      hw.filter(h=>h.month===s.monthGroup).forEach(h=>{ hwByNum[h.num]=h; });
+      const checked=Object.values(hwByNum).filter(h=>h.hw==='checked').length;
+      const sent=Object.values(hwByNum).filter(h=>h.hw==='sent').length;
+      const doneAtt=mgAtt.filter(c=>c.status==='done'||c.status==='missed');
+
+      html+=`<div class="wa-student-row" style="border-left:3px solid ${s.color||'#4285f4'}20">
+        <div class="wa-name-col" onclick="workOpenStudentPage(${s.id})"
+          oncontextmenu="event.preventDefault();workEditStudentModal(${s.id})"
+          title="Click → student page · Right-click → edit">
+          <div class="wa-color-dot" style="background:${s.color||'#4285f4'}"></div>
+          <div style="flex:1;min-width:0">
+            <div class="wa-row-name">${esc(s.name)}</div>
+            <div class="wa-row-meta" style="color:${checked===doneAtt.length&&doneAtt.length>0?'#34a853':'var(--muted)'}">✅${checked} 📤${sent}</div>
+          </div>
+        </div>
+        <div class="wa-cells">`;
+
+      // One cell per lesson that was done or missed
+      if(!doneAtt.length){
+        html+=`<span style="font-size:11px;color:var(--subtle);font-style:italic;padding:0 8px">no lessons done yet</span>`;
+      } else {
+        doneAtt.forEach(cell=>{
+          const h=hwByNum[cell.num]||{};
+          const curHw=h.hw||'';
+          const fullIdx=allAtt.indexOf(cell);
+          // Cell color: green=checked, cyan=sent, dimmed=none. Show date.
+          const bg=curHw==='checked'?'#0c2216':curHw==='sent'?'#0a1a2e':'#141210';
+          const borderC=curHw==='checked'?'#1a4a28':curHw==='sent'?'#06b6d4':'#252320';
+          const borderStyle=curHw?'solid':'dashed';
+          const dateC=curHw==='checked'?'#5af07a':curHw==='sent'?'#06b6d4':'#3d3a35';
+          const numC=curHw==='checked'?'#34a853':curHw==='sent'?'#06b6d4':'#2e2b26';
+          const note=h.note||'';
+          html+=`<div class="wa-cell"
+            style="background:${bg};border:1px ${borderStyle} ${borderC};${cell.status==='missed'?'opacity:.5':''}"
+            onclick="workHwCellClick(event,${s.id},${fullIdx},'${cell.month}')"
+            title="Lesson ${cell.num}${cell.date?' · '+cell.date:''} — ${curHw||'no HW'}${note?' · '+note:''}">
+            <span class="wc-date" style="color:${dateC}">${esc(cell.date||' ')}</span>
+            <span class="wc-num" style="color:${numC}">${cell.num}</span>
+            ${curHw==='missed'?'':''}
+          </div>`;
+        });
+      }
+
+      html+=`</div></div>`;
     });
-    html+=`<tr><td colspan="5" style="height:8px;border-bottom:1px solid var(--border)"></td></tr>`;
+    html+=`</div>`;
   });
-  html+=`</tbody></table></div>`;
+  html+='</div>';
   wrap.innerHTML=html;
+}
+
+// Click on HW cell → small popup to set HW status + note
+let _hwCellPopup=null;
+function workHwCellClick(e, sid, cellIdx, monthKey){
+  e.stopPropagation();
+  document.getElementById('hw-cell-popup')?.remove();
+  const s=workData.students.find(x=>x.id===sid);if(!s)return;
+  const cell=(workData.attendance[sid]||[])[cellIdx];if(!cell)return;
+  const hw=workData.homework[sid]||[];
+  const rec=hw.find(h=>h.month===monthKey&&h.num===cell.num)||{};
+  const curHw=rec.hw||'';
+
+  const popup=document.createElement('div');
+  popup.id='hw-cell-popup';
+  popup.className='wa-date-popup';
+  popup.style.minWidth='220px';
+  popup.innerHTML=`
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:'Geist Mono',monospace">${esc(s.name)} · Lesson ${cell.num}${cell.date?' · '+cell.date:''}</div>
+    <div style="display:flex;gap:4px;margin-bottom:8px">
+      <button onclick="workSetHw(${sid},${cell.num},'','${monthKey}');document.getElementById('hw-cell-popup').remove();workRenderHomework()"
+        style="flex:1;padding:5px;border-radius:5px;border:1px solid var(--border);background:${!curHw?'var(--surface2)':'none'};color:var(--muted);cursor:pointer;font-size:11px">— None</button>
+      <button onclick="workSetHw(${sid},${cell.num},'sent','${monthKey}');document.getElementById('hw-cell-popup').remove();workRenderHomework()"
+        style="flex:1;padding:5px;border-radius:5px;border:1px solid ${curHw==='sent'?'#06b6d4':'var(--border)'};background:${curHw==='sent'?'#0a1a2e':'none'};color:${curHw==='sent'?'#06b6d4':'var(--muted)'};cursor:pointer;font-size:11px">📤 Sent</button>
+      <button onclick="workSetHw(${sid},${cell.num},'checked','${monthKey}');document.getElementById('hw-cell-popup').remove();workRenderHomework()"
+        style="flex:1;padding:5px;border-radius:5px;border:1px solid ${curHw==='checked'?'#34a853':'var(--border)'};background:${curHw==='checked'?'#0c2216':'none'};color:${curHw==='checked'?'#34a853':'var(--muted)'};cursor:pointer;font-size:11px">✅ Checked</button>
+    </div>
+    <input placeholder="Note (optional)" value="${esc(rec.note||'')}"
+      onchange="workSetHwNote(${sid},${cell.num},this.value,'${monthKey}');workRenderHomework()"
+      style="width:100%;padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;font-family:'Geist',sans-serif;outline:none;box-sizing:border-box"
+      onkeydown="if(event.key==='Enter'||event.key==='Escape')document.getElementById('hw-cell-popup')?.remove()"/>`;
+
+  document.body.appendChild(popup);
+  let x=e.clientX, y=e.clientY+8;
+  if(x+230>window.innerWidth) x=window.innerWidth-235;
+  if(y+130>window.innerHeight) y=e.clientY-130;
+  popup.style.cssText=`left:${Math.max(6,x)}px;top:${Math.max(6,y)}px;min-width:220px`;
+  setTimeout(()=>document.addEventListener('mousedown',ev=>{
+    const p=document.getElementById('hw-cell-popup');
+    if(p&&!p.contains(ev.target))p.remove();
+  },{once:true}),0);
+  popup.querySelector('input').focus();
 }
 
 function workSetHw(sid, num, status, monthKey){
@@ -6243,6 +6324,40 @@ function workRenderFinances(){
 }
 
 
+// ── STUDENT PAGE SCHEDULE HELPERS ──
+function spAddScheduleSlot(id){
+  const s=workData.students.find(x=>x.id===id);if(!s)return;
+  if(!s.schedule)s.schedule=[];
+  s.schedule.push({dow:1,time:'09:00',duration:60});
+  workSave();
+  workOpenStudentPage(id);
+}
+
+function spRemoveScheduleSlot(id, idx){
+  const s=workData.students.find(x=>x.id===id);if(!s)return;
+  s.schedule.splice(idx,1);
+  workSave();
+  workOpenStudentPage(id);
+}
+
+function spUpdateSchedule(id, idx, field, val){
+  const s=workData.students.find(x=>x.id===id);if(!s||!s.schedule?.[idx])return;
+  s.schedule[idx][field] = field==='dow'?parseInt(val):field==='duration'?parseInt(val):val;
+  workSave();
+}
+
+function spUpdateScheduleTime(id, idx, container){
+  const sels=container.querySelectorAll('select');
+  if(sels.length<3)return;
+  const h12=parseInt(sels[0].value), mins=sels[1].value, ap=sels[2].value;
+  let h24=h12;
+  if(ap==='AM'&&h12===12) h24=0;
+  else if(ap==='PM'&&h12!==12) h24=h12+12;
+  const timeStr=String(h24).padStart(2,'0')+':'+mins;
+  spUpdateSchedule(id, idx, 'time', timeStr);
+}
+
+
 // ══════════════════════════════════════════
 // STUDENT PAGE — full detail view
 // ══════════════════════════════════════════
@@ -6251,119 +6366,204 @@ function workOpenStudentPage(id){
   const s = workData.students.find(x=>x.id===id);
   if(!s) return;
 
-  const att = workData.attendance[id] || [];
-  const hw  = workData.homework[id]   || [];
-  const mg  = s.monthGroup || workCurrentMonth;
-  const DOW = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const att  = workData.attendance[id] || [];
+  const hw   = workData.homework[id]   || [];
+  const mg   = s.monthGroup || workCurrentMonth;
   const DOWS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
   // Attendance cells for month group
-  const mgAtt = att.filter(c=>c.month===mg);
+  const mgAtt  = att.filter(c=>c.month===mg);
   const done   = mgAtt.filter(c=>c.status==='done').length;
+  const missed = mgAtt.filter(c=>c.status==='missed').length;
   const total  = mgAtt.length;
   const pct    = total>0?Math.round(done/total*100):0;
   const price  = (s.price||{})[mg]||0;
+  const aim    = s.aim||'';
+  const lessonNotes = workData.lessonNotes||{};
 
-  // Schedule display
-  const schedHTML = (s.schedule||[]).length
-    ? (s.schedule||[]).map(slot=>{
-        const[h24,m]=(slot.time||'09:00').split(':').map(Number);
-        const ap=h24<12?'AM':'PM'; const h12=h24===0?12:h24>12?h24-12:h24;
-        return`<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light)">
-          <span style="font-size:13px;color:var(--ink);font-weight:500;min-width:50px">${DOWS[slot.dow]||''}</span>
-          <span style="font-size:13px;color:#8ab4f8;font-family:'Geist Mono',monospace">${h12}:${String(m).padStart(2,'0')} ${ap}</span>
-          <span style="font-size:12px;color:var(--muted)">${slot.duration||60} min</span>
-        </div>`;
-      }).join('')
-    : '<span style="color:var(--subtle);font-size:12px;font-style:italic">No schedule set</span>';
+  // HW cells — same visual style as attendance
+  const hwByLesson = {};
+  hw.filter(h=>h.month===mg).forEach(h=>{ hwByLesson[h.num]=h; });
+  const hwCellsHTML = mgAtt.map(cell=>{
+    const h = hwByLesson[cell.num];
+    const hwStatus = h?.hw||'none';
+    const cls = hwStatus==='checked'?'wc-done':hwStatus==='sent'?'wc-planned':'wc-empty';
+    const color = hwStatus==='checked'?'#34a853':hwStatus==='sent'?'#06b6d4':'';
+    return`<div class="wa-cell ${cls}"
+      onclick="document.getElementById('student-page').remove();show('work');workShowSection('homework')"
+      title="Lesson ${cell.num}${cell.date?' · '+cell.date:''} — HW: ${hwStatus}"
+      style="${color?'border-color:'+color+';background:'+color+'18':''}">
+      <span class="wc-date">${esc(cell.date||' ')}</span>
+      <span class="wc-num">${cell.num}</span>
+    </div>`;
+  }).join('') || '<span style="color:var(--subtle);font-size:12px;font-style:italic">No lessons yet</span>';
 
-  // Calendar events for this student
-  const calEvents = [];
+  // Auto-compute planned dates for empty cells from schedule
+  function spGetPlannedDate(cellIdx, existingDates){
+    if(!s.schedule||!s.schedule.length) return '';
+    // Count empty cells before this one to know which slot to use
+    const emptysBefore = mgAtt.slice(0,cellIdx).filter(c=>!c.date&&c.status==='empty').length;
+    // Build future schedule dates
+    const upcoming=[];
+    const today=new Date(); today.setHours(0,0,0,0);
+    s.schedule.forEach(slot=>{
+      const d=new Date(today);
+      const dayDiff=(slot.dow-d.getDay()+7)%7;
+      d.setDate(d.getDate()+(dayDiff||7));
+      for(let w=0;w<20;w++){
+        const dk=d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');
+        if(!existingDates.has(dk)) upcoming.push(dk);
+        d.setDate(d.getDate()+7);
+      }
+    });
+    upcoming.sort();
+    return upcoming[emptysBefore]||'';
+  }
+  const existingDates=new Set(mgAtt.filter(c=>c.date).map(c=>c.date));
+
+  // Attendance cells
+  const cellsHTML = mgAtt.map((cell,i)=>{
+    const cls = cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
+    const hasNote = !!(lessonNotes[id]&&lessonNotes[id][cell.num]);
+    const fullIdx = att.indexOf(cell);
+    const ln = lessonNotes[id]?.[cell.num];
+    const title = ln?.title||'';
+    // For empty cells, show planned date from schedule (dimmer)
+    const plannedDate = (!cell.date && cell.status==='empty') ? spGetPlannedDate(i, existingDates) : '';
+    const displayDate = cell.date || plannedDate;
+    const isPlanned = !cell.date && !!plannedDate;
+    return`<div class="wa-cell ${cls}${hasNote?' wc-has-note':''}"
+      onclick="workOpenLessonPage(${id},${fullIdx})"
+      title="Lesson ${cell.num}${displayDate?' · '+displayDate:''}${isPlanned?' (planned)':''}${title?' — '+title:''}">
+      <span class="wc-date" style="${isPlanned?'opacity:.45':''}${isPlanned&&cls==='wc-empty'?';color:#8ab4f8':''}">${esc(displayDate||' ')}</span>
+      <span class="wc-num">${cell.num}</span>
+    </div>`;
+  }).join('') || '<span style="color:var(--subtle);font-size:12px;font-style:italic;padding:8px">Click "Set lessons" to add subscription</span>';
+
+  // Schedule HTML — with inline delete/edit per slot
+  const DOW_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const _buildSchedSlot=(slot,i)=>{
+    const[h24,m]=(slot.time||'09:00').split(':').map(Number);
+    const ap=h24<12?'AM':'PM'; const h12=h24===0?12:h24>12?h24-12:h24;
+    return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light)">
+      <select onchange="spUpdateSchedule(${id},${i},'dow',this.value)"
+        style="padding:2px 6px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+        ${DOW_NAMES.map((d,di)=>`<option value="${di}" ${slot.dow==di?'selected':''}>${d}</option>`).join('')}
+      </select>
+      <div style="display:flex;gap:2px;align-items:center">
+        <select onchange="spUpdateScheduleTime(${id},${i},this.parentElement)"
+          style="padding:2px 4px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:#8ab4f8;font-size:12px;outline:none;cursor:pointer;font-family:'Geist Mono',monospace">
+          ${[12,1,2,3,4,5,6,7,8,9,10,11].map(h=>`<option value="${h}" ${h===h12?'selected':''}>${h}</option>`).join('')}
+        </select>:<select onchange="spUpdateScheduleTime(${id},${i},this.parentElement)"
+          style="padding:2px 4px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:#8ab4f8;font-size:12px;outline:none;cursor:pointer;font-family:'Geist Mono',monospace;min-width:38px">
+          ${['00','15','30','45'].map(mv=>`<option value="${mv}" ${parseInt(mv)===m?'selected':''}>${mv}</option>`).join('')}
+        </select>
+        <select onchange="spUpdateScheduleTime(${id},${i},this.parentElement)"
+          style="padding:2px 4px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:#8ab4f8;font-size:12px;outline:none;cursor:pointer">
+          <option value="AM" ${ap==='AM'?'selected':''}>AM</option><option value="PM" ${ap==='PM'?'selected':''}>PM</option>
+        </select>
+      </div>
+      <input type="number" value="${slot.duration||60}" min="15" max="180" step="15"
+        onchange="spUpdateSchedule(${id},${i},'duration',this.value)"
+        style="width:44px;padding:2px 4px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:11px;outline:none;text-align:center"/>
+      <span style="font-size:10px;color:var(--subtle)">min</span>
+      <button onclick="spRemoveScheduleSlot(${id},${i})" style="margin-left:auto;background:none;border:none;color:var(--subtle);cursor:pointer;font-size:13px;padding:0 4px">✕</button>
+    </div>`;
+  };
+  const schedHTMLInline = (s.schedule||[]).length
+    ? (s.schedule||[]).map((slot,i)=>_buildSchedSlot(slot,i)).join('')
+    : '<span style="color:var(--subtle);font-size:12px;font-style:italic">No schedule yet — click + Add</span>';
+  const schedHTML = schedHTMLInline; // keep for compatibility
+
+  // Calendar events
+  const calEvents=[];
   Object.entries(calEvts||{}).forEach(([dk,evts])=>{
     (evts||[]).forEach(evt=>{
-      if(evt.title&&evt.title.toLowerCase().includes(s.name.toLowerCase())){
-        calEvents.push({dk,evt});
-      }
+      if(evt.title&&evt.title.toLowerCase().includes(s.name.toLowerCase())) calEvents.push({dk,evt});
     });
   });
   calEvents.sort((a,b)=>a.dk.localeCompare(b.dk));
-  const calHTML = calEvents.slice(-8).map(({dk,evt})=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border-light)">
-      <span style="font-size:11px;font-family:'Geist Mono',monospace;color:var(--muted);min-width:80px">${dk}</span>
-      <span style="font-size:12px;color:var(--ink)">${esc(evt.title)}</span>
-      ${evt.start?`<span style="font-size:11px;color:#8ab4f8;font-family:'Geist Mono',monospace">${fmtTime(evt.start)}${evt.end?' – '+fmtTime(evt.end):''}</span>`:''}
-    </div>`).join('') || '<span style="color:var(--subtle);font-size:12px;font-style:italic">No calendar events found</span>';
+  const calHTML = calEvents.slice(-6).map(({dk,evt})=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border-light)">
+      <span style="font-size:10px;font-family:'Geist Mono',monospace;color:var(--subtle);min-width:72px">${dk}</span>
+      <span style="font-size:12px;color:var(--ink);flex:1">${esc(evt.title)}</span>
+      ${evt.start?`<span style="font-size:11px;color:#8ab4f8;font-family:'Geist Mono',monospace">${fmtTime(evt.start)}</span>`:''}
+    </div>`).join('') || '<span style="color:var(--subtle);font-size:12px;font-style:italic">No calendar events</span>';
 
-  // Kanban tasks mentioning student
-  const tasks = [];
-  Object.entries(kanban||{}).forEach(([col,items])=>{
-    (items||[]).forEach(item=>{
-      if(item.text&&item.text.toLowerCase().includes(s.name.toLowerCase())){
-        tasks.push({col,item});
-      }
-    });
-  });
-  const tasksHTML = tasks.length
-    ? tasks.map(({col,item})=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light)">
-        <span style="font-size:10px;padding:2px 7px;background:var(--surface2);border-radius:99px;color:var(--muted);font-family:'Geist Mono',monospace">${esc(col)}</span>
-        <span style="font-size:12px;color:var(--ink)">${esc(item.text)}</span>
-      </div>`).join('')
-    : '<span style="color:var(--subtle);font-size:12px;font-style:italic">No kanban tasks found</span>';
-
-  // Notes mentioning student
-  const studentNotes = (notes||[]).filter(n=>(n.title+n.body).toLowerCase().includes(s.name.toLowerCase()));
+  // Notes
+  const studentNotes=(notes||[]).filter(n=>(n.title+' '+n.body).toLowerCase().includes(s.name.toLowerCase()));
   const notesHTML = studentNotes.length
-    ? studentNotes.map(n=>`<div onclick="editNoteFocus(${n.id})" style="padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:6px;transition:border-color .1s" onmouseover="this.style.borderColor='#06b6d4'" onmouseout="this.style.borderColor='var(--border)'">
-        <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:3px">${esc(n.title||'(untitled)')}</div>
-        <div style="font-size:11px;color:var(--subtle)">${n.topic||'no topic'} · ${n.date||''}</div>
+    ? studentNotes.map(n=>`<div onclick="document.getElementById('student-page').remove();editNoteFocus(${n.id})"
+        style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:5px;transition:border-color .1s"
+        onmouseover="this.style.borderColor='#06b6d4'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:13px;font-weight:500;color:var(--ink)">${esc(n.title||'(untitled)')}</div>
+        <div style="font-size:10px;color:var(--subtle);margin-top:2px">${n.topic||'no topic'} · ${n.date||''}</div>
       </div>`).join('')
-    : '<span style="color:var(--subtle);font-size:12px;font-style:italic">No notes found mentioning this student</span>';
+    : '<span style="color:var(--subtle);font-size:12px;font-style:italic">No notes found</span>';
 
-  // Attendance cell grid
-  const cellsHTML = mgAtt.map((cell,i)=>{
-    const cls = cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
-    return`<div class="wa-cell ${cls}" onclick="workCellClick(event,${id},${att.indexOf(cell)})" title="Lesson ${cell.num}${cell.date?' · '+cell.date:''}">
-      <span class="wc-date">${esc(cell.date||'·')}</span>
-      <span class="wc-num">${cell.num}</span>
-      <span class="wc-icon">${cell.status==='done'?'✓':cell.status==='missed'?'✕':''}</span>
-    </div>`;
-  }).join('');
+  // Aim stickers
+  const AIM_STICKERS = ['🎯','⭐','🏆','🚀','💪','📈','🎓','🌟','✨','🔥','💡','🎵'];
+  const aimStickerHTML = AIM_STICKERS.map(st=>
+    `<span onclick="spToggleAimSticker(${id},'${st}')"
+      style="font-size:18px;cursor:pointer;opacity:${(s.aimStickers||[]).includes(st)?1:.25};transition:opacity .1s;user-select:none"
+      title="${st}">${st}</span>`
+  ).join('');
 
   const page = document.createElement('div');
   page.id = 'student-page';
   page.style.cssText = 'position:fixed;inset:0;z-index:4000;background:#0e0d0b;overflow-y:auto;animation:fi .15s ease';
+
+  // Helper: editable card builder
+  const card = (icon, label, contentHTML, onClickFn='', extraBtn='') => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;${onClickFn?'cursor:pointer;':''}"
+      ${onClickFn?`onclick="${onClickFn}"`:''}>
+      <div style="padding:9px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:7px">
+        <span style="font-size:14px">${icon}</span>
+        <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">${label}</span>
+        ${extraBtn}
+      </div>
+      <div style="padding:12px 14px">${contentHTML}</div>
+    </div>`;
+
   page.innerHTML = `
-    <div style="max-width:900px;margin:0 auto;padding:28px 24px">
+    <div style="max-width:900px;margin:0 auto;padding:24px 20px 60px">
+
       <!-- Header -->
-      <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px">
-        <button onclick="document.getElementById('student-page').remove()" 
-          style="padding:6px 14px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif;font-size:13px">← Back</button>
-        <div style="width:16px;height:16px;border-radius:50%;background:${s.color||'#4285f4'}"></div>
-        <h1 style="font-size:24px;font-weight:700;color:var(--ink);margin:0;font-family:'Instrument Serif',serif;font-style:italic">${esc(s.name)}</h1>
-        ${s.archived?'<span style="padding:3px 10px;background:var(--surface2);border-radius:99px;font-size:11px;color:var(--muted)">Archived</span>':''}
-        <button onclick="workEditStudentModal(${id})" 
-          style="margin-left:auto;padding:7px 18px;background:#06b6d4;color:#0a0a08;border:none;border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;font-weight:700">✏ Edit</button>
-        <button onclick="workSetSubOnPage(${id})" 
-          style="padding:7px 14px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;color:var(--muted)">Set lessons</button>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <button onclick="document.getElementById('student-page').remove()"
+          style="padding:5px 12px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif;font-size:13px">←</button>
+        <div style="width:14px;height:14px;border-radius:50%;background:${s.color||'#4285f4'}"></div>
+        <h1 style="font-size:22px;font-weight:700;color:var(--ink);margin:0;font-family:'Instrument Serif',serif;font-style:italic">${esc(s.name)}</h1>
+        ${s.archived?'<span style="padding:2px 9px;background:var(--surface2);border-radius:99px;font-size:11px;color:var(--muted)">archived</span>':''}
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button onclick="workSetSubOnPage(${id})"
+            style="padding:6px 14px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;color:var(--muted)">Set lessons</button>
+          <button onclick="workEditStudentModal(${id})"
+            style="padding:6px 16px;background:#06b6d4;color:#0a0a08;border:none;border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;font-weight:700">✏ Edit</button>
+        </div>
       </div>
 
-      <!-- Stats row -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <!-- KPI row: clickable cards -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+        <!-- Lessons -->
+        <div onclick="workSetSubOnPage(${id})" title="Click to edit lesson count"
+          style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:border-color .15s"
+          onmouseover="this.style.borderColor='#06b6d4'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Lessons</div>
           <div style="font-size:22px;font-weight:700;color:${done>=total&&total>0?'#34a853':'var(--ink)'};font-family:'Geist Mono',monospace">${done}/${total||'—'}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">${pct}% complete</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">${pct}% done · ${missed} missed</div>
         </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Price</div>
-          <div style="font-size:22px;font-weight:700;color:#34d399;font-family:'Geist Mono',monospace">${price?price.toLocaleString('ru-KZ')+' ₸':'—'}</div>
+        <!-- Price — inline editable -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;transition:border-color .15s"
+          onmouseover="this.style.borderColor='#34d399'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Price ₸ <span style="opacity:.5;font-size:9px">(click to edit)</span></div>
+          <input id="sp-price-inp" type="number" value="${price||''}" placeholder="0"
+            onchange="spSavePrice(${id},this.value)"
+            style="font-size:22px;font-weight:700;color:#34d399;font-family:'Geist Mono',monospace;background:none;border:none;outline:none;width:100%;padding:0"
+            title="Click to edit price"/>
           <div style="font-size:11px;color:var(--muted);margin-top:3px">${workMonthLabel(mg)}</div>
         </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Homework</div>
-          <div style="font-size:22px;font-weight:700;color:#06b6d4;font-family:'Geist Mono',monospace">${hw.filter(h=>h.hw==='checked').length}✅</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">${hw.filter(h=>h.hw==='sent').length} sent</div>
-        </div>
+        <!-- Month -->
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Month</div>
           <div style="font-size:16px;font-weight:700;color:var(--ink);font-family:'Geist',sans-serif;margin-top:4px">${workMonthLabel(mg).split(' ')[0]}</div>
@@ -6371,50 +6571,119 @@ function workOpenStudentPage(id){
         </div>
       </div>
 
-      <!-- Two column layout -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
-        <!-- Schedule -->
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
-          <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
-            📅 Schedule
-            <button onclick="workEditStudentModal(${id})" style="font-size:11px;padding:2px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer">Edit</button>
-          </div>
-          ${schedHTML}
+      <!-- Aim + stickers — editable textarea -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">
+        <div style="padding:9px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:8px">
+          <span style="font-size:14px">🎯</span>
+          <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">Aim</span>
+          <div style="margin-left:auto;display:flex;gap:6px;font-size:18px">${aimStickerHTML}</div>
         </div>
-        <!-- Calendar events -->
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
-          <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:12px">🗓 Recent calendar events</div>
-          ${calHTML}
-        </div>
+        <textarea id="sp-aim-input" placeholder="What's this student aiming for? Goals, targets, motivation…"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';spSaveAim(${id},this.value)"
+          style="width:100%;min-height:56px;padding:12px 14px;background:none;border:none;outline:none;color:var(--ink);font-size:13px;font-family:'Geist',sans-serif;resize:none;line-height:1.6;box-sizing:border-box"
+        >${esc(aim)}</textarea>
       </div>
 
-      <!-- Attendance -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px">
-        <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:10px;display:flex;align-items:center;gap:10px">
-          📊 Attendance — ${workMonthLabel(mg)}
-          ${total>0?`<div style="flex:1;max-width:160px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${done>=total?'#34a853':'#4285f4'};border-radius:3px"></div></div>
+      <!-- 2-col: schedule + calendar -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+        <!-- Schedule card — inline editing -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+          <div style="padding:9px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:7px">
+            <span style="font-size:14px">📅</span>
+            <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">Schedule</span>
+            <button onclick="spAddScheduleSlot(${id})" style="margin-left:auto;padding:2px 9px;background:none;border:1px dashed var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif">+ Add</button>
+            <button onclick="workSyncScheduleToCalendar(${id})" style="padding:2px 9px;background:none;border:1px solid #1a2e4a;border-radius:4px;color:#8ab4f8;cursor:pointer;font-size:11px;font-family:'Geist',sans-serif">→ Cal</button>
+          </div>
+          <div id="sp-sched-body" style="padding:10px 14px">${schedHTMLInline}</div>
+        </div>
+        ${card('🗓','Calendar',calHTML)}
+      </div>
+
+      <!-- Attendance — click card header → attendance section -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">
+        <div onclick="document.getElementById('student-page').remove();show('work');workShowSection('attendance')"
+          style="padding:9px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:8px;cursor:pointer"
+          onmouseover="this.style.background='#111'" onmouseout="this.style.background='#0d0d0b'">
+          <span style="font-size:14px">📊</span>
+          <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">Attendance</span>
+          ${total>0?`<div style="flex:1;max-width:120px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-left:8px"><div style="height:100%;width:${pct}%;background:${done>=total?'#34a853':'#4285f4'};border-radius:2px"></div></div>
           <span style="font-size:11px;color:${done>=total?'#34a853':'#8ab4f8'};font-family:'Geist Mono',monospace">${done}/${total}</span>`:''}
+          <span style="font-size:10px;color:var(--subtle);margin-left:4px">↗ open section</span>
         </div>
-        <div class="wa-cells">${cellsHTML||'<span style="color:var(--subtle);font-size:12px;font-style:italic">No subscription set — edit student to add lessons</span>'}</div>
+        <div style="padding:10px 12px"><div class="wa-cells">${cellsHTML}</div></div>
       </div>
 
-      <!-- Two column: kanban + notes -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
-          <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:12px">✅ Kanban tasks</div>
-          ${tasksHTML}
+      <!-- Homework attendance-style cells -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">
+        <div onclick="document.getElementById('student-page').remove();show('work');workShowSection('homework')"
+          style="padding:9px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:8px;cursor:pointer"
+          onmouseover="this.style.background='#111'" onmouseout="this.style.background='#0d0d0b'">
+          <span style="font-size:14px">📝</span>
+          <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">Homework</span>
+          <span style="font-size:10px;color:var(--subtle);margin-left:auto">↗ open section</span>
         </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
-          <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:12px">📝 Notes
-            <button onclick="workCreateNoteForStudent('${esc(s.name)}')" style="margin-left:8px;font-size:11px;padding:2px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer">+ New note</button>
+        <div style="padding:6px 12px">
+          <div style="display:flex;gap:10px;font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-bottom:6px;padding:0 2px">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#0c2216;border:1px solid #1a4a28;display:inline-block"></span>Checked</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;border:1px solid #06b6d4;background:#06b6d418;display:inline-block"></span>Sent</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;border:1px dashed #252320;background:#141210;display:inline-block"></span>None</span>
           </div>
-          ${notesHTML}
+          <div class="wa-cells">${hwCellsHTML}</div>
         </div>
       </div>
+
+      <!-- Notes -->
+      ${card('📝','Notes',
+        notesHTML + `<button onclick="event.stopPropagation();workCreateNoteForStudent('${esc(s.name.replace(/'/g,"\\'"))}')" style="margin-top:10px;padding:5px 12px;background:none;border:1px dashed var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:12px;font-family:'Geist',sans-serif;display:block;width:100%">+ New note</button>`
+      )}
     </div>`;
+
   document.body.appendChild(page);
+
+  // Setup aim textarea auto-height
+  const aimTA = page.querySelector('#sp-aim-input');
+  if(aimTA){ aimTA.style.height='auto'; aimTA.style.height=aimTA.scrollHeight+'px'; }
+
+  page.addEventListener('keydown',e=>{ if(e.key==='Escape') page.remove(); });
 }
 
+// ── STUDENT PAGE HELPERS ──
+function spEditPrice(id){
+  const inp=document.getElementById('sp-price-inp');
+  if(inp) inp.focus();
+}
+
+function spSavePrice(id, val){
+  const s=workData.students.find(x=>x.id===id);if(!s)return;
+  const mg=s.monthGroup||workCurrentMonth;
+  const n=parseInt(String(val).replace(/[, ]/g,''));
+  if(!isNaN(n)&&n>=0){
+    if(!s.price)s.price={};
+    s.price[mg]=n;
+    workSave();
+  }
+}
+
+function spSaveAim(id, val){
+  const s=workData.students.find(x=>x.id===id);if(!s)return;
+  s.aim=val;
+  workSave();
+}
+
+function spToggleAimSticker(id, sticker){
+  const s=workData.students.find(x=>x.id===id);if(!s)return;
+  if(!s.aimStickers)s.aimStickers=[];
+  const idx=s.aimStickers.indexOf(sticker);
+  if(idx>-1) s.aimStickers.splice(idx,1);
+  else s.aimStickers.push(sticker);
+  workSave();
+  // Refresh sticker opacities
+  const page=document.getElementById('student-page');
+  if(page) page.querySelectorAll('[onclick^="spToggleAimSticker"]').forEach(el=>{
+    const st=el.title;
+    el.style.opacity=s.aimStickers.includes(st)?1:.25;
+  });
+}
 function workSetSubOnPage(id){
   const s = workData.students.find(x=>x.id===id);
   if(!s) return;
