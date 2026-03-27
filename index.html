@@ -5242,14 +5242,42 @@ let workData = null;
 let workCurrentMonth = (()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})();
 let workActiveSection = 'attendance';
 let _workInited = false;
-const WORK_SK = 'mind_work_v4';
+const WORK_SK   = 'mind_work_v5';
+const WORK_VER  = 5; // bump this whenever prefill data changes
 
 function workLoad(){
   try{
     const saved = localStorage.getItem(WORK_SK);
     workData = saved ? JSON.parse(saved) : null;
   } catch(_){ workData=null; }
-  if(!workData){ workData = JSON.parse(JSON.stringify(WORK_PREFILL)); }
+
+  if(!workData || (workData._ver||0) < WORK_VER){
+    // First load or outdated — start from prefill but preserve any user edits
+    const fresh = JSON.parse(JSON.stringify(WORK_PREFILL));
+    fresh._ver = WORK_VER;
+
+    if(workData && workData.students && workData.students.length > 0){
+      // Merge: keep user's attendance/homework edits, add any missing prefill students
+      fresh.students.forEach(ps => {
+        const existing = workData.students.find(s => s.id === ps.id);
+        if(!existing){
+          fresh.students.push(ps);
+          fresh.attendance[ps.id] = workData.attendance?.[ps.id] || ps.attendance || JSON.parse(JSON.stringify(WORK_PREFILL.attendance[ps.id]||[]));
+          fresh.homework[ps.id]   = workData.homework?.[ps.id]   || [];
+        } else {
+          // Keep user's version of this student
+          const idx = fresh.students.findIndex(s=>s.id===ps.id);
+          fresh.students[idx] = existing;
+          fresh.attendance[ps.id] = workData.attendance?.[ps.id] || fresh.attendance[ps.id];
+          fresh.homework[ps.id]   = workData.homework?.[ps.id]   || [];
+        }
+      });
+      fresh.months = workData.months?.length ? workData.months : fresh.months;
+    }
+    workData = fresh;
+    localStorage.setItem(WORK_SK, JSON.stringify(workData));
+  }
+
   if(!workData.months)    workData.months=[];
   if(!workData.attendance)workData.attendance={};
   if(!workData.homework)  workData.homework={};
