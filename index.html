@@ -5299,16 +5299,13 @@ function workRenderSidebar() {
 
 // ── GRID RENDER ──
 function workRenderGrid() {
-  const grid = document.getElementById('work-grid');
-  const statsEl = document.getElementById('work-stats');
-  const monthLabel = document.getElementById('work-month-label');
-  if (!grid) return;
+  const wrap = document.querySelector('.work-grid-wrap');
+  if (!wrap) return;
 
-  if (monthLabel) monthLabel.textContent = workMonthLabel(workCurrentMonth);
+  document.getElementById('work-month-label').textContent = workMonthLabel(workCurrentMonth);
 
   if (!workData.students.length) {
-    grid.innerHTML = '';
-    grid.closest('.work-grid-wrap').innerHTML = `<div class="work-empty">
+    wrap.innerHTML = `<div class="work-empty">
       <div class="work-empty-icon">📖</div>
       <div class="work-empty-text">No students yet</div>
       <div class="work-empty-sub">Click ＋ in the sidebar to add a student</div>
@@ -5316,103 +5313,183 @@ function workRenderGrid() {
     return;
   }
 
-  const [y,m] = workCurrentMonth.split('-').map(Number);
-  const daysInMonth = new Date(y, m, 0).getDate();
+  if (!workActiveStudent) workActiveStudent = workData.students[0]?.id;
+  const student = workData.students.find(s => s.id === workActiveStudent);
+  if (!student) return;
+
+  // Show current month + next month for subscription carry-over
+  const months = [workCurrentMonth, workNextMonthKey(workCurrentMonth)];
+  const allDates = [];
+  months.forEach(mk => {
+    const [y, m] = mk.split('-').map(Number);
+    const days = new Date(y, m, 0).getDate();
+    for (let d = 1; d <= days; d++) {
+      const dk = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      allDates.push({ dk, day: d, mk, dow: new Date(dk+'T12:00:00').getDay() });
+    }
+  });
+
   const today = dkey(new Date());
+  const lessons = workData.lessons[student.id] || [];
+  const lessonMap = {};
+  lessons.forEach(l => { lessonMap[l.date] = l; });
 
-  // Build all dates in month
-  const dates = Array.from({length:daysInMonth}, (_,i) => {
-    const d = new Date(y, m-1, i+1);
-    return { day:i+1, dk:`${y}-${String(m).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`, dow:d.getDay() };
-  });
+  // Stats for current month
+  const curLessons = lessons.filter(l => l.date.startsWith(workCurrentMonth));
+  const done    = curLessons.filter(l => l.status === 'done').length;
+  const planned = curLessons.filter(l => l.status === 'planned').length;
+  const missed  = curLessons.filter(l => l.status === 'missed').length;
+  const total   = (student.monthLessons || {})[workCurrentMonth] || 0;
+  const hwSent  = curLessons.filter(l => l.hw === 'sent' || l.hw === 'checked').length;
+  const hwChk   = curLessons.filter(l => l.hw === 'checked').length;
+  const pct     = total > 0 ? Math.round(done / total * 100) : 0;
 
-  // Get lessons for each student
-  const students = workData.students;
-
-  // Count stats
-  let totalDone=0, totalPlanned=0, totalMissed=0;
-  students.forEach(s => {
-    const lessons = workData.lessons[s.id]||[];
-    lessons.forEach(l => {
-      if (l.date.startsWith(workCurrentMonth)) {
-        if (l.status==='done') totalDone++;
-        else if (l.status==='planned') totalPlanned++;
-        else if (l.status==='missed') totalMissed++;
-      }
-    });
-  });
-
+  const statsEl = document.getElementById('work-stats');
   if (statsEl) statsEl.innerHTML = `
-    <div class="work-stat">Done: <span class="done">${totalDone}</span></div>
-    <div class="work-stat">Planned: <span class="planned">${totalPlanned}</span></div>
-    <div class="work-stat">Missed: <span class="missed">${totalMissed}</span></div>
+    <div class="work-stat">Done: <span class="done">${done}${total ? ' / '+total : ''}</span></div>
+    <div class="work-stat">Planned: <span class="planned">${planned}</span></div>
+    <div class="work-stat">Missed: <span class="missed">${missed}</span></div>
+    <div class="work-stat">HW: <span style="color:#06b6d4">${hwChk}✓${hwSent - hwChk > 0 ? ' '+( hwSent - hwChk)+'📤' : ''}</span></div>
+    <button onclick="workSetMonthTotal(${student.id})" style="padding:2px 10px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif">Set total</button>
   `;
 
-  // If showing all students — full grid: rows=students, cols=days
-  // Column headers: day numbers + day-of-week
-  const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-  const numCols = daysInMonth + 1; // +1 for student name col
+  const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  grid.style.gridTemplateColumns = `180px repeat(${daysInMonth}, 36px)`;
+  let html = `<div style="padding:16px;overflow:auto;height:100%;box-sizing:border-box">`;
 
-  let html = '';
-  // Header row
-  html += '<div class="work-cell-hd" style="text-align:left;padding-bottom:8px;position:sticky;left:0;z-index:3;background:var(--bg)"></div>';
-  dates.forEach(({day,dk,dow}) => {
-    const isToday = dk===today;
-    html += `<div class="work-cell-hd${isToday?' today-col':''}" style="width:36px">
-      <div style="font-size:9px;opacity:.5">${DOW[dow]}</div>
-      <div>${day}</div>
+  // Progress bar
+  if (total) {
+    html += `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <span style="font-size:14px;font-weight:600;color:var(--ink)">${esc(student.name)}</span>
+      <span style="font-size:13px;font-weight:700;color:${done>=total?'#34a853':'#8ab4f8'};font-family:'Geist Mono',monospace">${done} / ${total} lessons</span>
+      <div style="flex:1;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;max-width:300px">
+        <div style="height:100%;width:${pct}%;background:${done>=total?'#34a853':'#4285f4'};border-radius:4px;transition:width .4s"></div>
+      </div>
+      <span style="font-size:12px;color:var(--muted);font-family:'Geist Mono',monospace">${pct}%</span>
     </div>`;
+  }
+
+  html += `<table style="border-collapse:collapse;width:max-content;min-width:100%">
+    <thead><tr style="position:sticky;top:0;z-index:2;background:var(--bg)">
+      <th style="padding:6px 12px;text-align:left;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;border-bottom:1px solid var(--border);white-space:nowrap;min-width:100px">Date</th>
+      <th style="padding:6px 8px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;border-bottom:1px solid var(--border);text-align:center">Day</th>
+      <th style="padding:6px 16px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;border-bottom:1px solid var(--border);min-width:130px">Lesson</th>
+      <th style="padding:6px 16px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;border-bottom:1px solid var(--border);min-width:140px">Homework</th>
+      <th style="padding:6px 12px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;border-bottom:1px solid var(--border);min-width:140px">Notes</th>
+    </tr></thead>
+    <tbody>`;
+
+  let lastMk = null;
+  allDates.forEach(({ dk, day, mk, dow }) => {
+    const l = lessonMap[dk];
+    const isToday = dk === today;
+    const isWeekend = dow === 0 || dow === 6;
+
+    // Month divider row
+    if (mk !== lastMk) {
+      lastMk = mk;
+      const [y2, m2] = mk.split('-').map(Number);
+      const mTotal = (student.monthLessons || {})[mk] || 0;
+      const mDone  = lessons.filter(x => x.date.startsWith(mk) && x.status === 'done').length;
+      html += `<tr>
+        <td colspan="5" style="padding:10px 12px 5px;background:#0a0a08;border-top:2px solid #1a1a2e;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:11px;font-weight:700;color:#8ab4f8;font-family:'Geist Mono',monospace;letter-spacing:.06em">${MONTHS_SHORT[m2-1].toUpperCase()} ${y2}</span>
+            ${mTotal ? `<span style="font-size:11px;color:${mDone>=mTotal?'#34a853':'#8ab4f8'};font-family:'Geist Mono',monospace">${mDone}/${mTotal} done</span>` : ''}
+            <button onclick="workSetMonthTotalForKey(${student.id},'${mk}')" style="padding:1px 9px;background:none;border:1px solid #1a1a2e;border-radius:3px;color:#3d3a35;cursor:pointer;font-size:10px;font-family:'Geist',sans-serif">set total</button>
+          </div>
+        </td>
+      </tr>`;
+    }
+
+    const curStatus = l?.status || 'none';
+    const curHw = l?.hw || '';
+    const statusColors = { none:'var(--border)', planned:'#4285f4', done:'#34a853', missed:'#e85a5a' };
+    const hwColors = { '':'var(--border)', sent:'#06b6d4', checked:'#34a853' };
+    const rowBg = isToday ? 'background:#111008' : isWeekend ? 'background:#0a0a08' : '';
+
+    html += `<tr style="${rowBg}${isToday ? ';outline:1px solid #c8303a' : ''}">
+      <td style="padding:4px 12px;font-size:12px;color:${isToday ? '#c8303a' : isWeekend ? '#3d3a35' : 'var(--ink)'};font-family:'Geist Mono',monospace;white-space:nowrap">
+        ${dk}${isToday ? ' ◀' : ''}
+      </td>
+      <td style="padding:4px 8px;font-size:11px;color:var(--muted);text-align:center">${DOW[dow]}</td>
+      <td style="padding:4px 16px">
+        <select onchange="workSetStatus(${student.id},'${dk}',this.value)"
+          style="padding:4px 8px;background:${curStatus==='done'?'#0f2818':curStatus==='planned'?'#0a1a2e':curStatus==='missed'?'#1e0808':'var(--surface)'};border:1px solid ${statusColors[curStatus]};border-radius:6px;color:${statusColors[curStatus]};font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none;width:130px">
+          <option value="none"    ${curStatus==='none'    ?'selected':''}>— none</option>
+          <option value="planned" ${curStatus==='planned' ?'selected':''}>○ Planned</option>
+          <option value="done"    ${curStatus==='done'    ?'selected':''}>✓ Done</option>
+          <option value="missed"  ${curStatus==='missed'  ?'selected':''}>✕ Missed</option>
+        </select>
+      </td>
+      <td style="padding:4px 16px">
+        <select onchange="workSetHw(${student.id},'${dk}',this.value)"
+          style="padding:4px 8px;background:var(--surface);border:1px solid ${hwColors[curHw]};border-radius:6px;color:${hwColors[curHw]};font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none;width:138px">
+          <option value=""        ${!curHw       ?'selected':''}>— no HW</option>
+          <option value="sent"    ${curHw==='sent'   ?'selected':''}>📤 Sent</option>
+          <option value="checked" ${curHw==='checked'?'selected':''}>✅ Checked</option>
+        </select>
+      </td>
+      <td style="padding:4px 12px">
+        <input placeholder="note…" value="${esc(l?.note||'')}"
+          onchange="workSetNote(${student.id},'${dk}',this.value)"
+          style="background:none;border:none;border-bottom:1px solid var(--border-light);color:var(--muted);font-size:12px;font-family:'Geist',sans-serif;outline:none;width:150px;padding:2px 4px"/>
+      </td>
+    </tr>`;
   });
 
-  // Student rows
-  students.forEach(s => {
-    const lessons = workData.lessons[s.id]||[];
-    const lessonMap = {};
-    lessons.forEach(l => { lessonMap[l.date] = l.status; });
-    const done = lessons.filter(l=>l.status==='done'&&l.date.startsWith(workCurrentMonth)).length;
-    const missed = lessons.filter(l=>l.status==='missed'&&l.date.startsWith(workCurrentMonth)).length;
-    const isActive = s.id === workActiveStudent;
-
-    html += `<div class="work-row-hd${isActive?' active':''}" onclick="workSelectStudent(${s.id})" style="${isActive?'color:#06b6d4;':''}">
-      ${esc(s.name)}
-      <span class="work-row-hd-sub">${done}✓${missed?` ${missed}✕`:''}</span>
-    </div>`;
-
-    dates.forEach(({day,dk,dow}) => {
-      const status = lessonMap[dk] || 'none';
-      const isToday = dk===today;
-      html += `<div class="work-cell status-${status}${isToday?' today-col':''}"
-        onclick="workCycleStatus(${s.id},'${dk}')"
-        title="${s.name} · ${dk} · ${status==='none'?'Click to set':status}"
-      ></div>`;
-    });
-  });
-
-  grid.innerHTML = html;
+  html += `</tbody></table></div>`;
+  wrap.innerHTML = html;
 }
 
-// ── CYCLE STATUS: none → planned → done → missed → none ──
-function workCycleStatus(studentId, dk) {
-  const lessons = workData.lessons[studentId]||[];
-  const existing = lessons.find(l=>l.date===dk);
-  const cycle = {none:'planned', planned:'done', done:'missed', missed:'none'};
-  const current = existing?.status || 'none';
-  const next = cycle[current];
+function workNextMonthKey(key) {
+  const [y, m] = key.split('-').map(Number);
+  const d = new Date(y, m, 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
 
-  if (next === 'none') {
-    workData.lessons[studentId] = lessons.filter(l=>l.date!==dk);
-  } else if (existing) {
-    existing.status = next;
+function workSetStatus(studentId, dk, status) {
+  let lessons = workData.lessons[studentId] || [];
+  let l = lessons.find(x => x.date === dk);
+  if (status === 'none') {
+    workData.lessons[studentId] = lessons.filter(x => x.date !== dk);
+  } else if (l) {
+    l.status = status;
   } else {
-    lessons.push({date:dk, status:next});
+    lessons.push({ date: dk, status, hw: null, note: '' });
     workData.lessons[studentId] = lessons;
   }
-  workSave();
-  workRenderGrid();
-  workRenderSidebar();
+  workSave(); workRenderSidebar(); workRenderGrid();
 }
+
+function workSetHw(studentId, dk, hw) {
+  let lessons = workData.lessons[studentId] || [];
+  let l = lessons.find(x => x.date === dk);
+  if (!l) { lessons.push({ date: dk, status: 'none', hw: hw || null, note: '' }); workData.lessons[studentId] = lessons; }
+  else l.hw = hw || null;
+  workSave(); workRenderSidebar();
+}
+
+function workSetNote(studentId, dk, note) {
+  let lessons = workData.lessons[studentId] || [];
+  let l = lessons.find(x => x.date === dk);
+  if (!l) { lessons.push({ date: dk, status: 'none', hw: null, note }); workData.lessons[studentId] = lessons; }
+  else l.note = note;
+  workSave();
+}
+
+function workSetMonthTotalForKey(id, mk) {
+  const s = workData.students.find(x => x.id === id);
+  if (!s) return;
+  if (!s.monthLessons) s.monthLessons = {};
+  const cur = s.monthLessons[mk] || 0;
+  const val = prompt(`Total lessons for ${s.name} in ${workMonthLabel(mk)}:`, cur || '');
+  if (val === null) return;
+  const n = parseInt(val);
+  if (!isNaN(n) && n >= 0) { s.monthLessons[mk] = n; workSave(); workRenderSidebar(); workRenderGrid(); }
+}
+
 // ── INIT ──
 renderTagSel();
 renderTopics();
