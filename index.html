@@ -880,7 +880,9 @@ canvas#gc{width:100%;height:100%;display:block}
           <!-- Section tabs -->
           <div class="work-section-tabs">
             <button class="work-sec-tab active" id="wsec-attendance" onclick="workShowSection('attendance')">📅 Attendance</button>
-            <button class="work-sec-tab" id="wsec-homework" onclick="workShowSection('homework')">📝 Homework</button>
+            <button class="work-sec-tab" id="wsec-homework"   onclick="workShowSection('homework')">📝 Homework</button>
+            <button class="work-sec-tab" id="wsec-archive"   onclick="workShowSection('archive')">🗄 Archive</button>
+            <button class="work-sec-tab" id="wsec-finances"  onclick="workShowSection('finances')">💰 Finances</button>
             <div style="flex:1"></div>
             <div class="work-month-nav">
               <button class="work-nav-btn" onclick="workPrevMonth()">‹</button>
@@ -895,6 +897,14 @@ canvas#gc{width:100%;height:100%;display:block}
           <!-- Homework section -->
           <div class="work-section" id="work-sec-homework">
             <div class="work-grid-wrap" id="work-hw-wrap"></div>
+          </div>
+          <!-- Archive section -->
+          <div class="work-section" id="work-sec-archive">
+            <div class="work-grid-wrap" id="work-archive-wrap"></div>
+          </div>
+          <!-- Finances section -->
+          <div class="work-section" id="work-sec-finances">
+            <div class="work-grid-wrap" id="work-finances-wrap"></div>
           </div>
         </div>
       </div>
@@ -5301,11 +5311,13 @@ function workInit(){
 // ── SECTION TOGGLE ──
 function workShowSection(sec){
   workActiveSection=sec;
-  document.getElementById('work-sec-attendance').classList.toggle('active',sec==='attendance');
-  document.getElementById('work-sec-homework').classList.toggle('active',sec==='homework');
-  document.getElementById('wsec-attendance').classList.toggle('active',sec==='attendance');
-  document.getElementById('wsec-homework').classList.toggle('active',sec==='homework');
-  if(sec==='homework') workRenderHomework();
+  ['attendance','homework','archive','finances'].forEach(s=>{
+    document.getElementById('work-sec-'+s)?.classList.toggle('active',s===sec);
+    document.getElementById('wsec-'+s)?.classList.toggle('active',s===sec);
+  });
+  if(sec==='homework')  workRenderHomework();
+  if(sec==='archive')   workRenderArchive();
+  if(sec==='finances')  workRenderFinances();
 }
 
 // ── MONTH NAV ──
@@ -5827,6 +5839,191 @@ function workSyncScheduleToCalendar(id){
   });
   if(created){save();renderCal();}
   alert(`Created ${created} recurring event${created!==1?'s':''} for ${s.name}`);
+}
+
+
+// ── ARCHIVE SECTION ──
+function workRenderArchive(){
+  const wrap = document.getElementById('work-archive-wrap');
+  if(!wrap) return;
+
+  const archived = workData.students.filter(s => s.archived);
+  if(!archived.length){
+    wrap.innerHTML = `<div class="work-empty">
+      <div class="work-empty-icon">🗄</div>
+      <div class="work-empty-text">No archived students</div>
+      <div class="work-empty-sub">Archive a student via their edit modal</div>
+    </div>`;
+    return;
+  }
+
+  // Group archived by monthGroup
+  const groups = {};
+  archived.forEach(s => {
+    const mg = s.monthGroup || '?';
+    if(!groups[mg]) groups[mg] = [];
+    groups[mg].push(s);
+  });
+
+  let html = '<div class="wa-table">';
+
+  Object.keys(groups).sort().forEach(mk => {
+    const mObj = workData.months.find(m => m.key === mk);
+    const mLabel = mObj?.label || workMonthLabel(mk) || mk;
+
+    html += `<div class="wa-month-group">
+      <div class="wa-month-hd">
+        <span class="wa-month-label" style="color:var(--muted)">${esc(mLabel)}</span>
+        <span style="font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-left:4px">${mk}</span>
+      </div>`;
+
+    groups[mk].forEach(s => {
+      const att = (workData.attendance[s.id] || []).filter(c => c.month === s.monthGroup);
+      const done   = att.filter(c => c.status === 'done').length;
+      const missed = att.filter(c => c.status === 'missed').length;
+      const total  = att.length;
+      const pct    = total > 0 ? Math.round(done/total*100) : 0;
+      const price  = (s.price || {})[s.monthGroup] || 0;
+      const hw     = workData.homework[s.id] || [];
+      const hwSent    = hw.filter(h => h.month === s.monthGroup && (h.hw === 'sent' || h.hw === 'checked')).length;
+      const hwChecked = hw.filter(h => h.month === s.monthGroup && h.hw === 'checked').length;
+
+      html += `<div class="wa-student-row" onclick="workEditStudentModal(${s.id})" style="opacity:.7;cursor:pointer">
+        <div class="wa-row-head">
+          <div class="wa-color-dot" style="background:#3d3a35"></div>
+          <span class="wa-row-name" style="color:var(--muted)">${esc(s.name)}</span>
+          <span class="wa-row-meta">${done}✓ ${missed ? missed+'✕ ':''}</span>
+          ${total ? `<div class="wa-progress" style="max-width:120px"><div class="wa-progress-fill" style="width:${pct}%;background:${done>=total?'#34a853':'#4285f4'}"></div></div>
+          <span class="wa-row-meta" style="color:${done>=total?'#34a853':'var(--muted)'}">${done}/${total} · ${pct}%</span>` : ''}
+          ${price ? `<span class="wa-row-meta" style="color:#34d399;font-family:'Geist Mono',monospace;margin-left:8px">${price.toLocaleString('ru-KZ')} ₸</span>` : ''}
+          ${hwSent ? `<span class="wa-row-meta" style="color:#06b6d4">HW: ${hwChecked}✅${hwSent-hwChecked ? ' '+(hwSent-hwChecked)+'📤' : ''}</span>` : ''}
+          <button onclick="event.stopPropagation();workArchiveStudent(${s.id})" style="margin-left:auto;padding:2px 10px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif">Unarchive</button>
+        </div>
+        <div class="wa-cells" onclick="event.stopPropagation()">
+          ${att.map((cell,i) => {
+            const cls = cell.status==='done' ? 'wc-done' : cell.status==='missed' ? 'wc-missed' : 'wc-empty';
+            return `<div class="wa-cell ${cls}" style="width:44px;height:44px;opacity:.8"
+              title="Lesson ${cell.num}${cell.date?' · '+cell.date:''}">
+              <span class="wc-date">${esc(cell.date||'·')}</span>
+              <span class="wc-num">${cell.num}</span>
+              <span class="wc-icon">${cell.status==='done'?'✓':cell.status==='missed'?'✕':''}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+// ── FINANCES SECTION ──
+function workRenderFinances(){
+  const wrap = document.getElementById('work-finances-wrap');
+  if(!wrap) return;
+
+  const all = workData.students;
+  if(!all.length){
+    wrap.innerHTML = `<div class="work-empty"><div class="work-empty-icon">💰</div><div class="work-empty-text">No students yet</div></div>`;
+    return;
+  }
+
+  // Group by monthGroup
+  const groups = {};
+  all.forEach(s => {
+    const mg = s.monthGroup || '?';
+    if(!groups[mg]) groups[mg] = [];
+    groups[mg].push(s);
+  });
+
+  let grandTotal = 0;
+  let grandActive = 0;
+
+  let html = '<div style="padding:20px">';
+
+  Object.keys(groups).sort().forEach(mk => {
+    const mObj = workData.months.find(m => m.key === mk);
+    const mLabel = mObj?.label || workMonthLabel(mk) || mk;
+    const studentsInGroup = groups[mk];
+    const groupTotal = studentsInGroup.reduce((sum, s) => sum + ((s.price||{})[mk]||0), 0);
+    grandTotal += groupTotal;
+    if(!studentsInGroup.every(s=>s.archived)) grandActive += groupTotal;
+
+    html += `<div style="margin-bottom:28px">
+      <div style="display:flex;align-items:center;gap:12px;padding-bottom:8px;border-bottom:2px solid var(--border);margin-bottom:12px">
+        <span style="font-size:16px;font-family:'Instrument Serif',serif;font-style:italic;color:var(--ink)">${esc(mLabel)}</span>
+        <span style="font-size:11px;color:var(--subtle);font-family:'Geist Mono',monospace">${mk}</span>
+        ${groupTotal ? `<span style="margin-left:auto;font-size:14px;font-weight:700;color:#34d399;font-family:'Geist Mono',monospace">${groupTotal.toLocaleString('ru-KZ')} ₸</span>` : ''}
+      </div>
+      <table style="border-collapse:collapse;width:100%">
+        <thead><tr>
+          <th style="text-align:left;padding:5px 12px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Student</th>
+          <th style="text-align:center;padding:5px 12px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;font-weight:600;text-transform:uppercase">Lessons</th>
+          <th style="text-align:center;padding:5px 12px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;font-weight:600;text-transform:uppercase">Progress</th>
+          <th style="text-align:right;padding:5px 12px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;font-weight:600;text-transform:uppercase">Price</th>
+          <th style="text-align:left;padding:5px 12px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;font-weight:600;text-transform:uppercase">Status</th>
+        </tr></thead>
+        <tbody>`;
+
+    studentsInGroup.forEach(s => {
+      const att = (workData.attendance[s.id]||[]).filter(c => c.month === mk);
+      const done   = att.filter(c=>c.status==='done').length;
+      const total  = att.length;
+      const pct    = total>0 ? Math.round(done/total*100) : 0;
+      const price  = (s.price||{})[mk] || 0;
+
+      html += `<tr style="border-bottom:1px solid var(--border-light);${s.archived?'opacity:.45':''}cursor:pointer" onclick="workEditStudentModal(${s.id})">
+        <td style="padding:8px 12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:8px;height:8px;border-radius:50%;background:${s.color||'#4285f4'};flex-shrink:0"></div>
+            <span style="font-size:13px;font-weight:500;color:${s.archived?'var(--muted)':'var(--ink)'}">
+              ${esc(s.name)}${s.archived?' <span style="font-size:10px;color:var(--subtle)">[archived]</span>':''}
+            </span>
+          </div>
+        </td>
+        <td style="padding:8px 12px;text-align:center;font-family:'Geist Mono',monospace;font-size:12px;color:var(--muted)">${total||'—'}</td>
+        <td style="padding:8px 12px">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:center">
+            ${total ? `<div style="width:80px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${done>=total?'#34a853':'#4285f4'};border-radius:3px"></div>
+            </div>
+            <span style="font-size:11px;font-family:'Geist Mono',monospace;color:${done>=total?'#34a853':'var(--muted)'}">${done}/${total}</span>` : '—'}
+          </div>
+        </td>
+        <td style="padding:8px 12px;text-align:right;font-family:'Geist Mono',monospace;font-size:13px;font-weight:700;color:${price?'#34d399':'var(--subtle)'}">
+          ${price ? price.toLocaleString('ru-KZ')+' ₸' : '—'}
+        </td>
+        <td style="padding:8px 12px">
+          <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${s.archived?'var(--surface)':done>=total?'#0a2014':'var(--surface)'};color:${s.archived?'var(--subtle)':done>=total?'#34a853':'var(--muted)'}">
+            ${s.archived ? 'Archived' : done>=total ? 'Completed' : 'Active'}
+          </span>
+        </td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+  });
+
+  // Grand totals
+  html += `<div style="border-top:2px solid var(--border);padding-top:16px;display:flex;gap:24px;align-items:center">
+    <div>
+      <div style="font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total revenue</div>
+      <div style="font-size:22px;font-weight:700;color:#34d399;font-family:'Geist Mono',monospace">${grandTotal.toLocaleString('ru-KZ')} ₸</div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">From active</div>
+      <div style="font-size:22px;font-weight:700;color:#8ab4f8;font-family:'Geist Mono',monospace">${grandActive.toLocaleString('ru-KZ')} ₸</div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Students</div>
+      <div style="font-size:22px;font-weight:700;color:var(--ink);font-family:'Geist Mono',monospace">${all.length}</div>
+    </div>
+  </div>`;
+
+  html += '</div>';
+  wrap.innerHTML = html;
 }
 
 // ── INIT ──
