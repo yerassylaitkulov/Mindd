@@ -514,6 +514,7 @@ canvas#gc{width:100%;height:100%;display:block}
 .hw-row-name{font-weight:600;color:var(--ink)}
 .hw-cell-date{font-family:'Geist Mono',monospace;font-size:12px;color:var(--muted)}
 .hw-status-sel{padding:4px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none;background:var(--surface);color:var(--ink)}
+.ws-archived{opacity:.45;filter:grayscale(.5)}
 .work-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px}
 /* month groups */
 .wa-month-group{margin-bottom:24px}
@@ -5235,39 +5236,38 @@ function finRenderAnalytics(entries, cats, incomeSources, openBal, totalIncome, 
 // ══════════════════════════════════════════
 // WORK TRACKER
 // ══════════════════════════════════════════
-// workData.students  = [{id, name, color, subs:{mk:N}, schedule:[{dow:0-6,time:'HH:MM'}]}]
-// workData.months    = [{key:'YYYY-MM', label:'January', order:0}]  — user-defined month groups
-// workData.attendance= {sid: [{num,month,date,status}]}
-// workData.homework  = {sid: [{month,num,hw,note}]}
+const WORK_PREFILL = {"students": [{"id": 1000000, "name": "Yurii", "color": "#4285f4", "subs": {"2024-12": 13}, "schedule": [], "monthGroup": "2024-12", "archived": true, "price": {}}, {"id": 1000001, "name": "Sanzhar", "color": "#34a853", "subs": {"2024-12": 10}, "schedule": [], "monthGroup": "2024-12", "archived": true, "price": {}}, {"id": 1000002, "name": "Feiruz", "color": "#e85a5a", "subs": {"2024-12": 20}, "schedule": [], "monthGroup": "2024-12", "archived": true, "price": {}}, {"id": 1000003, "name": "Nartay", "color": "#f59e0b", "subs": {"2024-12": 8}, "schedule": [], "monthGroup": "2024-12", "archived": true, "price": {}}, {"id": 1000004, "name": "Madiyar", "color": "#8b5cf6", "subs": {"2025-01": 12}, "schedule": [], "monthGroup": "2025-01", "archived": true, "price": {}}, {"id": 1000005, "name": "Assel", "color": "#06b6d4", "subs": {"2025-01": 12}, "schedule": [], "monthGroup": "2025-01", "archived": true, "price": {}}, {"id": 1000006, "name": "Kamilla", "color": "#f472b6", "subs": {"2025-01": 19}, "schedule": [], "monthGroup": "2025-01", "archived": true, "price": {}}, {"id": 1000007, "name": "Alikhan", "color": "#10b981", "subs": {"2025-01": 8}, "schedule": [], "monthGroup": "2025-01", "archived": true, "price": {}}, {"id": 1000008, "name": "Berik", "color": "#f97316", "subs": {"2025-01": 8}, "schedule": [], "monthGroup": "2025-01", "archived": true, "price": {}}, {"id": 1000009, "name": "Ekaterina", "color": "#6366f1", "subs": {"2025-01": 12}, "schedule": [], "monthGroup": "2025-01", "archived": true, "price": {}}, {"id": 1000010, "name": "Yurii", "color": "#ec4899", "subs": {"2025-01": 8}, "schedule": [], "monthGroup": "2025-01", "archived": true, "price": {}}, {"id": 1000011, "name": "Saida", "color": "#14b8a6", "subs": {"2025-01": 10}, "schedule": [], "monthGroup": "2025-01", "archived": true, "price": {}}, {"id": 1000012, "name": "Assel", "color": "#84cc16", "subs": {"2025-02": 12}, "schedule": [], "monthGroup": "2025-02", "archived": false, "price": {}}, {"id": 1000013, "name": "Saltanat", "color": "#f43f5e", "subs": {"2025-02": 8}, "schedule": [], "monthGroup": "2025-02", "archived": false, "price": {}}, {"id": 1000014, "name": "Sandugash", "color": "#a855f7", "subs": {"2025-02": 12}, "schedule": [], "monthGroup": "2025-02", "archived": false, "price": {}}, {"id": 1000015, "name": "Sabira", "color": "#22d3ee", "subs": {"2025-02": 8}, "schedule": [], "monthGroup": "2025-02", "archived": false, "price": {}}, {"id": 1000016, "name": "Berik", "color": "#fb923c", "subs": {"2025-02": 8}, "schedule": [], "monthGroup": "2025-02", "archived": false, "price": {}}, {"id": 1000017, "name": "Alikhan", "color": "#4ade80", "subs": {"2025-02": 8}, "schedule": [], "monthGroup": "2025-02", "archived": false, "price": {}}, {"id": 1000018, "name": "Nursulu", "color": "#60a5fa", "subs": {"2025-02": 8}, "schedule": [], "monthGroup": "2025-02", "archived": false, "price": {}}, {"id": 1000019, "name": "Nurtileu", "color": "#c084fc", "subs": {"2025-02": 12}, "schedule": [], "monthGroup": "2025-02", "archived": false, "price": {}}, {"id": 1000020, "name": "Berik", "color": "#fb7185", "subs": {"2025-03": 8}, "schedule": [], "monthGroup": "2025-03", "archived": false, "price": {"2025-03": 24000}}, {"id": 1000021, "name": "Ekaterina", "color": "#34d399", "subs": {"2025-03": 12}, "schedule": [], "monthGroup": "2025-03", "archived": false, "price": {"2025-03": 36000}}, {"id": 1000022, "name": "Aida", "color": "#4285f4", "subs": {"2025-03": 8}, "schedule": [], "monthGroup": "2025-03", "archived": false, "price": {"2025-03": 30000}}, {"id": 1000023, "name": "Sandugash", "color": "#34a853", "subs": {"2025-03": 8}, "schedule": [], "monthGroup": "2025-03", "archived": false, "price": {"2025-03": 36000}}], "months": [{"key": "2024-12", "label": "December"}, {"key": "2025-01", "label": "January"}, {"key": "2025-02", "label": "February"}, {"key": "2025-03", "label": "March"}], "attendance": {"1000000": [{"num": 1, "month": "2024-12", "date": "", "status": "empty"}, {"num": 2, "month": "2024-12", "date": "", "status": "empty"}, {"num": 3, "month": "2024-12", "date": "", "status": "empty"}, {"num": 4, "month": "2024-12", "date": "", "status": "empty"}, {"num": 5, "month": "2024-12", "date": "", "status": "empty"}, {"num": 6, "month": "2024-12", "date": "", "status": "empty"}, {"num": 7, "month": "2024-12", "date": "", "status": "empty"}, {"num": 8, "month": "2024-12", "date": "", "status": "empty"}, {"num": 9, "month": "2024-12", "date": "", "status": "empty"}, {"num": 10, "month": "2024-12", "date": "16.01", "status": "done"}, {"num": 11, "month": "2024-12", "date": "19.01", "status": "done"}, {"num": 12, "month": "2024-12", "date": "22.01", "status": "done"}, {"num": 13, "month": "2024-12", "date": "23.01", "status": "done"}], "1000001": [{"num": 1, "month": "2024-12", "date": "", "status": "empty"}, {"num": 2, "month": "2024-12", "date": "", "status": "empty"}, {"num": 3, "month": "2024-12", "date": "", "status": "empty"}, {"num": 4, "month": "2024-12", "date": "", "status": "empty"}, {"num": 5, "month": "2024-12", "date": "", "status": "empty"}, {"num": 6, "month": "2024-12", "date": "", "status": "empty"}, {"num": 7, "month": "2024-12", "date": "", "status": "empty"}, {"num": 8, "month": "2024-12", "date": "", "status": "empty"}, {"num": 9, "month": "2024-12", "date": "16.01", "status": "done"}, {"num": 10, "month": "2024-12", "date": "19.01", "status": "done"}], "1000002": [{"num": 1, "month": "2024-12", "date": "16.12", "status": "done"}, {"num": 2, "month": "2024-12", "date": "19.12", "status": "done"}, {"num": 3, "month": "2024-12", "date": "8.01", "status": "done"}, {"num": 4, "month": "2024-12", "date": "12.01", "status": "done"}, {"num": 5, "month": "2024-12", "date": "13.01", "status": "done"}, {"num": 6, "month": "2024-12", "date": "14.01", "status": "done"}, {"num": 7, "month": "2024-12", "date": "17.12", "status": "done"}, {"num": 8, "month": "2024-12", "date": "18.12", "status": "done"}, {"num": 9, "month": "2024-12", "date": "22.12", "status": "done"}, {"num": 10, "month": "2024-12", "date": "26.12", "status": "done"}, {"num": 11, "month": "2024-12", "date": "29.12", "status": "done"}, {"num": 12, "month": "2024-12", "date": "16.01", "status": "done"}, {"num": 13, "month": "2024-12", "date": "19.01", "status": "done"}, {"num": 14, "month": "2024-12", "date": "20.01", "status": "done"}, {"num": 15, "month": "2024-12", "date": "21.01", "status": "done"}, {"num": 16, "month": "2024-12", "date": "22.01", "status": "done"}, {"num": 17, "month": "2024-12", "date": "23.01", "status": "done"}, {"num": 18, "month": "2024-12", "date": "26.01", "status": "done"}, {"num": 19, "month": "2024-12", "date": "27.01", "status": "done"}, {"num": 20, "month": "2024-12", "date": "30.01", "status": "done"}], "1000003": [{"num": 1, "month": "2024-12", "date": "", "status": "empty"}, {"num": 2, "month": "2024-12", "date": "", "status": "empty"}, {"num": 3, "month": "2024-12", "date": "", "status": "empty"}, {"num": 4, "month": "2024-12", "date": "", "status": "empty"}, {"num": 5, "month": "2024-12", "date": "15.01", "status": "done"}, {"num": 6, "month": "2024-12", "date": "20.01", "status": "done"}, {"num": 7, "month": "2024-12", "date": "23.01", "status": "done"}, {"num": 8, "month": "2024-12", "date": "24.01", "status": "done"}], "1000004": [{"num": 1, "month": "2025-01", "date": "", "status": "empty"}, {"num": 2, "month": "2025-01", "date": "", "status": "empty"}, {"num": 3, "month": "2025-01", "date": "", "status": "empty"}, {"num": 4, "month": "2025-01", "date": "15.01", "status": "done"}, {"num": 5, "month": "2025-01", "date": "19.01", "status": "done"}, {"num": 6, "month": "2025-01", "date": "24.01", "status": "done"}, {"num": 7, "month": "2025-01", "date": "26.01", "status": "done"}, {"num": 8, "month": "2025-01", "date": "28.01", "status": "done"}, {"num": 9, "month": "2025-01", "date": "2.02", "status": "done"}, {"num": 10, "month": "2025-01", "date": "4.02", "status": "done"}, {"num": 11, "month": "2025-01", "date": "11.02", "status": "done"}, {"num": 12, "month": "2025-01", "date": "16.02", "status": "done"}], "1000005": [{"num": 1, "month": "2025-01", "date": "12.01", "status": "done"}, {"num": 2, "month": "2025-01", "date": "14.01", "status": "done"}, {"num": 3, "month": "2025-01", "date": "16.01", "status": "done"}, {"num": 4, "month": "2025-01", "date": "19.01", "status": "done"}, {"num": 5, "month": "2025-01", "date": "7.02", "status": "done"}, {"num": 6, "month": "2025-01", "date": "21.01", "status": "done"}, {"num": 7, "month": "2025-01", "date": "24.01", "status": "done"}, {"num": 8, "month": "2025-01", "date": "26.01", "status": "done"}, {"num": 9, "month": "2025-01", "date": "29.01", "status": "done"}, {"num": 10, "month": "2025-01", "date": "2.02", "status": "done"}, {"num": 11, "month": "2025-01", "date": "3.02", "status": "done"}, {"num": 12, "month": "2025-01", "date": "4.02", "status": "done"}], "1000006": [{"num": 1, "month": "2025-01", "date": "", "status": "empty"}, {"num": 2, "month": "2025-01", "date": "16.01", "status": "done"}, {"num": 3, "month": "2025-01", "date": "19.01", "status": "done"}, {"num": 4, "month": "2025-01", "date": "22.01", "status": "done"}, {"num": 5, "month": "2025-01", "date": "23.01", "status": "done"}, {"num": 6, "month": "2025-01", "date": "28.01", "status": "done"}, {"num": 7, "month": "2025-01", "date": "29.01", "status": "done"}, {"num": 8, "month": "2025-01", "date": "2.02", "status": "done"}, {"num": 9, "month": "2025-01", "date": "3.02", "status": "done"}, {"num": 10, "month": "2025-01", "date": "4.02", "status": "done"}, {"num": 11, "month": "2025-01", "date": "5.02", "status": "done"}, {"num": 12, "month": "2025-01", "date": "6.02", "status": "done"}, {"num": 13, "month": "2025-01", "date": "13.02", "status": "done"}, {"num": 14, "month": "2025-01", "date": "16.02", "status": "done"}, {"num": 15, "month": "2025-01", "date": "19.02", "status": "done"}, {"num": 16, "month": "2025-01", "date": "20.02", "status": "done"}, {"num": 17, "month": "2025-01", "date": "24.02", "status": "done"}, {"num": 18, "month": "2025-01", "date": "26.02", "status": "done"}, {"num": 19, "month": "2025-01", "date": "2.03", "status": "done"}], "1000007": [{"num": 1, "month": "2025-01", "date": "17.01", "status": "done"}, {"num": 2, "month": "2025-01", "date": "22.01", "status": "done"}, {"num": 3, "month": "2025-01", "date": "24.01", "status": "done"}, {"num": 4, "month": "2025-01", "date": "29.01", "status": "done"}, {"num": 5, "month": "2025-01", "date": "5.02", "status": "done"}, {"num": 6, "month": "2025-01", "date": "12.02", "status": "done"}, {"num": 7, "month": "2025-01", "date": "14.02", "status": "done"}, {"num": 8, "month": "2025-01", "date": "19.02", "status": "done"}], "1000008": [{"num": 1, "month": "2025-01", "date": "20.01", "status": "done"}, {"num": 2, "month": "2025-01", "date": "23.01", "status": "done"}, {"num": 3, "month": "2025-01", "date": "27.01", "status": "done"}, {"num": 4, "month": "2025-01", "date": "30.01", "status": "done"}, {"num": 5, "month": "2025-01", "date": "3.02", "status": "done"}, {"num": 6, "month": "2025-01", "date": "6.02", "status": "done"}, {"num": 7, "month": "2025-01", "date": "10.02", "status": "done"}, {"num": 8, "month": "2025-01", "date": "17.02", "status": "done"}], "1000009": [{"num": 1, "month": "2025-01", "date": "27.01", "status": "done"}, {"num": 2, "month": "2025-01", "date": "30.01", "status": "done"}, {"num": 3, "month": "2025-01", "date": "3.02", "status": "done"}, {"num": 4, "month": "2025-01", "date": "6.02", "status": "done"}, {"num": 5, "month": "2025-01", "date": "7.02", "status": "done"}, {"num": 6, "month": "2025-01", "date": "10.02", "status": "done"}, {"num": 7, "month": "2025-01", "date": "17.02", "status": "done"}, {"num": 8, "month": "2025-01", "date": "19.02", "status": "done"}, {"num": 9, "month": "2025-01", "date": "21.02", "status": "done"}, {"num": 10, "month": "2025-01", "date": "24.02", "status": "done"}, {"num": 11, "month": "2025-01", "date": "27.02", "status": "done"}, {"num": 12, "month": "2025-01", "date": "28.02", "status": "done"}], "1000010": [{"num": 1, "month": "2025-01", "date": "28.01", "status": "done"}, {"num": 2, "month": "2025-01", "date": "29.01", "status": "done"}, {"num": 3, "month": "2025-01", "date": "2.02", "status": "done"}, {"num": 4, "month": "2025-01", "date": "5.02", "status": "done"}, {"num": 5, "month": "2025-01", "date": "6.02", "status": "done"}, {"num": 6, "month": "2025-01", "date": "17.02", "status": "done"}, {"num": 7, "month": "2025-01", "date": "24.02", "status": "done"}, {"num": 8, "month": "2025-01", "date": "26.02", "status": "done"}], "1000011": [{"num": 1, "month": "2025-01", "date": "4.02", "status": "done"}, {"num": 2, "month": "2025-01", "date": "7.02", "status": "done"}, {"num": 3, "month": "2025-01", "date": "9.02", "status": "done"}, {"num": 4, "month": "2025-01", "date": "13.02", "status": "done"}, {"num": 5, "month": "2025-01", "date": "16.02", "status": "done"}, {"num": 6, "month": "2025-01", "date": "18.02", "status": "done"}, {"num": 7, "month": "2025-01", "date": "20.02", "status": "done"}, {"num": 8, "month": "2025-01", "date": "25.02", "status": "done"}, {"num": 9, "month": "2025-01", "date": "28.02", "status": "done"}, {"num": 10, "month": "2025-01", "date": "4.03", "status": "done"}], "1000012": [{"num": 1, "month": "2025-02", "date": "9.02", "status": "done"}, {"num": 2, "month": "2025-02", "date": "11.02", "status": "done"}, {"num": 3, "month": "2025-02", "date": "16.02", "status": "done"}, {"num": 4, "month": "2025-02", "date": "20.02", "status": "done"}, {"num": 5, "month": "2025-02", "date": "23.02", "status": "done"}, {"num": 6, "month": "2025-02", "date": "25.02", "status": "done"}, {"num": 7, "month": "2025-02", "date": "2.03", "status": "done"}, {"num": 8, "month": "2025-02", "date": "4.03", "status": "done"}, {"num": 9, "month": "2025-02", "date": "13.03", "status": "done"}, {"num": 10, "month": "2025-02", "date": "13.03", "status": "done"}, {"num": 11, "month": "2025-02", "date": "18.03", "status": "done"}, {"num": 12, "month": "2025-02", "date": "20.03", "status": "done"}], "1000013": [{"num": 1, "month": "2025-02", "date": "13.02", "status": "done"}, {"num": 2, "month": "2025-02", "date": "16.02", "status": "done"}, {"num": 3, "month": "2025-02", "date": "18.02", "status": "done"}, {"num": 4, "month": "2025-02", "date": "19.02", "status": "done"}, {"num": 5, "month": "2025-02", "date": "20.02", "status": "done"}, {"num": 6, "month": "2025-02", "date": "23.02", "status": "done"}, {"num": 7, "month": "2025-02", "date": "25.02", "status": "done"}, {"num": 8, "month": "2025-02", "date": "2.03", "status": "done"}], "1000014": [{"num": 1, "month": "2025-02", "date": "16.02", "status": "done"}, {"num": 2, "month": "2025-02", "date": "18.02", "status": "done"}, {"num": 3, "month": "2025-02", "date": "22.02", "status": "done"}, {"num": 4, "month": "2025-02", "date": "23.02", "status": "done"}, {"num": 5, "month": "2025-02", "date": "25.02", "status": "done"}, {"num": 6, "month": "2025-02", "date": "27.02", "status": "done"}, {"num": 7, "month": "2025-02", "date": "7.03", "status": "done"}, {"num": 8, "month": "2025-02", "date": "12.03", "status": "done"}, {"num": 9, "month": "2025-02", "date": "13.03", "status": "done"}, {"num": 10, "month": "2025-02", "date": "16.03", "status": "done"}, {"num": 11, "month": "2025-02", "date": "18.03", "status": "done"}, {"num": 12, "month": "2025-02", "date": "21.03", "status": "done"}], "1000015": [{"num": 1, "month": "2025-02", "date": "12.02", "status": "done"}, {"num": 2, "month": "2025-02", "date": "14.02", "status": "done"}, {"num": 3, "month": "2025-02", "date": "", "status": "empty"}, {"num": 4, "month": "2025-02", "date": "", "status": "empty"}, {"num": 5, "month": "2025-02", "date": "", "status": "empty"}, {"num": 6, "month": "2025-02", "date": "", "status": "empty"}, {"num": 7, "month": "2025-02", "date": "", "status": "empty"}, {"num": 8, "month": "2025-02", "date": "", "status": "empty"}], "1000016": [{"num": 1, "month": "2025-02", "date": "20.02", "status": "done"}, {"num": 2, "month": "2025-02", "date": "24.02", "status": "done"}, {"num": 3, "month": "2025-02", "date": "27.02", "status": "done"}, {"num": 4, "month": "2025-02", "date": "3.03", "status": "done"}, {"num": 5, "month": "2025-02", "date": "13.03", "status": "done"}, {"num": 6, "month": "2025-02", "date": "17.03", "status": "done"}, {"num": 7, "month": "2025-02", "date": "20.03", "status": "done"}, {"num": 8, "month": "2025-02", "date": "", "status": "empty"}], "1000017": [{"num": 1, "month": "2025-02", "date": "21.02", "status": "done"}, {"num": 2, "month": "2025-02", "date": "26.02", "status": "done"}, {"num": 3, "month": "2025-02", "date": "28.02", "status": "done"}, {"num": 4, "month": "2025-02", "date": "7.03", "status": "done"}, {"num": 5, "month": "2025-02", "date": "12.03", "status": "done"}, {"num": 6, "month": "2025-02", "date": "19.03", "status": "done"}, {"num": 7, "month": "2025-02", "date": "21.03", "status": "done"}, {"num": 8, "month": "2025-02", "date": "", "status": "empty"}], "1000018": [{"num": 1, "month": "2025-02", "date": "", "status": "empty"}, {"num": 2, "month": "2025-02", "date": "", "status": "empty"}, {"num": 3, "month": "2025-02", "date": "", "status": "empty"}, {"num": 4, "month": "2025-02", "date": "", "status": "empty"}, {"num": 5, "month": "2025-02", "date": "", "status": "empty"}, {"num": 6, "month": "2025-02", "date": "", "status": "empty"}, {"num": 7, "month": "2025-02", "date": "", "status": "empty"}, {"num": 8, "month": "2025-02", "date": "", "status": "empty"}], "1000019": [{"num": 1, "month": "2025-02", "date": "23.02", "status": "done"}, {"num": 2, "month": "2025-02", "date": "25.02", "status": "done"}, {"num": 3, "month": "2025-02", "date": "28.02", "status": "done"}, {"num": 4, "month": "2025-02", "date": "2.03", "status": "done"}, {"num": 5, "month": "2025-02", "date": "7.03", "status": "done"}, {"num": 6, "month": "2025-02", "date": "14.03", "status": "done"}, {"num": 7, "month": "2025-02", "date": "16.03", "status": "done"}, {"num": 8, "month": "2025-02", "date": "18.03", "status": "done"}, {"num": 9, "month": "2025-02", "date": "21.03", "status": "done"}, {"num": 10, "month": "2025-02", "date": "", "status": "empty"}, {"num": 11, "month": "2025-02", "date": "", "status": "empty"}, {"num": 12, "month": "2025-02", "date": "", "status": "empty"}], "1000020": [{"num": 1, "month": "2025-03", "date": "", "status": "empty"}, {"num": 2, "month": "2025-03", "date": "", "status": "empty"}, {"num": 3, "month": "2025-03", "date": "", "status": "empty"}, {"num": 4, "month": "2025-03", "date": "", "status": "empty"}, {"num": 5, "month": "2025-03", "date": "", "status": "empty"}, {"num": 6, "month": "2025-03", "date": "", "status": "empty"}, {"num": 7, "month": "2025-03", "date": "", "status": "empty"}, {"num": 8, "month": "2025-03", "date": "", "status": "empty"}], "1000021": [{"num": 1, "month": "2025-03", "date": "5.03", "status": "done"}, {"num": 2, "month": "2025-03", "date": "7.03", "status": "done"}, {"num": 3, "month": "2025-03", "date": "14.03", "status": "done"}, {"num": 4, "month": "2025-03", "date": "15.03", "status": "done"}, {"num": 5, "month": "2025-03", "date": "19.03", "status": "done"}, {"num": 6, "month": "2025-03", "date": "21.03", "status": "done"}, {"num": 7, "month": "2025-03", "date": "", "status": "empty"}, {"num": 8, "month": "2025-03", "date": "", "status": "empty"}, {"num": 9, "month": "2025-03", "date": "", "status": "empty"}, {"num": 10, "month": "2025-03", "date": "", "status": "empty"}, {"num": 11, "month": "2025-03", "date": "", "status": "empty"}, {"num": 12, "month": "2025-03", "date": "", "status": "empty"}], "1000022": [{"num": 1, "month": "2025-03", "date": "", "status": "empty"}, {"num": 2, "month": "2025-03", "date": "", "status": "empty"}, {"num": 3, "month": "2025-03", "date": "", "status": "empty"}, {"num": 4, "month": "2025-03", "date": "", "status": "empty"}, {"num": 5, "month": "2025-03", "date": "", "status": "empty"}, {"num": 6, "month": "2025-03", "date": "", "status": "empty"}, {"num": 7, "month": "2025-03", "date": "", "status": "empty"}, {"num": 8, "month": "2025-03", "date": "", "status": "empty"}], "1000023": [{"num": 1, "month": "2025-03", "date": "23.03", "status": "done"}, {"num": 2, "month": "2025-03", "date": "26.03", "status": "done"}, {"num": 3, "month": "2025-03", "date": "", "status": "empty"}, {"num": 4, "month": "2025-03", "date": "", "status": "empty"}, {"num": 5, "month": "2025-03", "date": "", "status": "empty"}, {"num": 6, "month": "2025-03", "date": "", "status": "empty"}, {"num": 7, "month": "2025-03", "date": "", "status": "empty"}, {"num": 8, "month": "2025-03", "date": "", "status": "empty"}]}, "homework": {"1000000": [], "1000001": [], "1000002": [], "1000003": [], "1000004": [], "1000005": [], "1000006": [], "1000007": [], "1000008": [], "1000009": [], "1000010": [], "1000011": [], "1000012": [], "1000013": [], "1000014": [], "1000015": [], "1000016": [], "1000017": [], "1000018": [], "1000019": [], "1000020": [], "1000021": [], "1000022": [], "1000023": []}};
 
-let workData = {students:[],months:[],attendance:{},homework:{}};
+let workData = null;
 let workCurrentMonth = (()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})();
-let workActiveStudent = null;
 let workActiveSection = 'attendance';
 let _workInited = false;
 const WORK_SK = 'mind_work_v4';
 
 function workLoad(){
-  try{ workData=JSON.parse(localStorage.getItem(WORK_SK)||'null')||{students:[],months:[],attendance:{},homework:{}}; }
-  catch(_){ workData={students:[],months:[],attendance:{},homework:{}}; }
-  if(!workData.months) workData.months=[];
-  if(!workData.attendance) workData.attendance={};
-  if(!workData.homework) workData.homework={};
+  try{
+    const saved = localStorage.getItem(WORK_SK);
+    workData = saved ? JSON.parse(saved) : null;
+  } catch(_){ workData=null; }
+  if(!workData){ workData = JSON.parse(JSON.stringify(WORK_PREFILL)); }
+  if(!workData.months)    workData.months=[];
+  if(!workData.attendance)workData.attendance={};
+  if(!workData.homework)  workData.homework={};
+  // Ensure all students have required fields
+  workData.students.forEach(s=>{
+    if(!s.subs)     s.subs={};
+    if(!s.schedule) s.schedule=[];
+    if(!s.price)    s.price={};
+    if(s.archived===undefined) s.archived=false;
+  });
 }
 function workSave(){ localStorage.setItem(WORK_SK, JSON.stringify(workData)); }
 
 function workInit(){
   if(!_workInited){ workLoad(); _workInited=true; }
-  if(!workActiveStudent&&workData.students.length) workActiveStudent=workData.students[0].id;
-  // Ensure current month exists in months list
-  if(!workData.months.find(m=>m.key===workCurrentMonth)){
-    workData.months.push({key:workCurrentMonth, label:workMonthLabel(workCurrentMonth)});
-    workSave();
-  }
   document.getElementById('work-month-label').textContent=workMonthLabel(workCurrentMonth);
   workRenderSidebar();
   workRenderAttendance();
-  workRenderHomework();
 }
 
 // ── SECTION TOGGLE ──
@@ -5285,215 +5285,95 @@ function workPrevMonth(){
   const[y,m]=workCurrentMonth.split('-').map(Number);
   const d=new Date(y,m-2,1);
   workCurrentMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-  _workEnsureMonth(workCurrentMonth);
-  workRenderSidebar(); workRenderAttendance(); workRenderHomework();
   document.getElementById('work-month-label').textContent=workMonthLabel(workCurrentMonth);
+  workRenderAttendance();
 }
 function workNextMonth(){
   const[y,m]=workCurrentMonth.split('-').map(Number);
   const d=new Date(y,m,1);
   workCurrentMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-  _workEnsureMonth(workCurrentMonth);
-  workRenderSidebar(); workRenderAttendance(); workRenderHomework();
   document.getElementById('work-month-label').textContent=workMonthLabel(workCurrentMonth);
-}
-function _workEnsureMonth(mk){
-  if(!workData.months.find(m=>m.key===mk)){
-    workData.months.push({key:mk,label:workMonthLabel(mk)});
-    workSave();
-  }
+  workRenderAttendance();
 }
 function workMonthLabel(key){
+  if(!key)return'';
   const[y,m]=key.split('-').map(Number);
   return['January','February','March','April','May','June','July','August','September','October','November','December'][m-1]+' '+y;
 }
 
 // ── STUDENTS ──
-const WORK_COLORS=['#4285f4','#34a853','#e85a5a','#f59e0b','#8b5cf6','#06b6d4','#f472b6','#10b981','#f97316','#6366f1'];
+const WORK_COLORS=['#4285f4','#34a853','#e85a5a','#f59e0b','#8b5cf6','#06b6d4','#f472b6','#10b981','#f97316','#6366f1','#ec4899','#14b8a6'];
+
 function workAddStudent(){
-  const name=prompt('Student name:','');
-  if(!name?.trim())return;
-  const id=Date.now();
-  const color=WORK_COLORS[workData.students.length%WORK_COLORS.length];
-  workData.students.push({id,name:name.trim(),color,subs:{},schedule:[],monthGroup:workCurrentMonth});
-  workData.attendance[id]=[];
-  workData.homework[id]=[];
-  workSave();
-  workActiveStudent=id;
-  workRenderSidebar(); workRenderAttendance(); workRenderHomework();
+  // Open creation modal
+  workEditStudentModal(null);
 }
 function workDeleteStudent(id){
   if(!confirm('Delete this student and all records?'))return;
   workData.students=workData.students.filter(s=>s.id!==id);
   delete workData.attendance[id]; delete workData.homework[id];
-  if(workActiveStudent===id) workActiveStudent=workData.students[0]?.id||null;
-  workSave(); workRenderSidebar(); workRenderAttendance(); workRenderHomework();
+  workSave(); workRenderSidebar(); workRenderAttendance();
 }
-function workRenameStudent(id){
-  const s=workData.students.find(x=>x.id===id);if(!s)return;
-  const name=prompt('New name:',s.name);
-  if(name?.trim()){s.name=name.trim();workSave();workRenderSidebar();workRenderAttendance();}
-}
-function workSelectStudent(id){
-  workActiveStudent=id;
-  workRenderSidebar(); workRenderAttendance(); workRenderHomework();
+function workArchiveStudent(id){
+  const s=workData.students.find(x=>x.id===id);
+  if(!s)return;
+  s.archived=!s.archived;
+  workSave(); workRenderSidebar(); workRenderAttendance();
 }
 
 // ── SIDEBAR ──
+let _showArchived=false;
 function workRenderSidebar(){
   const list=document.getElementById('work-student-list');
   if(!list)return;
+  const visible=workData.students.filter(s=>_showArchived||!s.archived);
   if(!workData.students.length){
     list.innerHTML='<div style="padding:20px 10px;text-align:center;font-size:12px;color:var(--muted)">Add a student<br>to get started</div>';
     return;
   }
-  list.innerHTML=workData.students.map(s=>{
-    const att=workData.attendance[s.id]||[];
-    const curAtt=att.filter(c=>c.month===workCurrentMonth);
-    const done=curAtt.filter(c=>c.status==='done').length;
-    const total=(s.subs||{})[workCurrentMonth]||0;
-    const active=s.id===workActiveStudent;
-    const mg=s.monthGroup||workCurrentMonth;
-    const mgShort=workMonthLabel(mg).slice(0,3).toUpperCase();
-    return`<div class="work-student${active?' active':''}" 
-      onclick="workSelectStudent(${s.id})" 
-      ondblclick="workEditStudentModal(${s.id})"
-      draggable="true"
-      ondragstart="workDragStart(event,${s.id})"
-      style="border-left:3px solid ${s.color||'#4285f4'}">
-      <div style="flex:1;min-width:0">
-        <div class="ws-name">${esc(s.name)}</div>
-        <div style="font-size:9px;font-family:'Geist Mono',monospace;color:var(--subtle);margin-top:1px">${mgShort}${total?' · '+done+'/'+total:''}</div>
-      </div>
-      <button class="ws-del" onclick="event.stopPropagation();workDeleteStudent(${s.id})">✕</button>
-    </div>`;
-  }).join('');
+  const archived=workData.students.filter(s=>s.archived);
+  list.innerHTML=`
+    ${visible.map(s=>{
+      const att=(workData.attendance[s.id]||[]).filter(c=>c.month===s.monthGroup);
+      const done=att.filter(c=>c.status==='done').length;
+      const total=(s.subs||{})[s.monthGroup]||0;
+      const mgShort=workMonthLabel(s.monthGroup).slice(0,3).toUpperCase();
+      return`<div class="work-student${s.archived?' ws-archived':''}"
+        onclick="workEditStudentModal(${s.id})"
+        draggable="true" ondragstart="workDragStart(event,${s.id})"
+        style="border-left:3px solid ${s.color||'#4285f4'}">
+        <div style="flex:1;min-width:0">
+          <div class="ws-name" style="${s.archived?'color:var(--subtle)':''}">${esc(s.name)}</div>
+          <div style="font-size:9px;font-family:'Geist Mono',monospace;color:var(--subtle);margin-top:1px">${mgShort}${total?' · '+done+'/'+total:''}</div>
+        </div>
+        <button class="ws-del" onclick="event.stopPropagation();workDeleteStudent(${s.id})">✕</button>
+      </div>`;
+    }).join('')}
+    ${archived.length?`<div style="padding:6px 10px 4px;font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;display:flex;align-items:center;gap:5px" onclick="_showArchived=!_showArchived;workRenderSidebar()">
+      ${_showArchived?'▾':'▸'} Archived (${archived.length})
+    </div>`:''}
+    ${_showArchived?archived.map(s=>{
+      const att=(workData.attendance[s.id]||[]).filter(c=>c.month===s.monthGroup);
+      const done=att.filter(c=>c.status==='done').length;
+      const total=(s.subs||{})[s.monthGroup]||0;
+      const mgShort=workMonthLabel(s.monthGroup).slice(0,3).toUpperCase();
+      return`<div class="work-student ws-archived"
+        onclick="workEditStudentModal(${s.id})"
+        draggable="true" ondragstart="workDragStart(event,${s.id})"
+        style="border-left:3px solid #3d3a35">
+        <div style="flex:1;min-width:0">
+          <div class="ws-name" style="color:var(--subtle)">${esc(s.name)}</div>
+          <div style="font-size:9px;font-family:'Geist Mono',monospace;color:var(--subtle);margin-top:1px">${mgShort}${total?' · '+done+'/'+total:''}</div>
+        </div>
+        <button class="ws-del" onclick="event.stopPropagation();workDeleteStudent(${s.id})">✕</button>
+      </div>`;
+    }).join(''):''}
+  `;
 }
 
-// ── DRAG-AND-DROP (move student to different month group) ──
+// ── DRAG MONTH REASSIGN ──
 let _workDragId=null;
 function workDragStart(e,id){ _workDragId=id; e.dataTransfer.effectAllowed='move'; }
-
-// ── ATTENDANCE RENDER ──
-function workRenderAttendance(){
-  const wrap=document.getElementById('work-attendance-wrap');
-  if(!wrap)return;
-  document.getElementById('work-month-label').textContent=workMonthLabel(workCurrentMonth);
-
-  if(!workData.students.length){
-    wrap.innerHTML=`<div class="work-empty"><div class="work-empty-icon">📅</div><div class="work-empty-text">No students yet</div><div class="work-empty-sub">Click ＋ to add a student</div></div>`;
-    return;
-  }
-
-  // Group students by their monthGroup
-  const groupedStudents={};
-  workData.students.forEach(s=>{
-    const mg=s.monthGroup||workCurrentMonth;
-    if(!groupedStudents[mg]) groupedStudents[mg]=[];
-    groupedStudents[mg].push(s);
-  });
-
-  // Get sorted month groups (by key)
-  const monthKeys=Object.keys(groupedStudents).sort();
-
-  let html='<div class="wa-table" id="wa-table-root">';
-
-  monthKeys.forEach(mk=>{
-    const mObj=workData.months.find(m=>m.key===mk);
-    const mLabel=mObj?.label||workMonthLabel(mk);
-
-    // Month section header — draggable drop target
-    html+=`<div class="wa-month-group" 
-      ondragover="event.preventDefault()" 
-      ondrop="workDropOnMonth(event,'${mk}')"
-      data-month="${mk}">
-      <div class="wa-month-hd">
-        <span class="wa-month-icon">📅</span>
-        <span class="wa-month-label" ondblclick="workRenameMonthGroup('${mk}')">${esc(mLabel)}</span>
-        <span style="font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace">${mk}</span>
-        <button class="wa-set-btn" style="margin-left:auto" onclick="workAddMonthGroup()">+ Month</button>
-      </div>`;
-
-    groupedStudents[mk].forEach(s=>{
-      const att=(workData.attendance[s.id]||[]).filter(c=>c.month===workCurrentMonth);
-      const total=(s.subs||{})[workCurrentMonth]||0;
-      const done=att.filter(c=>c.status==='done').length;
-      const missed=att.filter(c=>c.status==='missed').length;
-      const pct=total>0?Math.round(done/total*100):0;
-      const isActive=s.id===workActiveStudent;
-
-      html+=`<div class="wa-student-row${isActive?' wa-active':''}" 
-        onclick="workSelectStudent(${s.id})"
-        draggable="true"
-        ondragstart="workDragStart(event,${s.id})">
-        <div class="wa-row-head">
-          <div class="wa-color-dot" style="background:${s.color||'#4285f4'}"></div>
-          <span class="wa-row-name" style="${isActive?'color:#06b6d4':''}" ondblclick="event.stopPropagation();workEditStudentModal(${s.id})">${esc(s.name)}</span>
-          <span class="wa-row-meta">${done}✓${missed>0?' '+missed+'✕':''}</span>
-          ${total?`<div class="wa-progress"><div class="wa-progress-fill" style="width:${pct}%;background:${done>=total?'#34a853':'#4285f4'}"></div></div>
-          <span class="wa-row-meta" style="color:${done>=total?'#34a853':'#8ab4f8'};font-weight:600">${done}/${total}</span>`:
-          `<span class="wa-row-meta" style="color:#2e2b26">—</span>`}
-          <button class="wa-set-btn" onclick="event.stopPropagation();workSetSubscription(${s.id},'${workCurrentMonth}')">
-            ${total?'Edit':'Set'} sub
-          </button>
-          <button class="wa-set-btn" onclick="event.stopPropagation();workEditStudentModal(${s.id})" style="color:#8ab4f8;border-color:#1a2e4a">⚙ Edit</button>
-        </div>
-        <div class="wa-cells">`;
-
-      if(total===0){
-        html+=`<div style="padding:6px 0;font-size:12px;color:var(--subtle);font-style:italic">Click "Set sub" to add lessons</div>`;
-      } else {
-        att.forEach((cell,i)=>{
-          const cls=cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
-          html+=`<div class="wa-cell ${cls}"
-            onclick="event.stopPropagation();workCellClick(event,${s.id},${i},'${workCurrentMonth}')"
-            title="Lesson ${cell.num}${cell.date?' · '+cell.date:''}">
-            <span class="wc-date">${esc(cell.date||'·')}</span>
-            <span class="wc-num">${cell.num}</span>
-            <span class="wc-icon">${cell.status==='done'?'✓':cell.status==='missed'?'✕':''}</span>
-          </div>`;
-        });
-      }
-      html+=`</div></div>`;
-    });
-
-    html+=`</div>`; // close wa-month-group
-  });
-
-  // If no groups have students, show empty
-  if(!monthKeys.length){
-    html+=`<div class="work-empty"><div class="work-empty-icon">📅</div><div class="work-empty-text">No students yet</div></div>`;
-  }
-
-  html+='</div>';
-  wrap.innerHTML=html;
-}
-
-// ── MONTH GROUPS ──
-function workAddMonthGroup(){
-  const key=prompt('Month key (YYYY-MM):', (()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})());
-  if(!key?.match(/^\d{4}-\d{2}$/)) return;
-  const label=prompt('Label for this month:', workMonthLabel(key))||workMonthLabel(key);
-  if(!workData.months.find(m=>m.key===key)){
-    workData.months.push({key,label});
-    workSave();
-  } else {
-    workData.months.find(m=>m.key===key).label=label;
-    workSave();
-  }
-  workRenderAttendance();
-}
-
-function workRenameMonthGroup(mk){
-  const mObj=workData.months.find(m=>m.key===mk);
-  const cur=mObj?.label||workMonthLabel(mk);
-  const label=prompt('Rename this month group:',cur);
-  if(!label?.trim())return;
-  if(mObj) mObj.label=label.trim();
-  else workData.months.push({key:mk,label:label.trim()});
-  workSave(); workRenderAttendance();
-}
-
 function workDropOnMonth(e,mk){
   e.preventDefault();
   if(!_workDragId)return;
@@ -5502,285 +5382,423 @@ function workDropOnMonth(e,mk){
   _workDragId=null;
 }
 
-// ── SET SUBSCRIPTION ──
-function workSetSubscription(studentId, monthKey){
-  const s=workData.students.find(x=>x.id===studentId);if(!s)return;
-  if(!s.subs)s.subs={};
-  const cur=(s.subs[monthKey]||0);
-  const val=prompt(`Lessons in subscription for ${s.name}\n(${workMonthLabel(monthKey)}):`,cur||'');
-  if(val===null)return;
-  const n=parseInt(val);
-  if(isNaN(n)||n<0)return;
-  s.subs[monthKey]=n;
-  const att=workData.attendance[studentId]||[];
-  const other=att.filter(c=>c.month!==monthKey);
-  const existing=att.filter(c=>c.month===monthKey);
-  const newCells=Array.from({length:n},(_,i)=>existing[i]||{num:i+1,month:monthKey,date:'',status:'empty'});
-  newCells.forEach((c,i)=>c.num=i+1);
-  workData.attendance[studentId]=[...other,...newCells];
-  workSave(); workRenderSidebar(); workRenderAttendance();
-}
+// ── ATTENDANCE ──
+function workRenderAttendance(){
+  const wrap=document.getElementById('work-attendance-wrap');
+  if(!wrap)return;
+  const active=workData.students.filter(s=>!s.archived);
+  if(!active.length){
+    wrap.innerHTML=`<div class="work-empty"><div class="work-empty-icon">📅</div><div class="work-empty-text">No active students</div><div class="work-empty-sub">Click ＋ to add one</div></div>`;
+    return;
+  }
+  // Group by monthGroup
+  const groups={};
+  active.forEach(s=>{ const mg=s.monthGroup||'?'; if(!groups[mg])groups[mg]=[]; groups[mg].push(s); });
+  const monthKeys=Object.keys(groups).sort();
 
-// ── STUDENT EDIT MODAL (schedule + subscription) ──
-function workEditStudentModal(id){
-  const s=workData.students.find(x=>x.id===id);
-  if(!s)return;
-  document.getElementById('work-edit-modal')?.remove();
+  let html='<div class="wa-table">';
+  monthKeys.forEach(mk=>{
+    const mObj=workData.months.find(m=>m.key===mk);
+    const mLabel=mObj?.label||workMonthLabel(mk)||mk;
+    html+=`<div class="wa-month-group" ondragover="event.preventDefault()" ondrop="workDropOnMonth(event,'${mk}')">
+      <div class="wa-month-hd">
+        <span class="wa-month-label" ondblclick="workRenameGroup('${mk}')">${esc(mLabel)}</span>
+        <span style="font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-left:4px">${mk}</span>
+      </div>`;
 
-  const DOW_LABELS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const schedule=s.schedule||[];
+    groups[mk].forEach(s=>{
+      const att=(workData.attendance[s.id]||[]).filter(c=>c.month===s.monthGroup);
+      const done=att.filter(c=>c.status==='done').length;
+      const missed=att.filter(c=>c.status==='missed').length;
+      const total=att.length;
+      const pct=total>0?Math.round(done/total*100):0;
 
-  const modal=document.createElement('div');
-  modal.id='work-edit-modal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:6000;display:flex;align-items:center;justify-content:center';
+      html+=`<div class="wa-student-row" onclick="workEditStudentModal(${s.id})" draggable="true" ondragstart="workDragStart(event,${s.id})">
+        <div class="wa-row-head">
+          <div class="wa-color-dot" style="background:${s.color||'#4285f4'}"></div>
+          <span class="wa-row-name">${esc(s.name)}</span>
+          <span class="wa-row-meta">${done}✓${missed?' '+missed+'✕':''}</span>
+          ${total?`<div class="wa-progress"><div class="wa-progress-fill" style="width:${pct}%;background:${done>=total?'#34a853':'#4285f4'}"></div></div>
+          <span class="wa-row-meta" style="color:${done>=total?'#34a853':'#8ab4f8'};font-weight:600">${done}/${total}</span>`:''}
+        </div>
+        <div class="wa-cells" onclick="event.stopPropagation()">`;
 
-  const schedRows=schedule.map((slot,i)=>`
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-      <select onchange="workUpdateSchedule(${id},${i},'dow',this.value)"
-        style="padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none">
-        ${DOW_LABELS.map((d,di)=>`<option value="${di}" ${slot.dow==di?'selected':''}>${d}</option>`).join('')}
-      </select>
-      <input type="time" value="${slot.time||'09:00'}" onchange="workUpdateSchedule(${id},${i},'time',this.value)"
-        style="padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none"/>
-      <span style="font-size:11px;color:var(--muted)">${slot.duration||60}min</span>
-      <button onclick="workRemoveScheduleSlot(${id},${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px">✕</button>
-    </div>`).join('');
+      att.forEach((cell,i)=>{
+        const cls=cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
+        html+=`<div class="wa-cell ${cls}"
+          onclick="workCellClick(event,${s.id},${i})"
+          title="Lesson ${cell.num}${cell.date?' · '+cell.date:''}">
+          <span class="wc-date">${esc(cell.date||'·')}</span>
+          <span class="wc-num">${cell.num}</span>
+          <span class="wc-icon">${cell.status==='done'?'✓':cell.status==='missed'?'✕':''}</span>
+        </div>`;
+      });
 
-  // Colors
-  const colorPicker=WORK_COLORS.map(c=>`
-    <div onclick="workSetStudentColor(${id},'${c}')" 
-      style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:2px solid ${s.color===c?'white':'transparent'};transition:transform .1s"
-      onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform=''"></div>`).join('');
-
-  modal.innerHTML=`<div style="background:#1a1816;border:1px solid #3a3630;border-radius:12px;padding:24px;width:420px;max-height:80vh;overflow-y:auto;box-shadow:0 16px 60px rgba(0,0,0,.8)">
-    <div style="font-size:18px;font-weight:600;color:var(--ink);margin-bottom:16px;display:flex;align-items:center;gap:10px">
-      <div style="width:12px;height:12px;border-radius:50%;background:${s.color||'#4285f4'}"></div>
-      ${esc(s.name)}
-    </div>
-    
-    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:8px">Color</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${colorPicker}</div>
-
-    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:8px">Weekly Schedule</div>
-    <div id="work-sched-rows">${schedRows||'<div style="font-size:12px;color:var(--subtle)">No schedule set</div>'}</div>
-    <button onclick="workAddScheduleSlot(${id})" style="margin-top:8px;padding:5px 12px;background:none;border:1px dashed var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:12px;font-family:'Geist',sans-serif">+ Add time slot</button>
-    
-    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin:16px 0 8px">Sync to Calendar</div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button onclick="workSyncScheduleToCalendar(${id})" 
-        style="padding:7px 16px;background:#1a2e4a;border:1px solid #2a4a6a;border-radius:6px;color:#8ab4f8;cursor:pointer;font-size:13px;font-family:'Geist',sans-serif">
-        📅 Create calendar events from schedule
-      </button>
-    </div>
-    <div style="font-size:11px;color:var(--subtle);margin-top:6px">Creates recurring events in calendar for this student's schedule</div>
-
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
-      <button onclick="document.getElementById('work-edit-modal').remove()" 
-        style="padding:8px 18px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif">Close</button>
-    </div>
-  </div>`;
-  document.body.appendChild(modal);
-  modal.addEventListener('click',e=>{ if(e.target===modal){ modal.remove(); } });
-}
-
-function workSetStudentColor(id, color){
-  const s=workData.students.find(x=>x.id===id);
-  if(s){ s.color=color; workSave(); }
-  // Refresh color dots in modal
-  document.querySelectorAll('#work-edit-modal [onclick^="workSetStudentColor"]').forEach(el=>{
-    const c=el.getAttribute('onclick').match(/'([^']+)'\)/)?.[1];
-    el.style.border=`2px solid ${c===color?'white':'transparent'}`;
-  });
-  workRenderSidebar(); workRenderAttendance();
-}
-
-function workAddScheduleSlot(id){
-  const s=workData.students.find(x=>x.id===id);if(!s)return;
-  if(!s.schedule)s.schedule=[];
-  s.schedule.push({dow:1,time:'09:00',duration:60});
-  workSave(); workEditStudentModal(id); // re-open to refresh
-}
-
-function workRemoveScheduleSlot(id, idx){
-  const s=workData.students.find(x=>x.id===id);if(!s)return;
-  s.schedule.splice(idx,1);
-  workSave(); workEditStudentModal(id);
-}
-
-function workUpdateSchedule(id, idx, field, val){
-  const s=workData.students.find(x=>x.id===id);if(!s||!s.schedule[idx])return;
-  s.schedule[idx][field]=field==='dow'?parseInt(val):val;
-  workSave();
-}
-
-function workSyncScheduleToCalendar(id){
-  const s=workData.students.find(x=>x.id===id);if(!s||!s.schedule?.length)return;
-  const DOW=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  let created=0;
-  s.schedule.forEach(slot=>{
-    // Find next occurrence of this weekday
-    const today=new Date();
-    const target=new Date(today);
-    const dayDiff=(slot.dow-today.getDay()+7)%7||7;
-    target.setDate(today.getDate()+dayDiff);
-    const dk=dkey(target);
-    if(!calEvts[dk])calEvts[dk]=[];
-    const endH=slot.time?String(parseInt(slot.time)+1).padStart(2,'0')+slot.time.slice(2):'10:00';
-    calEvts[dk].push({
-      title:s.name,
-      start:slot.time||'09:00',
-      end:endH,
-      repeat:'weekly',
-      repeatEvery:1,
-      color:'blue',
-      id:Date.now()+created
+      if(!att.length) html+=`<span style="font-size:12px;color:var(--subtle);font-style:italic">Open student to set subscription</span>`;
+      html+=`</div></div>`;
     });
-    created++;
+    html+=`</div>`;
   });
-  if(created){ save(); renderCal(); }
-  alert(`Created ${created} recurring calendar event${created!==1?'s':''} for ${s.name}`);
-  document.getElementById('work-edit-modal')?.remove();
+  html+='</div>';
+  wrap.innerHTML=html;
 }
 
-// ── CELL CLICK → popup ──
-let _waCellPopup=null;
-function workCellClick(e, studentId, cellIdx, monthKey){
-  document.getElementById('wa-popup')?.remove();
-  _waCellPopup=null;
+function workRenameGroup(mk){
+  const obj=workData.months.find(m=>m.key===mk);
+  const label=prompt('Rename month group:',obj?.label||workMonthLabel(mk));
+  if(!label?.trim())return;
+  if(obj) obj.label=label.trim();
+  else workData.months.push({key:mk,label:label.trim()});
+  workSave(); workRenderAttendance();
+}
 
-  const att=workData.attendance[studentId]||[];
-  const cells=att.filter(c=>c.month===monthKey);
-  const cell=cells[cellIdx];
-  if(!cell)return;
+// ── CELL CLICK ──
+let _waCellPopup=null;
+function workCellClick(e, sid, cellIdx){
+  e.stopPropagation();
+  document.getElementById('wa-popup')?.remove();
+  const s=workData.students.find(x=>x.id===sid);if(!s)return;
+  const att=workData.attendance[sid]||[];
+  const cell=att[cellIdx];if(!cell)return;
 
   const popup=document.createElement('div');
-  popup.id='wa-popup';
-  popup.className='wa-date-popup';
+  popup.id='wa-popup'; popup.className='wa-date-popup';
   popup.innerHTML=`
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:'Geist Mono',monospace">Lesson ${cell.num} · ${workMonthLabel(monthKey)}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:'Geist Mono',monospace">${esc(s.name)} · Lesson ${cell.num}</div>
     <input id="wa-popup-date" placeholder="Date e.g. 16.01" value="${esc(cell.date||'')}"/>
     <div class="wa-date-popup-btns" style="margin-top:8px">
-      <button id="wa-btn-done" onclick="workCellSetStatus(${studentId},${cellIdx},'${monthKey}','done')"
-        style="background:#0c2216;color:#34a853;border:1px solid #1a4a28;outline:2px solid #34a853">✓ Done</button>
-      <button onclick="workCellSetStatus(${studentId},${cellIdx},'${monthKey}','missed')"
+      <button id="wa-btn-done" onclick="workCellSet(${sid},${cellIdx},'done')"
+        style="background:#0c2216;color:#34a853;border:1px solid #1a4a28;outline:2px solid #34a853;outline-offset:1px">✓ Done</button>
+      <button onclick="workCellSet(${sid},${cellIdx},'missed')"
         style="background:#1e0808;color:#e85a5a;border:1px solid #3a1212">✕ Missed</button>
-      <button onclick="workCellSetStatus(${studentId},${cellIdx},'${monthKey}','empty')"
+      <button onclick="workCellSet(${sid},${cellIdx},'empty')"
         style="background:var(--surface);color:var(--muted);border:1px solid var(--border)">— Clear</button>
     </div>`;
   document.body.appendChild(popup);
-  _waCellPopup={studentId,cellIdx,monthKey};
+  _waCellPopup={sid,cellIdx};
 
-  // Position near click
   let x=e.clientX, y=e.clientY+10;
   if(x+170>window.innerWidth) x=window.innerWidth-175;
-  if(y+120>window.innerHeight) y=e.clientY-120;
+  if(y+130>window.innerHeight) y=e.clientY-130;
   popup.style.cssText=`left:${Math.max(6,x)}px;top:${Math.max(6,y)}px`;
 
-  setTimeout(()=>{ document.addEventListener('mousedown',_waClosePopup,{once:true}); },0);
-
+  setTimeout(()=>document.addEventListener('mousedown',_waClosePopup,{once:true}),0);
   const inp=document.getElementById('wa-popup-date');
   inp.focus(); inp.select();
   inp.addEventListener('keydown',ev=>{
-    if(ev.key==='Enter'){
-      ev.preventDefault();
-      workCellSetStatus(studentId,cellIdx,monthKey,'done'); // Enter = Done by default
-    }
+    if(ev.key==='Enter'){ ev.preventDefault(); workCellSet(sid,cellIdx,'done'); }
     if(ev.key==='Escape') document.getElementById('wa-popup')?.remove();
   });
 }
 
-function _waClosePopup(e){
-  const p=document.getElementById('wa-popup');
-  if(p&&!p.contains(e.target)) p.remove();
-}
+function _waClosePopup(e){ const p=document.getElementById('wa-popup'); if(p&&!p.contains(e.target))p.remove(); }
 
-function workCellSetStatus(studentId, cellIdx, monthKey, status){
+function workCellSet(sid, cellIdx, status){
   const dateVal=document.getElementById('wa-popup-date')?.value.trim()||'';
-  const att=workData.attendance[studentId]||[];
-  const cells=att.filter(c=>c.month===monthKey);
-  const cell=cells[cellIdx];
-  if(cell){ cell.status=status; if(dateVal) cell.date=dateVal; }
-  workSave();
-  document.getElementById('wa-popup')?.remove();
+  const att=workData.attendance[sid]||[];
+  const cell=att[cellIdx];
+  if(cell){ cell.status=status; if(dateVal)cell.date=dateVal; else if(status==='empty')cell.date=''; }
+  workSave(); document.getElementById('wa-popup')?.remove();
   workRenderSidebar(); workRenderAttendance(); workRenderHomework();
 }
 
-// ── HOMEWORK RENDER ──
+// ── HOMEWORK ──
 function workRenderHomework(){
   const wrap=document.getElementById('work-hw-wrap');
   if(!wrap)return;
-
-  if(!workData.students.length){
-    wrap.innerHTML=`<div class="work-empty"><div class="work-empty-icon">📝</div><div class="work-empty-text">No students yet</div></div>`;
-    return;
-  }
+  const active=workData.students.filter(s=>!s.archived);
+  if(!active.length){ wrap.innerHTML=`<div class="work-empty"><div class="work-empty-icon">📝</div><div class="work-empty-text">No students yet</div></div>`; return; }
 
   let html=`<div class="hw-table-wrap"><table class="hw-table">
     <thead><tr>
-      <th style="color:var(--ink)">Student</th>
-      <th style="color:var(--ink)">#</th>
-      <th style="color:var(--ink)">Date</th>
-      <th style="color:var(--ink)">Homework</th>
-      <th style="color:var(--ink)">Notes</th>
+      <th>Student</th><th>#</th><th>Date</th><th>Homework</th><th>Notes</th>
     </tr></thead><tbody>`;
 
-  workData.students.forEach(s=>{
-    const att=(workData.attendance[s.id]||[]).filter(c=>c.month===workCurrentMonth&&(c.status==='done'||c.status==='missed'));
+  active.forEach(s=>{
+    const att=(workData.attendance[s.id]||[]).filter(c=>c.status==='done'||c.status==='missed');
     if(!att.length){
-      html+=`<tr>
-        <td class="hw-row-name" style="color:${s.color||'#4285f4'}">${esc(s.name)}</td>
-        <td colspan="4" style="color:var(--subtle);font-size:12px;font-style:italic">No lessons recorded</td>
-      </tr><tr><td colspan="5" style="height:6px"></td></tr>`;
+      html+=`<tr><td style="color:${s.color||'#4285f4'};font-weight:600">${esc(s.name)}</td>
+        <td colspan="4" style="color:var(--subtle);font-size:12px;font-style:italic">No lessons recorded</td></tr>
+      <tr><td colspan="5" style="height:6px;border-bottom:1px solid var(--border)"></td></tr>`;
       return;
     }
-
     const hw=workData.homework[s.id]||[];
     att.forEach((cell,i)=>{
-      const hwRec=hw.find(h=>h.month===workCurrentMonth&&h.num===cell.num)||{};
+      const hwRec=hw.find(h=>h.month===cell.month&&h.num===cell.num)||{};
       const curHw=hwRec.hw||'';
-      const curNote=hwRec.note||'';
-      html+=`<tr style="${cell.status==='missed'?'opacity:.45':''}">
-        <td class="hw-row-name" style="color:${i===0?(s.color||'#4285f4'):'transparent'}">${i===0?esc(s.name):''}</td>
-        <td style="font-size:12px;font-family:'Geist Mono',monospace;color:${cell.status==='done'?'#34a853':'#e85a5a'};font-weight:600">
-          ${cell.status==='done'?'✓':'✕'} ${cell.num}
-        </td>
-        <td class="hw-cell-date">${esc(cell.date||'—')}</td>
-        <td>
-          <select onchange="workSetHw(${s.id},${cell.num},'${workCurrentMonth}',this.value)"
+      html+=`<tr style="${cell.status==='missed'?'opacity:.4':''}">
+        <td style="color:${i===0?(s.color||'#4285f4'):'transparent'};font-weight:600">${i===0?esc(s.name):''}</td>
+        <td style="font-family:'Geist Mono',monospace;font-size:12px;color:${cell.status==='done'?'#34a853':'#e85a5a'};font-weight:700">
+          ${cell.status==='done'?'✓':'✕'} ${cell.num}</td>
+        <td style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--muted)">${esc(cell.date||'—')}</td>
+        <td><select onchange="workSetHw(${s.id},${cell.num},this.value,'${cell.month}')"
             style="padding:4px 10px;background:${curHw==='checked'?'#0a2014':curHw==='sent'?'#0a1a2e':'var(--surface)'};border:1px solid ${curHw==='checked'?'#34a853':curHw==='sent'?'#06b6d4':'var(--border)'};border-radius:6px;color:var(--ink);font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;outline:none;min-width:130px">
-            <option value=""       ${!curHw?'selected':''}>— no HW</option>
-            <option value="sent"   ${curHw==='sent'?'selected':''}>📤 Sent</option>
-            <option value="checked"${curHw==='checked'?'selected':''}>✅ Checked</option>
-          </select>
-        </td>
-        <td>
-          <input value="${esc(curNote)}" placeholder="note…"
-            onchange="workSetHwNote(${s.id},${cell.num},'${workCurrentMonth}',this.value)"
-            style="background:none;border:none;border-bottom:1px solid var(--border-light);color:var(--ink);font-size:12px;font-family:'Geist',sans-serif;outline:none;width:180px;padding:2px 4px"/>
-        </td>
+            <option value="" ${!curHw?'selected':''}>— no HW</option>
+            <option value="sent" ${curHw==='sent'?'selected':''}>📤 Sent</option>
+            <option value="checked" ${curHw==='checked'?'selected':''}>✅ Checked</option>
+          </select></td>
+        <td><input value="${esc(hwRec.note||'')}" placeholder="note…"
+            onchange="workSetHwNote(${s.id},${cell.num},this.value,'${cell.month}')"
+            style="background:none;border:none;border-bottom:1px solid var(--border-light);color:var(--ink);font-size:12px;font-family:'Geist',sans-serif;outline:none;width:180px;padding:2px 4px"/></td>
       </tr>`;
     });
     html+=`<tr><td colspan="5" style="height:8px;border-bottom:1px solid var(--border)"></td></tr>`;
   });
-
   html+=`</tbody></table></div>`;
   wrap.innerHTML=html;
 }
 
-function workSetHw(studentId, lessonNum, monthKey, status){
-  if(!workData.homework[studentId]) workData.homework[studentId]=[];
-  const hw=workData.homework[studentId];
-  let rec=hw.find(h=>h.month===monthKey&&h.num===lessonNum);
-  if(!rec){ rec={month:monthKey,num:lessonNum,hw:'',note:''}; hw.push(rec); }
+function workSetHw(sid, num, status, monthKey){
+  if(!workData.homework[sid]) workData.homework[sid]=[];
+  let rec=workData.homework[sid].find(h=>h.month===monthKey&&h.num===num);
+  if(!rec){ rec={month:monthKey,num,hw:'',note:''}; workData.homework[sid].push(rec); }
   rec.hw=status; workSave();
 }
-
-function workSetHwNote(studentId, lessonNum, monthKey, note){
-  if(!workData.homework[studentId]) workData.homework[studentId]=[];
-  const hw=workData.homework[studentId];
-  let rec=hw.find(h=>h.month===monthKey&&h.num===lessonNum);
-  if(!rec){ rec={month:monthKey,num:lessonNum,hw:'',note:''}; hw.push(rec); }
+function workSetHwNote(sid, num, note, monthKey){
+  if(!workData.homework[sid]) workData.homework[sid]=[];
+  let rec=workData.homework[sid].find(h=>h.month===monthKey&&h.num===num);
+  if(!rec){ rec={month:monthKey,num,hw:'',note:''}; workData.homework[sid].push(rec); }
   rec.note=note; workSave();
+}
+
+// ── STUDENT EDIT / CREATE MODAL ──
+function workEditStudentModal(id){
+  const isNew = id===null;
+  const s = isNew ? {id:null,name:'',color:WORK_COLORS[workData.students.length%WORK_COLORS.length],subs:{},schedule:[],price:{},monthGroup:workCurrentMonth,archived:false} : workData.students.find(x=>x.id===id);
+  if(!s&&!isNew)return;
+  document.getElementById('work-edit-modal')?.remove();
+
+  const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const mg=s.monthGroup||workCurrentMonth;
+  const totalLessons=(s.subs||{})[mg]||0;
+  const price=(s.price||{})[mg]||'';
+
+  // Try to read schedule from calendar events
+  const calSchedule=[];
+  if(!isNew&&s.name){
+    Object.entries(calEvts||{}).forEach(([dk,evts])=>{
+      (evts||[]).forEach(evt=>{
+        if(evt.title&&evt.title.toLowerCase().includes(s.name.toLowerCase())){
+          const d=new Date(dk+'T12:00:00');
+          const dow=d.getDay();
+          // only add unique dow+time combos
+          if(evt.start&&!calSchedule.find(x=>x.dow===dow&&x.time===evt.start)){
+            calSchedule.push({dow,time:evt.start,duration:evt.end?_timeDiff(evt.start,evt.end):60});
+          }
+        }
+      });
+    });
+    if(calSchedule.length&&!s.schedule?.length){
+      s.schedule=calSchedule;
+    }
+  }
+
+  const schedule=s.schedule||[];
+  const colorPicker=WORK_COLORS.map(c=>`<div onclick="workModalSetColor('${c}')"
+    style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${s.color===c?'white':'transparent'};transition:all .1s;flex-shrink:0"
+    id="wc-${c.slice(1)}"></div>`).join('');
+
+  const schedRows=()=>((s.schedule||[]).map((slot,i)=>`
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+      <select onchange="workModalSchedUpdate(${i},'dow',this.value)"
+        style="padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+        ${DOW.map((d,di)=>`<option value="${di}" ${slot.dow==di?'selected':''}>${d}</option>`).join('')}
+      </select>
+      <input type="time" value="${slot.time||'09:00'}" onchange="workModalSchedUpdate(${i},'time',this.value)"
+        style="padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none"/>
+      <input type="number" value="${slot.duration||60}" min="15" max="180" step="15" onchange="workModalSchedUpdate(${i},'duration',this.value)"
+        style="width:52px;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:12px;outline:none;text-align:center"/>
+      <span style="font-size:11px;color:var(--subtle)">min</span>
+      <button onclick="workModalRemoveSched(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px;line-height:1">✕</button>
+    </div>`).join('')||'<div style="font-size:12px;color:var(--subtle);font-style:italic;margin-bottom:8px">No schedule set yet${calSchedule.length?" — calendar events found but no schedule saved":""}</div>');
+
+  const modal=document.createElement('div');
+  modal.id='work-edit-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:6000;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:20px';
+  modal.innerHTML=`<div style="background:#1a1816;border:1px solid #3a3630;border-radius:14px;padding:28px;width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 80px rgba(0,0,0,.9)">
+
+    <div style="font-size:20px;font-weight:700;color:var(--ink);margin-bottom:20px;display:flex;align-items:center;gap:10px">
+      <div id="wm-color-preview" style="width:14px;height:14px;border-radius:50%;background:${s.color||'#4285f4'};flex-shrink:0"></div>
+      ${isNew?'New Student':'Edit Student'}
+    </div>
+
+    <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Name</label>
+    <input id="wm-name" value="${esc(s.name||'')}" placeholder="Student name"
+      style="width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--ink);font-size:14px;outline:none;box-sizing:border-box;margin-bottom:14px;font-family:'Geist',sans-serif"/>
+
+    <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:7px">Color</label>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px">${colorPicker}</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+      <div>
+        <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Month group</label>
+        <input id="wm-month" value="${mg}" placeholder="YYYY-MM"
+          style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--ink);font-size:13px;outline:none;box-sizing:border-box;font-family:'Geist Mono',monospace"/>
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Lessons</label>
+        <input id="wm-lessons" type="number" min="0" value="${totalLessons||''}" placeholder="e.g. 12"
+          style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--ink);font-size:13px;outline:none;box-sizing:border-box;font-family:'Geist Mono',monospace"/>
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Price (₸)</label>
+        <input id="wm-price" type="number" min="0" value="${price||''}" placeholder="e.g. 36000"
+          style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--ink);font-size:13px;outline:none;box-sizing:border-box;font-family:'Geist Mono',monospace"/>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <label style="font-size:12px;color:var(--muted);font-family:'Geist',sans-serif;display:flex;align-items:center;gap:7px;cursor:pointer">
+        <input type="checkbox" id="wm-archived" ${s.archived?'checked':''} style="width:14px;height:14px;cursor:pointer"/>
+        Mark as archived
+      </label>
+    </div>
+
+    <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:8px">
+      Weekly Schedule
+      ${calSchedule.length?`<span style="color:#34a853;font-size:10px;margin-left:6px">✓ ${calSchedule.length} slot${calSchedule.length>1?'s':''} found in calendar</span>`:''}
+    </label>
+    <div id="wm-sched-rows">${schedRows()}</div>
+    <button onclick="workModalAddSched()" style="padding:5px 14px;background:none;border:1px dashed var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:12px;font-family:'Geist',sans-serif;margin-bottom:16px">+ Add time slot</button>
+
+    ${!isNew?`<button onclick="workSyncScheduleToCalendar(${s.id})"
+      style="display:block;width:100%;padding:8px;background:#0a1a2e;border:1px solid #1a3a5a;border-radius:6px;color:#8ab4f8;cursor:pointer;font-size:12px;font-family:'Geist',sans-serif;margin-bottom:16px">
+      📅 Create recurring calendar events from schedule</button>`:''}
+
+    <div style="display:flex;gap:10px;justify-content:space-between;margin-top:4px">
+      ${!isNew?`<button onclick="workArchiveStudent(${s.id});document.getElementById('work-edit-modal').remove()"
+        style="padding:8px 14px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif;font-size:12px">
+        ${s.archived?'Unarchive':'Archive'}</button>`:'<div></div>'}
+      <div style="display:flex;gap:8px">
+        <button onclick="document.getElementById('work-edit-modal').remove()"
+          style="padding:8px 18px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif">Cancel</button>
+        <button onclick="workModalSave(${isNew?'null':s.id})"
+          style="padding:8px 22px;background:#06b6d4;color:#0a0a08;border:none;border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;font-weight:700">
+          ${isNew?'Create':'Save'}</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click',e=>{ if(e.target===modal){ document.getElementById('work-edit-modal').remove(); }});
+  if(isNew) setTimeout(()=>document.getElementById('wm-name')?.focus(),50);
+
+  // Store temp edit state
+  window._wmStudent=JSON.parse(JSON.stringify(s));
+  window._wmStudent.color=s.color||'#4285f4';
+}
+
+function _timeDiff(start, end){
+  if(!start||!end)return 60;
+  const[sh,sm]=start.split(':').map(Number);
+  const[eh,em]=end.split(':').map(Number);
+  return Math.max(15,(eh*60+em)-(sh*60+sm));
+}
+
+function workModalSetColor(c){
+  window._wmStudent.color=c;
+  document.getElementById('wm-color-preview').style.background=c;
+  document.querySelectorAll('[id^="wc-"]').forEach(el=>{
+    el.style.border=`3px solid ${el.id==='wc-'+c.slice(1)?'white':'transparent'}`;
+  });
+}
+
+function workModalAddSched(){
+  if(!window._wmStudent.schedule) window._wmStudent.schedule=[];
+  window._wmStudent.schedule.push({dow:1,time:'09:00',duration:60});
+  const rows=document.getElementById('wm-sched-rows');
+  if(rows){
+    const i=window._wmStudent.schedule.length-1;
+    const slot=window._wmStudent.schedule[i];
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:6px';
+    const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    div.innerHTML=`<select onchange="workModalSchedUpdate(${i},'dow',this.value)"
+        style="padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+        ${DOW.map((d,di)=>`<option value="${di}" ${slot.dow==di?'selected':''}>${d}</option>`).join('')}
+      </select>
+      <input type="time" value="${slot.time}" onchange="workModalSchedUpdate(${i},'time',this.value)"
+        style="padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none"/>
+      <input type="number" value="${slot.duration}" min="15" max="180" step="15" onchange="workModalSchedUpdate(${i},'duration',this.value)"
+        style="width:52px;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:12px;outline:none;text-align:center"/>
+      <span style="font-size:11px;color:var(--subtle)">min</span>
+      <button onclick="workModalRemoveSched(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px;line-height:1">✕</button>`;
+    // Remove the "no schedule" placeholder if present
+    const placeholder=rows.querySelector('div[style*="font-style:italic"]');
+    if(placeholder) placeholder.remove();
+    rows.appendChild(div);
+  }
+}
+function workModalSchedUpdate(i,field,val){ if(window._wmStudent?.schedule?.[i]) window._wmStudent.schedule[i][field]=field==='dow'?parseInt(val):val; }
+function workModalRemoveSched(i){ if(window._wmStudent?.schedule) window._wmStudent.schedule.splice(i,1); workEditStudentModal(window._wmStudent.id); }
+
+function workModalSave(id){
+  const name=document.getElementById('wm-name')?.value.trim();
+  if(!name){document.getElementById('wm-name').style.boxShadow='0 0 0 2px #e85a5a';return;}
+  const mg=document.getElementById('wm-month')?.value.trim()||workCurrentMonth;
+  const n=parseInt(document.getElementById('wm-lessons')?.value)||0;
+  const price=parseInt(document.getElementById('wm-price')?.value)||0;
+  const archived=document.getElementById('wm-archived')?.checked||false;
+  const color=window._wmStudent?.color||'#4285f4';
+  const schedule=window._wmStudent?.schedule||[];
+
+  if(id===null){
+    // Create new
+    const newId=Date.now();
+    const student={id:newId,name,color,subs:{},schedule,price:{},monthGroup:mg,archived};
+    if(n>0){ student.subs[mg]=n; }
+    if(price>0){ student.price[mg]=price; }
+    workData.students.push(student);
+    if(!workData.attendance[newId]) workData.attendance[newId]=[];
+    if(!workData.homework[newId])   workData.homework[newId]=[];
+    // Build attendance cells
+    if(n>0){
+      workData.attendance[newId]=Array.from({length:n},(_,i)=>({num:i+1,month:mg,date:'',status:'empty'}));
+    }
+    // Ensure month exists
+    if(!workData.months.find(m=>m.key===mg)) workData.months.push({key:mg,label:workMonthLabel(mg)});
+  } else {
+    const s=workData.students.find(x=>x.id===id);
+    if(!s)return;
+    const oldN=(s.subs||{})[mg]||0;
+    s.name=name; s.color=color; s.schedule=schedule; s.archived=archived; s.monthGroup=mg;
+    if(!s.price)s.price={};
+    if(price>0) s.price[mg]=price; else delete s.price[mg];
+    if(!s.subs) s.subs={};
+    s.subs[mg]=n;
+    // Resize attendance cells
+    if(n!==oldN){
+      const att=workData.attendance[id]||[];
+      const other=att.filter(c=>c.month!==mg);
+      const existing=att.filter(c=>c.month===mg);
+      const newCells=Array.from({length:n},(_,i)=>existing[i]||{num:i+1,month:mg,date:'',status:'empty'});
+      newCells.forEach((c,i)=>c.num=i+1);
+      workData.attendance[id]=[...other,...newCells];
+    }
+  }
+  workSave();
+  document.getElementById('work-edit-modal').remove();
+  workRenderSidebar(); workRenderAttendance(); workRenderHomework();
+}
+
+function workSyncScheduleToCalendar(id){
+  const s=workData.students.find(x=>x.id===id);if(!s||!s.schedule?.length)return;
+  let created=0;
+  s.schedule.forEach(slot=>{
+    const today=new Date();
+    const dayDiff=(slot.dow-today.getDay()+7)%7||7;
+    const target=new Date(today);
+    target.setDate(today.getDate()+dayDiff);
+    const dk=dkey(target);
+    if(!calEvts[dk])calEvts[dk]=[];
+    const [sh,sm]=(slot.time||'09:00').split(':').map(Number);
+    const durMins=slot.duration||60;
+    const eh=Math.floor((sh*60+sm+durMins)/60), em=(sh*60+sm+durMins)%60;
+    const endTime=String(eh).padStart(2,'0')+':'+String(em).padStart(2,'0');
+    calEvts[dk].push({title:s.name,start:slot.time||'09:00',end:endTime,repeat:'weekly',repeatEvery:1,color:'blue',id:Date.now()+created});
+    created++;
+  });
+  if(created){save();renderCal();}
+  alert(`Created ${created} recurring event${created!==1?'s':''} for ${s.name}`);
 }
 
 // ── INIT ──
