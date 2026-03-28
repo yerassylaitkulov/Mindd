@@ -5452,21 +5452,10 @@ function _workInitPlannedDates(){
     const cells = att.filter(c => c.month === mg);
 
     // Determine start date: use firstDate, or fall back to last done lesson date
-    let startDate = s.firstDate || '';
-    if(!startDate){
-      // Find last done/missed cell with a date and compute next scheduled day from there
-      const doneCells = cells.filter(c => c.date && (c.status==='done'||c.status==='missed'));
-      if(doneCells.length){
-        // Pick the last done cell's date and advance one schedule cycle
-        const last = doneCells[doneCells.length-1];
-        startDate = _nextScheduledDate(last.date, s.schedule);
-      }
-    }
-    if(!startDate) return;
-
+    // _workAutoFillDates now handles anchor detection internally (last done lesson or firstDate)
     const needsFill = cells.some(c => c.status === 'empty' && !c._plannedFull);
     if(needsFill){
-      _workAutoFillDates(s.id, mg, cells, startDate);
+      _workAutoFillDates(s.id, mg, cells, s.firstDate||'');
       changed = true;
     }
   });
@@ -6867,13 +6856,12 @@ function workStudentMenu(e, sid){
 function _workRefillAndSync(sid){
   const s=workData.students.find(x=>x.id===sid);if(!s)return;
   const mg=s.monthGroup||workCurrentMonth;
-  if(!s.schedule?.length){ alert('No schedule set. Edit student to add a schedule first.'); return; }
-  if(!s.firstDate){ alert('No first lesson date set. Edit student to add the first lesson date.'); return; }
+  if(!s.schedule?.length){ alert('No schedule set. Right-click student → Edit to add a schedule first.'); return; }
   const att=workData.attendance[sid]||[];
   const cells=att.filter(c=>c.month===mg);
-  // Clear planned dates on empty cells (keep confirmed ones)
+  // Clear only planned (unconfirmed) dates — keep done/missed and manually set dates
   cells.forEach(c=>{ if(c.status==='empty'&&!c._manualDate){ c.date=''; c._plannedTs=0; c._plannedFull=''; } });
-  _workAutoFillDates(sid, mg, cells, s.firstDate);
+  _workAutoFillDates(sid, mg, cells, s.firstDate||'');
   workSave();
   workRenderSidebar(); workRenderAttendance();
   _workSyncToCalendar(sid, s.firstDate).then(()=>{
@@ -6884,52 +6872,82 @@ function _workRefillAndSync(sid){
 }
 
 // ── AUTO-FILL DATES FROM SCHEDULE ──
-// startDateStr: YYYY-MM-DD — the first lesson date
+// Fills empty cells with upcoming scheduled dates.
+// startDateStr (YYYY-MM-DD): used only for brand-new students with no done lessons.
+// For students with existing done/missed lessons, we always start from the day after their last lesson.
 function _workAutoFillDates(sid, monthKey, cells, startDateStr){
   const s = workData.students.find(x=>x.id===sid);
   if(!s||!s.schedule||!s.schedule.length) return;
-  if(!startDateStr) return;
 
-  // Parse start date
-  const startDate = new Date(startDateStr + 'T12:00:00');
-  if(isNaN(startDate.getTime())) return;
+  // Find the last cell that has a confirmed date (done or missed, or empty with a date)
+  const confirmedDates = cells
+    .filter(c => c.date && (c.status==='done' || c.status==='missed'))
+    .map(c => _parseCellDate(c.date));
+  confirmedDates.sort((a,b)=>a-b);
+  const lastConfirmed = confirmedDates.length ? confirmedDates[confirmedDates.length-1] : null;
 
-  // Build all scheduled dates starting from startDate, going 6 months ahead
-  const endDate = new Date(startDate);
-  endDate.setMonth(endDate.getMonth()+6);
+  // Anchor: day after last confirmed lesson, or startDateStr for brand new students
+  let anchor;
+  if(lastConfirmed){
+    anchor = new Date(lastConfirmed);
+    anchor.setDate(anchor.getDate() + 1); // start from day after last lesson
+  } else if(startDateStr){
+    anchor = new Date(startDateStr + 'T12:00:00');
+    if(isNaN(anchor.getTime())) return;
+  } else {
+    return; // nothing to go on
+  }
+
+  // Generate scheduled dates from anchor, 6 months out
+  const endDate = new Date(anchor);
+  endDate.setMonth(endDate.getMonth() + 6);
 
   const scheduledDates = [];
   s.schedule.forEach(slot => {
-    const d = new Date(startDate);
-    // Move to first occurrence of this weekday >= startDate
+    const d = new Date(anchor);
     const diff = (slot.dow - d.getDay() + 7) % 7;
-    d.setDate(d.getDate() + diff); // 0 = same day if it matches
+    d.setDate(d.getDate() + diff); // first occurrence of this DOW >= anchor
     while(d <= endDate){
       scheduledDates.push({
         ts: d.getTime(),
         display: d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0'),
-        full: dkey(d)   // YYYY-MM-DD for calendar
+        full: dkey(d)
       });
-      d.setDate(d.getDate()+7);
+      d.setDate(d.getDate() + 7);
     }
   });
-  scheduledDates.sort((a,b)=>a.ts-b.ts);
-  // Deduplicate (in case two slots land on same day)
-  const seen=new Set();
-  const unique=scheduledDates.filter(x=>{ if(seen.has(x.ts))return false; seen.add(x.ts); return true; });
+  scheduledDates.sort((a,b) => a.ts - b.ts);
 
-  // Fill cells in order — skip cells that already have a manually set date
-  let di=0;
-  cells.forEach(cell=>{
-    if(cell.status!=='empty') return; // already done/missed — keep their date
-    if(cell._manualDate) return;       // user overrode — keep it
-    if(di<unique.length){
-      cell.date = unique[di].display;
-      cell._plannedTs = unique[di].ts;
-      cell._plannedFull = unique[di].full;
+  // Deduplicate
+  const seen = new Set();
+  const unique = scheduledDates.filter(x => {
+    if(seen.has(x.ts)) return false;
+    seen.add(x.ts); return true;
+  });
+
+  // Fill only empty cells that don't have a manually confirmed date
+  let di = 0;
+  cells.forEach(cell => {
+    if(cell.status !== 'empty') return;   // done/missed — don't touch
+    if(cell._manualDate) return;           // user manually set — respect it
+    if(di < unique.length){
+      cell.date        = unique[di].display;
+      cell._plannedTs  = unique[di].ts;
+      cell._plannedFull= unique[di].full;
       di++;
     }
   });
+}
+
+// Parse DD.MM into a Date object (uses 2026 for Jan-Jun, 2025 for Jul-Dec)
+function _parseCellDate(displayDate){
+  if(!displayDate) return null;
+  const parts = displayDate.split('.');
+  if(parts.length !== 2) return null;
+  const d = parseInt(parts[0]), m = parseInt(parts[1]);
+  if(isNaN(d)||isNaN(m)) return null;
+  const yr = (m >= 1 && m <= 6) ? 2026 : 2025;
+  return new Date(yr, m-1, d, 12, 0, 0);
 }
 
 // Format date as DD.MM from YYYY-MM-DD
