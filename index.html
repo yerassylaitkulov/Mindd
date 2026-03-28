@@ -268,11 +268,6 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .gcal-btn.connected{border-color:#0f9d58;color:#0f9d58}
 .gcal-btn.syncing{border-color:#4285f4;color:#4285f4;animation:cpulse 1s infinite}
 .gcal-btn.err{border-color:var(--red);color:var(--red)}
-.notion-sync-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:12px;border:1px solid var(--border);background:none;border-radius:6px;cursor:pointer;color:var(--muted);font-family:'Geist',sans-serif;transition:all .12s;white-space:nowrap}
-.notion-sync-btn:hover{border-color:#a259ff;color:#a259ff}
-.notion-sync-btn.syncing{border-color:#a259ff;color:#a259ff;animation:cpulse 1s infinite}
-.notion-sync-btn.ok{border-color:#34a853;color:#34a853}
-.notion-sync-btn.err{border-color:var(--red);color:var(--red)}
 @keyframes cpulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes popin{from{opacity:0;transform:scale(.96) translateY(-4px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -495,7 +490,7 @@ canvas#gc{width:100%;height:100%;display:block}
 /* Cell: small, no icon, just date + number */
 .wa-cell{width:44px;height:44px;border-radius:5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;transition:all .1s;flex-shrink:0;border:1px solid transparent;user-select:none;position:relative}
 .wa-cell:hover{transform:scale(1.12);z-index:5}
-.wa-cell.wc-empty{background:#141210;border:1px dashed #252320}
+.wa-cell.wc-empty{background:#141210;border:1px dashed #3a3630}
 .wa-cell.wc-done{background:#0c2216;border-color:#1a4a28}
 .wa-cell.wc-missed{background:#1e0a0a;border-color:#3a1212}
 .wa-cell.wc-planned{background:#051a1e;border-color:#06b6d4}
@@ -503,11 +498,11 @@ canvas#gc{width:100%;height:100%;display:block}
 .wa-cell.wc-planned .wc-num{color:#067a8f}
 .wa-cell.wc-has-note::after{content:'';position:absolute;top:2px;right:2px;width:4px;height:4px;border-radius:50%;background:#8ab4f8}
 .wa-cell .wc-date{font-size:9px;font-family:'Geist Mono',monospace;font-weight:700;line-height:1}
-.wa-cell.wc-empty .wc-date{color:#2e2b26}
+.wa-cell.wc-empty .wc-date{color:#6b6760}
 .wa-cell.wc-done .wc-date{color:#5af07a}
 .wa-cell.wc-missed .wc-date{color:#e85a5a}
 .wa-cell .wc-num{font-size:10px;font-family:'Geist Mono',monospace;font-weight:600;line-height:1;opacity:.7}
-.wa-cell.wc-empty .wc-num{color:#2e2b26}
+.wa-cell.wc-empty .wc-num{color:#504d48}
 .wa-cell.wc-done .wc-num{color:#34a853}
 .wa-cell.wc-missed .wc-num{color:#c84a4a}
 /* date popup */
@@ -868,7 +863,6 @@ canvas#gc{width:100%;height:100%;display:block}
               <button class="cal-vbtn" id="cvbtn-month" onclick="setCalView('month')">Month</button>
             </div>
             <span class="gcal-status" id="gcal-btn"></span>
-            <button class="notion-sync-btn" id="notion-sync-btn" onclick="notionSync()" title="Sync with Notion">🔄 Notion</button>
           </div>
           <div id="cal-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0"></div>
         </div>
@@ -1718,23 +1712,22 @@ function calMiniPick(dk,y,m){
 }
 function renderCal(){renderMiniCal();calView==='week'?renderWeek():renderMonth();}
 
-// Re-render without jumping the scroll position (for deletes/edits that shouldn't move the view)
+// Re-render without moving the view (saves/restores scroll position)
+let _calSavedH=null, _calSavedV=null;
 function renderCalInPlace(){
   const sc=document.getElementById('cal-wscroll');
-  const hsc=document.getElementById('cal-wvscroll');
-  const savedH = sc ? sc.scrollLeft : null;
-  const savedV = hsc ? hsc.scrollTop : null;
+  const vsc=document.getElementById('cal-wvscroll');
+  _calSavedH = sc ? sc.scrollLeft : null;
+  _calSavedV = vsc ? vsc.scrollTop : null;
   renderCal();
-  if(savedH!==null){
-    // Override the scroll reset that renderWeek schedules
-    const _orig = setTimeout;
-    setTimeout(()=>{
-      const sc2=document.getElementById('cal-wscroll');
-      const hsc2=document.getElementById('cal-wvscroll');
-      if(sc2&&savedH!==null) sc2.scrollLeft=savedH;
-      if(hsc2&&savedV!==null) hsc2.scrollTop=savedV;
-    }, 60); // run after renderWeek's 30ms timeout
-  }
+  // Restore after renderWeek's setTimeout(30ms) has fired
+  setTimeout(()=>{
+    const sc2=document.getElementById('cal-wscroll');
+    const vsc2=document.getElementById('cal-wvscroll');
+    if(sc2 && _calSavedH!==null) sc2.scrollLeft=_calSavedH;
+    if(vsc2 && _calSavedV!==null) vsc2.scrollTop=_calSavedV;
+    _calSavedH=null; _calSavedV=null;
+  }, 50);
 }
 
 // helpers
@@ -2518,14 +2511,13 @@ function capSave(){
       }
       // preserve gcalId and notionId so update hits the right records
       if(oldEvt?.gcalId) newEvt.gcalId=oldEvt.gcalId;
-      if(oldEvt?.notionId) newEvt.notionId=oldEvt.notionId;
       gcalUpdateEvent(newEvt, dk);
       notionUpdateEvent(newEvt, dk);
     } else {
       if(!calEvts[dk])calEvts[dk]=[];
       calEvts[dk].push(newEvt);
       gcalCreateEvent(newEvt, dk);
-      pushToNotion(val,dk,start,end).then(nid=>{ if(nid) newEvt.notionId=nid; save(); });
+      save();
     }
     save();closeAllCal();renderCal();
   };
@@ -2534,7 +2526,6 @@ function capSave(){
     const oldEvt=calEvts[origDk][_pIdx];
     // Carry over external IDs so doSave can sync correctly
     if(oldEvt?.gcalId && !newEvt.gcalId) newEvt.gcalId=oldEvt.gcalId;
-    if(oldEvt?.notionId && !newEvt.notionId) newEvt.notionId=oldEvt.notionId;
     showRecurDialog(val,{start:oldEvt.start,end:oldEvt.end},{start,end},doSave);
   } else doSave('this');
 }
@@ -2573,7 +2564,6 @@ function capDelete(){
       calSnapshot();
       const delEvt=calEvts[_pDk][_pIdx];
       gcalDeleteEvent(delEvt?.gcalId);
-      notionDeleteEvent(delEvt?.notionId);
       calEvts[_pDk].splice(_pIdx,1);save();closeAllCal();renderCal();
     }
   }
@@ -2582,7 +2572,6 @@ function calDelEvt(dk,idx){
   calSnapshot();
   const delEvt=calEvts[dk]?.[idx];
   gcalDeleteEvent(delEvt?.gcalId);
-  notionDeleteEvent(delEvt?.notionId);
   calEvts[dk].splice(idx,1);save();closeAllCal();renderCal();
 }
 
@@ -2695,11 +2684,10 @@ function showCtxMenu(e,dk,idx){
     {icon:'✏️',label:'Edit event',action:()=>showEvtPop(e,dk,idx)},
     {icon:'📋',label:'Duplicate',action:()=>{
   calSnapshot();
-  const cp={...evt,title:(evt.title||'')+' (copy)',gcalId:undefined,notionId:undefined};
+  const cp={...evt,title:(evt.title||'')+' (copy)',gcalId:undefined};
   if(!calEvts[dk])calEvts[dk]=[];
   calEvts[dk].push(cp);
   gcalCreateEvent(cp,dk);
-  pushToNotion(cp.title,dk,cp.start,cp.end);
   save();renderCal();
 }},
     {sep:true},
@@ -2719,7 +2707,6 @@ function showCtxMenu(e,dk,idx){
           gcalUpdateEvent(evt,dk);
         } else {
           gcalDeleteEvent(evt.gcalId);
-          notionDeleteEvent(evt.notionId);
           calEvts[dk].splice(idx,1);
         }
         save();renderCalInPlace();
@@ -2727,7 +2714,6 @@ function showCtxMenu(e,dk,idx){
       } else {
         calSnapshot();
         gcalDeleteEvent(evt.gcalId);
-        notionDeleteEvent(evt.notionId);
         calEvts[dk].splice(idx,1);save();renderCalInPlace();
       }
     }}
@@ -2925,130 +2911,6 @@ function toggleSettings(){
 
 
 // ── NOTION SYNC ──
-const NOTION_PROXY = 'https://notion-proxy.yerassylaitkulov.workers.dev';
-
-async function notionSync() {
-  const btn = document.getElementById('notion-sync-btn');
-  if (btn) { btn.className = 'notion-sync-btn syncing'; btn.textContent = '⏳ Syncing…'; }
-  let pulled=0, pushed=0, errors=[];
-  try {
-    // Pull from Notion
-    const resp = await fetch(NOTION_PROXY + '/get');
-    if (!resp.ok) throw new Error('GET failed: HTTP ' + resp.status);
-    const notionEvents = await resp.json();
-    pulled = notionEvents.length;
-    console.log('[Notion] Pulled', pulled, 'events');
-
-    const notionById = {};
-    notionEvents.forEach(evt => { if (evt.id) notionById[evt.id] = evt; });
-
-    // Remove stale fromNotion events
-    Object.keys(calEvts).forEach(dk => {
-      calEvts[dk] = (calEvts[dk]||[]).filter(e => {
-        if (!e.fromNotion || !e.notionId) return true;
-        return !!notionById[e.notionId];
-      });
-    });
-
-    // Add/update events from Notion
-    notionEvents.forEach(evt => {
-      if (!evt.day || !evt.title) return;
-      let found = false;
-      Object.keys(calEvts).forEach(dk => {
-        const ex = (calEvts[dk]||[]).find(e => e.notionId === evt.id);
-        if (ex) {
-          found = true;
-          if (dk !== evt.day) {
-            calEvts[dk] = calEvts[dk].filter(e => e.notionId !== evt.id);
-            if (!calEvts[evt.day]) calEvts[evt.day] = [];
-            calEvts[evt.day].push({ title:evt.title, start:evt.start||null, end:evt.end||null, notionId:evt.id, fromNotion:true });
-          } else {
-            ex.title = evt.title; ex.start = evt.start||null; ex.end = evt.end||null;
-          }
-        }
-      });
-      if (!found) {
-        if (!calEvts[evt.day]) calEvts[evt.day] = [];
-        calEvts[evt.day].push({ title:evt.title, start:evt.start||null, end:evt.end||null, notionId:evt.id, fromNotion:true });
-      }
-    });
-
-    // Push all local events without notionId
-    const toPush = [];
-    Object.entries(calEvts).forEach(([dk, evts]) => {
-      (evts||[]).forEach(evt => {
-        if (!evt.notionId && evt.title && !evt.fromNotion) {
-          toPush.push({ title:evt.title, day:dk, start:evt.start||'', end:evt.end||'', _evt:evt });
-        }
-      });
-    });
-    console.log('[Notion] Pushing', toPush.length, 'events');
-
-    for (const item of toPush) {
-      try {
-        const r = await fetch(NOTION_PROXY + '/add', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title:item.title, day:item.day, start:item.start, end:item.end })
-        });
-        if (r.ok) {
-          let data = {};
-          try { data = await r.json(); } catch(_){}
-          if (data?.id) { item._evt.notionId = data.id; pushed++; }
-          else console.warn('[Notion] /add returned no id:', data);
-        } else {
-          const txt = await r.text().catch(()=>'');
-          errors.push('push HTTP'+r.status+': '+txt.slice(0,60));
-          console.warn('[Notion] push failed:', r.status, txt.slice(0,100));
-        }
-      } catch(e) { errors.push('push err: '+e.message); }
-    }
-
-    save(); renderCal();
-    const msg = pulled+'↓'+(pushed?'+'+pushed+'↑':'')+(errors.length?' ⚠'+errors.length:'');
-    if (btn) {
-      btn.className = errors.length ? 'notion-sync-btn err' : 'notion-sync-btn ok';
-      btn.textContent = '✓ ' + msg;
-      btn.title = errors.length ? errors.join('\n') : 'Pulled '+pulled+', pushed '+pushed;
-      setTimeout(() => { btn.className='notion-sync-btn'; btn.innerHTML='🔄 Notion'; btn.title=''; }, 4000);
-    }
-    console.log('[Notion] Done:', msg);
-  } catch(err) {
-    console.error('[Notion] Error:', err);
-    if (btn) {
-      btn.className = 'notion-sync-btn err';
-      btn.textContent = '✕ ' + (err.message||'failed').slice(0,30);
-      btn.title = err.message;
-      setTimeout(() => { btn.className='notion-sync-btn'; btn.innerHTML='🔄 Notion'; btn.title=''; }, 5000);
-    }
-  }
-}
-
-// Auto-sync Notion on load
-function notionAutoSync() {
-  notionSync();
-  setInterval(() => notionSync(), 2 * 60 * 1000); // every 2 minutes
-}
-
-// Push a new event to Notion when added via modal
-async function pushToNotion(title, day, start, end) {
-  try {
-    const r = await fetch(NOTION_PROXY + '/add', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, day, start, end })
-    });
-    if (r.ok) {
-      const data = await r.json();
-      return data?.id || null;
-    }
-  } catch(e) {
-    console.warn('Could not push to Notion:', e);
-  }
-  return null;
-}
-
-
 // ── GOOGLE CALENDAR SYNC ──
 const GCAL_CLIENT_ID = '584971150624-3phej39s8knovu706g52ptbhp58cc46n.apps.googleusercontent.com';
 const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar';
@@ -3352,16 +3214,6 @@ async function gcalDeleteEvent(gcalId) {
 }
 
 // ── NOTION DELETE / UPDATE ──
-async function notionDeleteEvent(notionId) {
-  if (!notionId) return;
-  try {
-    await fetch(NOTION_PROXY + '/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: notionId })
-    });
-  } catch(e) { console.warn('notionDelete failed', e); }
-}
 
 async function notionUpdateEvent(evt, dk) {
   if (!evt.notionId) {
@@ -5558,7 +5410,7 @@ function workRenderSidebar(){
         draggable="true" ondragstart="workDragStart(event,${s.id})"
         style="border-left:3px solid ${s.color||'#4285f4'}">
         <div style="flex:1;min-width:0">
-          <div class="ws-name" style="${s.archived?'color:var(--subtle)':''}">${esc(s.name)}</div>
+          <div class="ws-name" style="${s.archived?'color:#8a8680':''}">${esc(s.name)}</div>
           <div style="font-size:9px;font-family:'Geist Mono',monospace;color:var(--subtle);margin-top:1px">${mgShort}${total?' · '+done+'/'+total:''}</div>
         </div>
         <button class="ws-del" onclick="event.stopPropagation();workDeleteStudent(${s.id})">✕</button>
@@ -5648,7 +5500,7 @@ function workRenderAttendance(){
           <div class="wa-color-dot" style="background:${s.color||'#4285f4'}"></div>
           <div style="flex:1;min-width:0">
             <div class="wa-row-name">${esc(s.name)}</div>
-            ${total?`<div class="wa-row-meta" style="color:${done>=total?'#34a853':'var(--muted)'}">${done}/${total}</div>`:'<div class="wa-row-meta" style="color:var(--subtle)">—</div>'}
+            ${total?`<div class="wa-row-meta" style="color:${done>=total?'#34a853':'var(--muted)'}">${done}/${total}</div>`:'<div class="wa-row-meta" style="color:#6b6760">—</div>'}
           </div>
           <button onclick="event.stopPropagation();workEditStudentModal(${s.id})" style="padding:2px 5px;background:none;border:none;color:var(--subtle);cursor:pointer;font-size:11px;opacity:0;transition:opacity .1s" class="wa-gear-btn">⚙</button>
         </div>
@@ -5667,7 +5519,7 @@ function workRenderAttendance(){
           html+=`<div class="wa-cell ${cls}${hn?' wc-has-note':''}"
             onclick="event.stopPropagation();workCellClick(event,${s.id},${fullIdx})"
             title="Lesson ${cell.num}${displayDate?' · '+displayDate+'':''} ${isPlanned?'(planned, click to confirm)':''}${hn?' · has notes':''}">
-            <span class="wc-date" style="${isPlanned?'opacity:.5;color:#8ab4f8':''}">${esc(displayDate||' ')}</span>
+            <span class="wc-date" style="${isPlanned?'opacity:.75;color:#93c5fd':''}">${esc(displayDate||' ')}</span>
             <span class="wc-num">${cell.num}</span>
           </div>`;
         });
@@ -6148,11 +6000,55 @@ function workEditStudentModal(id){
     </div>
 
     <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:8px">
-      Weekly Schedule
-      ${calSchedule.length?`<span style="color:#34a853;font-size:10px;margin-left:6px">✓ ${calSchedule.length} slot${calSchedule.length>1?'s':''} found in calendar</span>`:''}
+      Schedule
+      ${calSchedule.length?`<span style="color:#34a853;font-size:10px;margin-left:6px">✓ from calendar</span>`:''}
     </label>
-    <div id="wm-sched-rows">${schedRows()}</div>
-    <button onclick="workModalAddSched()" style="padding:5px 14px;background:none;border:1px dashed var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:12px;font-family:'Geist',sans-serif;margin-bottom:16px">+ Add time slot</button>
+    <!-- Repeat pattern picker — mirrors calendar tab -->
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--muted)">Repeats</span>
+        <select id="wm-repeat-type" onchange="wmRepeatTypeChange()"
+          style="padding:4px 8px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+          <option value="none" ${!(window._wmStudent?.repeatType)&&window._wmStudent?.repeatType!=='weekly'&&window._wmStudent?.repeatType!=='custom'?'selected':''}>No repeat</option>
+          <option value="weekly" ${window._wmStudent?.repeatType==='weekly'?'selected':''}>Every week</option>
+          <option value="custom" ${window._wmStudent?.repeatType==='custom'?'selected':''}>Custom days</option>
+        </select>
+        <span id="wm-repeat-every-wrap" style="display:${window._wmStudent?.repeatType&&window._wmStudent?.repeatType!=='none'?'flex':'none'};align-items:center;gap:4px">
+          every <input id="wm-repeat-every" type="number" min="1" max="8" value="${window._wmStudent?.repeatEvery||1}"
+            style="width:36px;padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;text-align:center"/>
+          week(s)
+        </span>
+      </div>
+      <!-- Day checkboxes for custom -->
+      <div id="wm-repeat-days" style="display:${window._wmStudent?.repeatType==='custom'?'flex':'none'};gap:4px;flex-wrap:wrap;margin-bottom:10px">
+        ${['Su','Mo','Tu','We','Th','Fr','Sa'].map((d,i)=>`
+          <label style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+            <input type="checkbox" data-dow="${i}" onchange="wmRepeatDayChange()"
+              ${(window._wmStudent?.repeatDays||[]).includes(i)?'checked':''}
+              style="width:14px;height:14px;accent-color:#4285f4;cursor:pointer"/>
+            <span style="font-size:10px;font-family:'Geist Mono',monospace;color:var(--muted)">${d}</span>
+          </label>`).join('')}
+      </div>
+      <!-- Time + duration -->
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--muted)">Time</span>
+        ${(()=>{const t=(window._wmStudent?.schedTime||window._wmStudent?.schedule?.[0]?.time||'09:00');const[h24,min]=t.split(':').map(Number);const ap=h24<12?'AM':'PM';const h12=h24===0?12:h24>12?h24-12:h24;return`
+          <select id="wm-time-h" onchange="wmTimeChange()" style="padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+            ${[12,1,2,3,4,5,6,7,8,9,10,11].map(h=>`<option value="${h}" ${h===h12?'selected':''}>${h}</option>`).join('')}
+          </select>:
+          <select id="wm-time-m" onchange="wmTimeChange()" style="padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+            ${['00','15','30','45'].map(mv=>`<option value="${mv}" ${parseInt(mv)===min?'selected':''}>${mv}</option>`).join('')}
+          </select>
+          <select id="wm-time-ap" onchange="wmTimeChange()" style="padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+            <option value="AM" ${ap==='AM'?'selected':''}>AM</option><option value="PM" ${ap==='PM'?'selected':''}>PM</option>
+          </select>`;})()}
+        <span style="font-size:12px;color:var(--muted);margin-left:4px">Duration</span>
+        <input id="wm-duration" type="number" min="15" max="240" step="15"
+          value="${window._wmStudent?.schedule?.[0]?.duration||60}"
+          style="width:52px;padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;text-align:center"/>
+        <span style="font-size:11px;color:var(--muted)">min</span>
+      </div>
+    </div>
 
     ${!isNew?`<button onclick="workSyncScheduleToCalendar(${s.id})"
       style="display:block;width:100%;padding:8px;background:#0a1a2e;border:1px solid #1a3a5a;border-radius:6px;color:#8ab4f8;cursor:pointer;font-size:12px;font-family:'Geist',sans-serif;margin-bottom:8px">
@@ -6181,6 +6077,14 @@ function workEditStudentModal(id){
   // Store temp edit state
   window._wmStudent=JSON.parse(JSON.stringify(s));
   window._wmStudent.color=s.color||'#4285f4';
+  // Derive repeat fields from existing schedule array for backwards compat
+  if(!window._wmStudent.repeatType){
+    const sc=s.schedule||[];
+    if(sc.length===0){ window._wmStudent.repeatType='none'; }
+    else if(sc.length===1){ window._wmStudent.repeatType='weekly'; window._wmStudent.repeatDays=[sc[0].dow]; window._wmStudent.schedTime=sc[0].time; }
+    else { window._wmStudent.repeatType='custom'; window._wmStudent.repeatDays=sc.map(x=>x.dow); window._wmStudent.schedTime=sc[0].time; }
+    window._wmStudent.repeatEvery=1;
+  }
 }
 
 function _timeDiff(start, end){
@@ -6231,6 +6135,58 @@ function workModalAddSched(){
   }
 }
 function workModalSchedUpdate(i,field,val){ if(window._wmStudent?.schedule?.[i]) window._wmStudent.schedule[i][field]=field==='dow'?parseInt(val):val; }
+
+function wmRepeatTypeChange(){
+  const t=document.getElementById('wm-repeat-type')?.value||'none';
+  if(window._wmStudent) window._wmStudent.repeatType=t;
+  const everyWrap=document.getElementById('wm-repeat-every-wrap');
+  const daysDiv=document.getElementById('wm-repeat-days');
+  if(everyWrap) everyWrap.style.display=t!=='none'?'flex':'none';
+  if(daysDiv) daysDiv.style.display=t==='custom'?'flex':'none';
+  // For weekly, auto-check current day if no days selected
+  if(t==='weekly'&&!(window._wmStudent?.repeatDays?.length)){
+    const today=new Date().getDay();
+    if(window._wmStudent) window._wmStudent.repeatDays=[today];
+    const cb=daysDiv?.querySelector(`[data-dow="${today}"]`);
+    if(cb) cb.checked=true;
+  }
+  wmBuildScheduleFromRepeat();
+}
+
+function wmRepeatDayChange(){
+  if(!window._wmStudent) return;
+  const days=[...document.querySelectorAll('#wm-repeat-days input[type=checkbox]:checked')]
+    .map(cb=>parseInt(cb.dataset.dow));
+  window._wmStudent.repeatDays=days;
+  wmBuildScheduleFromRepeat();
+}
+
+function wmTimeChange(){
+  if(!window._wmStudent) return;
+  const h=parseInt(document.getElementById('wm-time-h')?.value||12);
+  const m=document.getElementById('wm-time-m')?.value||'00';
+  const ap=document.getElementById('wm-time-ap')?.value||'AM';
+  let h24=h;
+  if(ap==='AM'&&h===12) h24=0;
+  else if(ap==='PM'&&h!==12) h24=h+12;
+  const timeStr=String(h24).padStart(2,'0')+':'+m;
+  window._wmStudent.schedTime=timeStr;
+  wmBuildScheduleFromRepeat();
+}
+
+// Convert repeat UI state → s.schedule array (for backwards compat with rest of system)
+function wmBuildScheduleFromRepeat(){
+  if(!window._wmStudent) return;
+  const t=window._wmStudent.repeatType||'none';
+  const time=window._wmStudent.schedTime||'09:00';
+  const dur=parseInt(document.getElementById('wm-duration')?.value)||60;
+  const every=parseInt(document.getElementById('wm-repeat-every')?.value)||1;
+  window._wmStudent.repeatEvery=every;
+  if(t==='none'){ window._wmStudent.schedule=[]; return; }
+  let days=window._wmStudent.repeatDays||[];
+  if(t==='weekly'&&!days.length) days=[new Date().getDay()];
+  window._wmStudent.schedule=days.map(dow=>({dow,time,duration:dur}));
+}
 function workModalSchedTimeChange(i, container){
   const sels=container.querySelectorAll('select');
   if(sels.length<3)return;
@@ -6251,14 +6207,21 @@ function workModalSave(id){
   const price=parseInt(document.getElementById('wm-price')?.value)||0;
   const archived=document.getElementById('wm-archived')?.checked||false;
   const color=window._wmStudent?.color||'#4285f4';
+  // Build schedule from repeat UI before reading
+  wmBuildScheduleFromRepeat();
   const schedule=window._wmStudent?.schedule||[];
+  // Store repeat metadata on student for UI reconstruction
+  const repeatType=window._wmStudent?.repeatType||'none';
+  const repeatDays=window._wmStudent?.repeatDays||[];
+  const repeatEvery=window._wmStudent?.repeatEvery||1;
+  const schedTime=window._wmStudent?.schedTime||schedule[0]?.time||'';
 
   const firstDate=document.getElementById('wm-firstdate')?.value.trim()||'';
 
   if(id===null){
     // Create new
     const newId=Date.now();
-    const student={id:newId,name,color,subs:{},schedule,price:{},monthGroup:mg,archived,firstDate};
+    const student={id:newId,name,color,subs:{},schedule,price:{},monthGroup:mg,archived,firstDate,repeatType,repeatDays,repeatEvery,schedTime};
     if(n>0){ student.subs[mg]=n; }
     if(price>0){ student.price[mg]=price; }
     workData.students.push(student);
@@ -6279,6 +6242,7 @@ function workModalSave(id){
     if(!s)return;
     const oldN=(s.subs||{})[mg]||0;
     s.name=name; s.color=color; s.schedule=schedule; s.archived=archived; s.monthGroup=mg;
+    s.repeatType=repeatType; s.repeatDays=repeatDays; s.repeatEvery=repeatEvery; s.schedTime=schedTime;
     if(firstDate) s.firstDate=firstDate;
     if(!s.price)s.price={};
     if(price>0) s.price[mg]=price; else delete s.price[mg];
@@ -6356,11 +6320,11 @@ function workRenderArchive(){
       const hasNote=(cell)=>!!(lessonNotes[s.id]&&lessonNotes[s.id][cell.num]);
       const fullAtt = workData.attendance[s.id]||[];
 
-      html += `<div class="wa-student-row" style="opacity:.65;border-left:3px solid ${s.color||'#4285f4'}18">
+      html += `<div class="wa-student-row" style="opacity:.8;border-left:3px solid ${s.color||'#4285f4'}30">
         <div class="wa-name-col" onclick="workOpenStudentPage(${s.id})" oncontextmenu="event.preventDefault();event.stopPropagation();workEditStudentModal(${s.id})" title="Click → open · Right-click → edit" style="cursor:pointer">
-          <div class="wa-color-dot" style="background:${s.color||'#4285f4'}88"></div>
+          <div class="wa-color-dot" style="background:${s.color||'#4285f4'}cc"></div>
           <div style="flex:1;min-width:0">
-            <div class="wa-row-name" style="color:#a0a0a0">${esc(s.name)}</div>
+            <div class="wa-row-name" style="color:#c8c4bc">${esc(s.name)}</div>
             ${total?`<div class="wa-row-meta" style="color:${done>=total?'#34a853':'#8ab4f8'}">${done}/${total}</div>`:'<div class="wa-row-meta">—</div>'}
           </div>
           <button onclick="event.stopPropagation();workArchiveStudent(${s.id})" style="padding:1px 6px;background:none;border:1px solid #252320;border-radius:3px;color:#6b6760;cursor:pointer;font-size:10px;font-family:'Geist',sans-serif;flex-shrink:0">↑</button>
@@ -7119,7 +7083,6 @@ renderNotes();
 updateCounts();
 loadCfg();
 gcalInit();
-notionAutoSync();
 </script>
 </body>
 </html>
