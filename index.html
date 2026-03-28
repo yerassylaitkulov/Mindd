@@ -5747,12 +5747,20 @@ function workOpenLessonPage(sid, cellIdx){
           <span style="font-size:16px;font-weight:700;color:var(--ink);font-family:'Instrument Serif',serif;font-style:italic;cursor:pointer" onclick="workOpenStudentPage(${sid})">${esc(s.name)}</span>
           <span style="font-size:13px;color:var(--muted);margin-left:8px">· Lesson ${cell.num}</span>
         </div>
-        <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
           <!-- Date input -->
           <input id="lp-date" value="${esc(cell.date||'')}" placeholder="Date e.g. 16.01"
-            style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-size:13px;font-family:'Geist Mono',monospace;outline:none;width:110px"
-            oninput="workCellSet(${sid},${cellIdx},workData.attendance[${sid}][${cellIdx}].status,this.value)"
+            style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-size:13px;font-family:'Geist Mono',monospace;outline:none;width:100px"
+            oninput="workCellSetDateTime(${sid},${cellIdx})"
             onkeydown="if(event.key==='Enter')this.blur()"/>
+          <!-- Time input -->
+          <input id="lp-time" value="${esc(cell.time||(s.schedule?.length?s.schedule[0].time||'':''))}" placeholder="Time e.g. 10:00"
+            style="padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-size:13px;font-family:'Geist Mono',monospace;outline:none;width:80px"
+            oninput="workCellSetDateTime(${sid},${cellIdx})"
+            onkeydown="if(event.key==='Enter')this.blur()"/>
+          <!-- Sync this lesson to calendar -->
+          <button onclick="workSyncOneLessonToCalendar(${sid},${cellIdx})"
+            style="padding:5px 10px;background:none;border:1px solid #1a3a5a;border-radius:6px;color:#8ab4f8;cursor:pointer;font-size:12px;font-family:'Geist',sans-serif">📅 Sync</button>
           <!-- Status buttons -->
           <div style="display:flex;gap:4px">
             <button onclick="workLessonSetStatus(${sid},${cellIdx},'done',this)"
@@ -5812,9 +5820,65 @@ function workOpenLessonPage(sid, cellIdx){
   page.addEventListener('keydown',e=>{ if(e.key==='Escape') page.remove(); });
 }
 
+// Get default time for a lesson page from student's schedule
+function _lpDefaultTime(sid){
+  const s=workData.students.find(x=>x.id===sid);
+  if(!s?.schedule?.length) return '';
+  return s.schedule[0].time||'';
+}
+
+// Save date+time from lesson page inputs
+function workCellSetDateTime(sid, cellIdx){
+  const date=document.getElementById('lp-date')?.value.trim()||'';
+  const time=document.getElementById('lp-time')?.value.trim()||'';
+  const att=workData.attendance[sid]||[];
+  const cell=att[cellIdx];
+  if(!cell) return;
+  if(date) cell.date=date;
+  if(time) cell.time=time;
+  workSave();
+}
+
+// Sync a single lesson cell to calendar
+function workSyncOneLessonToCalendar(sid, cellIdx){
+  const s=workData.students.find(x=>x.id===sid);if(!s)return;
+  const att=workData.attendance[sid]||[];
+  const cell=att[cellIdx];if(!cell)return;
+  const date=document.getElementById('lp-date')?.value.trim()||cell.date||'';
+  const time=document.getElementById('lp-time')?.value.trim()||cell.time||s.schedule?.[0]?.time||'';
+  if(!date){ alert('Enter a date first.'); return; }
+  if(cell.date!==date||cell.time!==time){
+    cell.date=date; if(time) cell.time=time; workSave();
+  }
+  // Resolve full date
+  const parts=date.split('.');
+  if(parts.length!==2){ alert('Date format should be DD.MM e.g. 16.01'); return; }
+  const d=parseInt(parts[0]),m=parseInt(parts[1]);
+  const yr=(m>=1&&m<=6)?2026:2025;
+  const dk=`${yr}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const title=s.name+' + Pixels';
+  const startTime=time||'09:00';
+  const[sh,sm]=startTime.split(':').map(Number);
+  const dur=s.schedule?.find(sl=>sl.dow===new Date(dk+'T12:00:00').getDay())?.duration||60;
+  const eh=Math.floor((sh*60+sm+dur)/60),em=(sh*60+sm+dur)%60;
+  const endTime=String(eh).padStart(2,'0')+':'+String(em).padStart(2,'0');
+  // Remove existing work event for this student on this date
+  if(!calEvts[dk]) calEvts[dk]=[];
+  calEvts[dk]=calEvts[dk].filter(e=>!(e._workStudentId===sid&&e._lessonNum===cell.num));
+  calEvts[dk].push({title,start:startTime,end:endTime,color:'blue',_workStudentId:sid,_fromWork:true,_lessonNum:cell.num});
+  save(); renderCalInPlace();
+  // Brief flash on the button
+  const btn=event?.target?.closest('button');
+  if(btn){btn.textContent='✓ Synced';btn.style.color='#34a853';setTimeout(()=>{btn.textContent='📅 Sync';btn.style.color='#8ab4f8';},1500);}
+}
+
 function workLessonSetStatus(sid, cellIdx, status, btn){
   const date=document.getElementById('lp-date')?.value.trim()||'';
-  workCellSet(sid, cellIdx, status, date||undefined);
+  const time=document.getElementById('lp-time')?.value.trim()||'';
+  const att=workData.attendance[sid]||[];
+  const cell=att[cellIdx];
+  if(cell){ cell.status=status; if(date) cell.date=date; if(time) cell.time=time; }
+  workSave(); workRenderSidebar(); workRenderAttendance(); workRenderHomework();
   // Update button styles
   ['done','missed','empty'].forEach(s=>{
     const b=document.getElementById('lp-btn-'+s);
@@ -6934,6 +6998,12 @@ function _workAutoFillDates(sid, monthKey, cells, startDateStr){
       cell.date        = unique[di].display;
       cell._plannedTs  = unique[di].ts;
       cell._plannedFull= unique[di].full;
+      // Also fill time from matching schedule slot if not already set
+      if(!cell.time && s.schedule?.length){
+        const dow = new Date(unique[di].full+'T12:00:00').getDay();
+        const slot = s.schedule.find(sl=>sl.dow===dow) || s.schedule[0];
+        if(slot?.time) cell.time = slot.time;
+      }
       di++;
     }
   });
@@ -6992,7 +7062,9 @@ async function _workSyncToCalendar(sid, firstDateStr){
     if(!fullDate) return;
 
     const dow=new Date(fullDate+'T12:00:00').getDay();
-    const {time:startTime,duration:durMin}=slotTime(dow);
+    // Use cell.time (manually set or auto-filled) if available, else fall back to schedule
+    const {time:schedTime,duration:durMin}=slotTime(dow);
+    const startTime=cell.time||schedTime;
     const[sh,sm]=startTime.split(':').map(Number);
     const eh=Math.floor((sh*60+sm+durMin)/60),em=(sh*60+sm+durMin)%60;
     const endTime=String(eh).padStart(2,'0')+':'+String(em).padStart(2,'0');
