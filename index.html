@@ -1718,6 +1718,25 @@ function calMiniPick(dk,y,m){
 }
 function renderCal(){renderMiniCal();calView==='week'?renderWeek():renderMonth();}
 
+// Re-render without jumping the scroll position (for deletes/edits that shouldn't move the view)
+function renderCalInPlace(){
+  const sc=document.getElementById('cal-wscroll');
+  const hsc=document.getElementById('cal-wvscroll');
+  const savedH = sc ? sc.scrollLeft : null;
+  const savedV = hsc ? hsc.scrollTop : null;
+  renderCal();
+  if(savedH!==null){
+    // Override the scroll reset that renderWeek schedules
+    const _orig = setTimeout;
+    setTimeout(()=>{
+      const sc2=document.getElementById('cal-wscroll');
+      const hsc2=document.getElementById('cal-wvscroll');
+      if(sc2&&savedH!==null) sc2.scrollLeft=savedH;
+      if(hsc2&&savedV!==null) hsc2.scrollTop=savedV;
+    }, 60); // run after renderWeek's 30ms timeout
+  }
+}
+
 // helpers
 function pad(n){return String(n).padStart(2,'0')}
 function fmtTime(t){
@@ -2703,13 +2722,13 @@ function showCtxMenu(e,dk,idx){
           notionDeleteEvent(evt.notionId);
           calEvts[dk].splice(idx,1);
         }
-        save();renderCal();
+        save();renderCalInPlace();
         });
       } else {
         calSnapshot();
         gcalDeleteEvent(evt.gcalId);
         notionDeleteEvent(evt.notionId);
-        calEvts[dk].splice(idx,1);save();renderCal();
+        calEvts[dk].splice(idx,1);save();renderCalInPlace();
       }
     }}
   ]);
@@ -2725,7 +2744,7 @@ function showNoteCtx(e,nid){
   closeAllCal();
   spawnCtx(e,[
     {icon:'📝',label:'Open note',action:()=>show('notes')},
-    {icon:'🗑',label:'Delete note',danger:true,action:()=>{notes=notes.filter(n=>n.id!==nid);save();renderNotes();renderTopics();updateCounts();renderCal();}},
+    {icon:'🗑',label:'Delete note',danger:true,action:()=>{notes=notes.filter(n=>n.id!==nid);save();renderNotes();renderTopics();updateCounts();renderCalInPlace();}},
   ]);
 }
 function spawnCtx(e,items){
@@ -2756,7 +2775,7 @@ document.addEventListener('keydown',e=>{
 });
 // legacy compat
 function calAdd(){capSave();}
-function calDel(dk,i){calEvts[dk].splice(i,1);save();renderCal();}
+function calDel(dk,i){calEvts[dk].splice(i,1);save();renderCalInPlace();}
 function calOpenModal(dk,h){showAddPop({clientX:400,clientY:300},dk,h!==undefined?pad(h)+':00':'09:00',h!==undefined?pad(h+1)+':00':'10:00');}
 function closeCalModal(){}
 function calRenderModal(){}
@@ -6921,58 +6940,65 @@ function _fmt_ddmm(dk){
 }
 
 // ── SYNC SCHEDULE TO CALENDAR ──
-// Creates/updates events "StudentName + Pixels" for each planned lesson
+// Reads dates directly from attendance cells — no firstDate dependency for existing students
 async function _workSyncToCalendar(sid, firstDateStr){
   const s=workData.students.find(x=>x.id===sid);
   if(!s) return;
   const att=workData.attendance[sid]||[];
+  const mg=s.monthGroup;
   const name=s.name;
   const title=name+' + Pixels';
 
-  // Build map of planned dates from attendance cells
-  const plannedDates=[]; // {dk:'YYYY-MM-DD', start:'HH:MM', end:'HH:MM'}
-  att.forEach(cell=>{
-    // Only sync cells that have a date (confirmed or planned)
-    const fullDate=cell._plannedFull||_cellDateToFullDate(cell.date,firstDateStr);
-    if(!fullDate) return;
-    // Find the matching schedule slot time for this day
-    const d=new Date(fullDate+'T12:00:00');
-    const dow=d.getDay();
+  // Get time for a given day-of-week from schedule, fall back to first slot time
+  function slotTime(dow){
     const slot=s.schedule?.find(sl=>sl.dow===dow);
-    const startTime=slot?.time||'09:00';
-    const [sh,sm]=startTime.split(':').map(Number);
-    const durMin=slot?.duration||60;
-    const eh=Math.floor((sh*60+sm+durMin)/60), em=(sh*60+sm+durMin)%60;
+    if(!slot&&s.schedule?.length) return {time:s.schedule[0].time||'09:00',duration:s.schedule[0].duration||60};
+    return {time:slot?.time||'09:00',duration:slot?.duration||60};
+  }
+
+  const plannedDates=[];
+  att.filter(c=>c.month===mg).forEach(cell=>{
+    // Resolve the full YYYY-MM-DD date from the cell
+    let fullDate='';
+    if(cell._plannedFull){
+      fullDate=cell._plannedFull;
+    } else if(cell.date){
+      // Parse DD.MM — use 2026 as the year (current subscription year)
+      const parts=cell.date.split('.');
+      if(parts.length===2){
+        const d=parseInt(parts[0]),m=parseInt(parts[1]);
+        const yr = m>=1&&m<=6 ? 2026 : 2025; // Jan-Jun = 2026, rest = prior year
+        fullDate=`${yr}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      }
+    }
+    if(!fullDate) return;
+
+    const dow=new Date(fullDate+'T12:00:00').getDay();
+    const {time:startTime,duration:durMin}=slotTime(dow);
+    const[sh,sm]=startTime.split(':').map(Number);
+    const eh=Math.floor((sh*60+sm+durMin)/60),em=(sh*60+sm+durMin)%60;
     const endTime=String(eh).padStart(2,'0')+':'+String(em).padStart(2,'0');
     plannedDates.push({dk:fullDate,start:startTime,end:endTime});
   });
 
-  if(!plannedDates.length) return;
+  if(!plannedDates.length){
+    console.log(`[Work] No dates to sync for ${name}`);
+    return;
+  }
 
   // Remove old work-synced events for this student
   Object.keys(calEvts).forEach(dk=>{
-    calEvts[dk]=(calEvts[dk]||[]).filter(e=>!(e._workStudentId===sid));
+    calEvts[dk]=(calEvts[dk]||[]).filter(e=>e._workStudentId!==sid);
   });
 
   // Add new events
   plannedDates.forEach(({dk,start,end})=>{
     if(!calEvts[dk]) calEvts[dk]=[];
-    // Skip if already has a non-work event with same title
-    const existing=calEvts[dk].find(e=>e.title===title&&!e._workStudentId);
-    if(!existing){
-      calEvts[dk].push({
-        title,
-        start,
-        end,
-        color:'blue',
-        _workStudentId: sid,
-        _fromWork: true
-      });
-    }
+    calEvts[dk].push({title,start,end,color:'blue',_workStudentId:sid,_fromWork:true});
   });
 
   save();
-  if(curView==='calendar') renderCal();
+  if(curView==='calendar') renderCalInPlace();
   console.log(`[Work] Synced ${plannedDates.length} events for ${name} to calendar`);
 }
 
