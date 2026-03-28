@@ -6311,9 +6311,9 @@ function workModalSave(id){
 
 function workSyncScheduleToCalendar(id){
   const s=workData.students.find(x=>x.id===id);if(!s)return;
-  if(!s.schedule?.length){ alert('No schedule set. Add schedule slots below first.'); return; }
-  if(!s.firstDate){ alert('No first lesson date set. Please enter the first lesson date field above.'); return; }
-  _workSyncToCalendar(id, s.firstDate);
+  if(!s.schedule?.length){ alert('No schedule set. Add schedule slots first.'); return; }
+  // No firstDate needed — _workSyncToCalendar reads directly from attendance cells
+  _workSyncToCalendar(id, s.firstDate||'');
   document.getElementById('work-edit-modal')?.remove();
 }
 
@@ -6923,6 +6923,13 @@ function _workRefillAndSync(sid){
   if(!s.schedule?.length){ alert('No schedule set. Right-click student → Edit to add a schedule first.'); return; }
   const att=workData.attendance[sid]||[];
   const cells=att.filter(c=>c.month===mg);
+  // Check if student has any done lessons — if yes, anchor from last lesson (no firstDate needed)
+  // If no done lessons at all and no firstDate, we can't compute upcoming dates
+  const hasDone=cells.some(c=>c.date&&(c.status==='done'||c.status==='missed'));
+  if(!hasDone&&!s.firstDate){
+    alert('No lessons recorded yet. Please enter a "First lesson date" in the edit modal so upcoming dates can be calculated.');
+    return;
+  }
   // Clear only planned (unconfirmed) dates — keep done/missed and manually set dates
   cells.forEach(c=>{ if(c.status==='empty'&&!c._manualDate){ c.date=''; c._plannedTs=0; c._plannedFull=''; } });
   _workAutoFillDates(sid, mg, cells, s.firstDate||'');
