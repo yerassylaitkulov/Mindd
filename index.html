@@ -6003,50 +6003,44 @@ function workEditStudentModal(id){
       Schedule
       ${calSchedule.length?`<span style="color:#34a853;font-size:10px;margin-left:6px">✓ from calendar</span>`:''}
     </label>
-    <!-- Repeat pattern picker — mirrors calendar tab -->
+    <!-- Schedule: day checkboxes, each with its own time -->
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px">
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-        <span style="font-size:12px;color:var(--muted)">Repeats</span>
-        <select id="wm-repeat-type" onchange="wmRepeatTypeChange()"
-          style="padding:4px 8px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
-          <option value="none" ${!(window._wmStudent?.repeatType)&&window._wmStudent?.repeatType!=='weekly'&&window._wmStudent?.repeatType!=='custom'?'selected':''}>No repeat</option>
-          <option value="weekly" ${window._wmStudent?.repeatType==='weekly'?'selected':''}>Every week</option>
-          <option value="custom" ${window._wmStudent?.repeatType==='custom'?'selected':''}>Custom days</option>
-        </select>
-        <span id="wm-repeat-every-wrap" style="display:${window._wmStudent?.repeatType&&window._wmStudent?.repeatType!=='none'?'flex':'none'};align-items:center;gap:4px">
-          every <input id="wm-repeat-every" type="number" min="1" max="8" value="${window._wmStudent?.repeatEvery||1}"
-            style="width:36px;padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;text-align:center"/>
-          week(s)
-        </span>
-      </div>
-      <!-- Day checkboxes for custom -->
-      <div id="wm-repeat-days" style="display:${window._wmStudent?.repeatType==='custom'?'flex':'none'};gap:4px;flex-wrap:wrap;margin-bottom:10px">
-        ${['Su','Mo','Tu','We','Th','Fr','Sa'].map((d,i)=>`
-          <label style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
-            <input type="checkbox" data-dow="${i}" onchange="wmRepeatDayChange()"
-              ${(window._wmStudent?.repeatDays||[]).includes(i)?'checked':''}
-              style="width:14px;height:14px;accent-color:#4285f4;cursor:pointer"/>
-            <span style="font-size:10px;font-family:'Geist Mono',monospace;color:var(--muted)">${d}</span>
-          </label>`).join('')}
-      </div>
-      <!-- Time + duration -->
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span style="font-size:12px;color:var(--muted)">Time</span>
-        ${(()=>{const t=(window._wmStudent?.schedTime||window._wmStudent?.schedule?.[0]?.time||'09:00');const[h24,min]=t.split(':').map(Number);const ap=h24<12?'AM':'PM';const h12=h24===0?12:h24>12?h24-12:h24;return`
-          <select id="wm-time-h" onchange="wmTimeChange()" style="padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
-            ${[12,1,2,3,4,5,6,7,8,9,10,11].map(h=>`<option value="${h}" ${h===h12?'selected':''}>${h}</option>`).join('')}
-          </select>:
-          <select id="wm-time-m" onchange="wmTimeChange()" style="padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
-            ${['00','15','30','45'].map(mv=>`<option value="${mv}" ${parseInt(mv)===min?'selected':''}>${mv}</option>`).join('')}
-          </select>
-          <select id="wm-time-ap" onchange="wmTimeChange()" style="padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
-            <option value="AM" ${ap==='AM'?'selected':''}>AM</option><option value="PM" ${ap==='PM'?'selected':''}>PM</option>
-          </select>`;})()}
-        <span style="font-size:12px;color:var(--muted);margin-left:4px">Duration</span>
-        <input id="wm-duration" type="number" min="15" max="240" step="15"
-          value="${window._wmStudent?.schedule?.[0]?.duration||60}"
-          style="width:52px;padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;text-align:center"/>
-        <span style="font-size:11px;color:var(--muted)">min</span>
+      <!-- Day rows: checkbox + label + time per day -->
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+        ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d,i)=>{
+          const existing=((window._wmStudent?.schedule)||[]).find(sl=>sl.dow===i);
+          const checked=!!existing;
+          const t=existing?.time||'10:00';
+          const[h24raw,minRaw]=t.split(':').map(Number);
+          const ap=h24raw<12?'AM':'PM';
+          const h12=h24raw===0?12:h24raw>12?h24raw-12:h24raw;
+          const dur=existing?.duration||60;
+          return`<div class="wm-day-row" id="wm-day-row-${i}" style="display:flex;align-items:center;gap:8px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;min-width:56px">
+              <input type="checkbox" data-dow="${i}" onchange="wmDayToggle(${i})"
+                ${checked?'checked':''}
+                style="width:14px;height:14px;accent-color:#4285f4;cursor:pointer"/>
+              <span style="font-size:12px;font-weight:500;color:${checked?'var(--ink)':'var(--muted)'};font-family:'Geist',sans-serif">${d}</span>
+            </label>
+            <div class="wm-day-time" style="display:${checked?'flex':'none'};align-items:center;gap:3px">
+              <select onchange="wmDayTimeChange(${i},this.closest('.wm-day-time'))"
+                style="padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+                ${[12,1,2,3,4,5,6,7,8,9,10,11].map(h=>`<option value="${h}" ${h===h12?'selected':''}>${h}</option>`).join('')}
+              </select><span style="color:var(--muted);font-size:11px">:</span><select onchange="wmDayTimeChange(${i},this.closest('.wm-day-time'))"
+                style="padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer;min-width:42px">
+                ${['00','15','30','45'].map(mv=>`<option value="${mv}" ${parseInt(mv)===minRaw?'selected':''}>${mv}</option>`).join('')}
+              </select><select onchange="wmDayTimeChange(${i},this.closest('.wm-day-time'))"
+                style="padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
+                <option value="AM" ${ap==='AM'?'selected':''}>AM</option>
+                <option value="PM" ${ap==='PM'?'selected':''}>PM</option>
+              </select>
+              <input type="number" min="15" max="240" step="15" value="${dur}"
+                onchange="wmDayDurChange(${i},this)"
+                style="width:46px;padding:3px 5px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:12px;outline:none;text-align:center"/>
+              <span style="font-size:10px;color:var(--subtle)">min</span>
+            </div>
+          </div>`;
+        }).join('')}
       </div>
     </div>
 
@@ -6077,14 +6071,7 @@ function workEditStudentModal(id){
   // Store temp edit state
   window._wmStudent=JSON.parse(JSON.stringify(s));
   window._wmStudent.color=s.color||'#4285f4';
-  // Derive repeat fields from existing schedule array for backwards compat
-  if(!window._wmStudent.repeatType){
-    const sc=s.schedule||[];
-    if(sc.length===0){ window._wmStudent.repeatType='none'; }
-    else if(sc.length===1){ window._wmStudent.repeatType='weekly'; window._wmStudent.repeatDays=[sc[0].dow]; window._wmStudent.schedTime=sc[0].time; }
-    else { window._wmStudent.repeatType='custom'; window._wmStudent.repeatDays=sc.map(x=>x.dow); window._wmStudent.schedTime=sc[0].time; }
-    window._wmStudent.repeatEvery=1;
-  }
+  // schedule is read directly from day rows in wmBuildScheduleFromDays()
 }
 
 function _timeDiff(start, end){
@@ -6136,57 +6123,55 @@ function workModalAddSched(){
 }
 function workModalSchedUpdate(i,field,val){ if(window._wmStudent?.schedule?.[i]) window._wmStudent.schedule[i][field]=field==='dow'?parseInt(val):val; }
 
-function wmRepeatTypeChange(){
-  const t=document.getElementById('wm-repeat-type')?.value||'none';
-  if(window._wmStudent) window._wmStudent.repeatType=t;
-  const everyWrap=document.getElementById('wm-repeat-every-wrap');
-  const daysDiv=document.getElementById('wm-repeat-days');
-  if(everyWrap) everyWrap.style.display=t!=='none'?'flex':'none';
-  if(daysDiv) daysDiv.style.display=t==='custom'?'flex':'none';
-  // For weekly, auto-check current day if no days selected
-  if(t==='weekly'&&!(window._wmStudent?.repeatDays?.length)){
-    const today=new Date().getDay();
-    if(window._wmStudent) window._wmStudent.repeatDays=[today];
-    const cb=daysDiv?.querySelector(`[data-dow="${today}"]`);
-    if(cb) cb.checked=true;
+// Per-day schedule helpers
+function wmDayToggle(dow){
+  const row=document.getElementById(`wm-day-row-${dow}`);
+  const cb=row?.querySelector('input[type=checkbox]');
+  const timeDiv=row?.querySelector('.wm-day-time');
+  const label=row?.querySelector('span');
+  const checked=cb?.checked;
+  if(timeDiv) timeDiv.style.display=checked?'flex':'none';
+  if(label) label.style.color=checked?'var(--ink)':'var(--muted)';
+  wmBuildScheduleFromDays();
+}
+
+function wmDayTimeChange(dow, container){
+  wmBuildScheduleFromDays();
+}
+
+function wmDayDurChange(dow, input){
+  wmBuildScheduleFromDays();
+}
+
+// Read all day rows and build schedule array
+function wmBuildScheduleFromDays(){
+  if(!window._wmStudent) return;
+  const slots=[];
+  for(let i=0;i<7;i++){
+    const row=document.getElementById(`wm-day-row-${i}`);
+    if(!row) continue;
+    const cb=row.querySelector('input[type=checkbox]');
+    if(!cb?.checked) continue;
+    const timeDiv=row.querySelector('.wm-day-time');
+    const sels=timeDiv?[...timeDiv.querySelectorAll('select')]:[];
+    const durInput=timeDiv?.querySelector('input[type=number]');
+    if(sels.length<3) continue;
+    const h12=parseInt(sels[0].value),mins=sels[1].value,ap=sels[2].value;
+    let h24=h12;
+    if(ap==='AM'&&h12===12) h24=0;
+    else if(ap==='PM'&&h12!==12) h24=h12+12;
+    const timeStr=String(h24).padStart(2,'0')+':'+mins;
+    const dur=parseInt(durInput?.value)||60;
+    slots.push({dow:i,time:timeStr,duration:dur});
   }
-  wmBuildScheduleFromRepeat();
+  window._wmStudent.schedule=slots;
 }
 
-function wmRepeatDayChange(){
-  if(!window._wmStudent) return;
-  const days=[...document.querySelectorAll('#wm-repeat-days input[type=checkbox]:checked')]
-    .map(cb=>parseInt(cb.dataset.dow));
-  window._wmStudent.repeatDays=days;
-  wmBuildScheduleFromRepeat();
-}
-
-function wmTimeChange(){
-  if(!window._wmStudent) return;
-  const h=parseInt(document.getElementById('wm-time-h')?.value||12);
-  const m=document.getElementById('wm-time-m')?.value||'00';
-  const ap=document.getElementById('wm-time-ap')?.value||'AM';
-  let h24=h;
-  if(ap==='AM'&&h===12) h24=0;
-  else if(ap==='PM'&&h!==12) h24=h+12;
-  const timeStr=String(h24).padStart(2,'0')+':'+m;
-  window._wmStudent.schedTime=timeStr;
-  wmBuildScheduleFromRepeat();
-}
-
-// Convert repeat UI state → s.schedule array (for backwards compat with rest of system)
-function wmBuildScheduleFromRepeat(){
-  if(!window._wmStudent) return;
-  const t=window._wmStudent.repeatType||'none';
-  const time=window._wmStudent.schedTime||'09:00';
-  const dur=parseInt(document.getElementById('wm-duration')?.value)||60;
-  const every=parseInt(document.getElementById('wm-repeat-every')?.value)||1;
-  window._wmStudent.repeatEvery=every;
-  if(t==='none'){ window._wmStudent.schedule=[]; return; }
-  let days=window._wmStudent.repeatDays||[];
-  if(t==='weekly'&&!days.length) days=[new Date().getDay()];
-  window._wmStudent.schedule=days.map(dow=>({dow,time,duration:dur}));
-}
+// Legacy — kept for compat but now no-ops
+function wmRepeatTypeChange(){}
+function wmRepeatDayChange(){}
+function wmTimeChange(){}
+function wmBuildScheduleFromRepeat(){ wmBuildScheduleFromDays(); }
 function workModalSchedTimeChange(i, container){
   const sels=container.querySelectorAll('select');
   if(sels.length<3)return;
@@ -6207,8 +6192,8 @@ function workModalSave(id){
   const price=parseInt(document.getElementById('wm-price')?.value)||0;
   const archived=document.getElementById('wm-archived')?.checked||false;
   const color=window._wmStudent?.color||'#4285f4';
-  // Build schedule from repeat UI before reading
-  wmBuildScheduleFromRepeat();
+  // Build schedule from day UI before reading
+  wmBuildScheduleFromDays();
   const schedule=window._wmStudent?.schedule||[];
   // Store repeat metadata on student for UI reconstruction
   const repeatType=window._wmStudent?.repeatType||'none';
@@ -6356,109 +6341,88 @@ function workRenderArchive(){
 function workRenderFinances(){
   const wrap = document.getElementById('work-finances-wrap');
   if(!wrap) return;
-
   const all = workData.students;
   if(!all.length){
     wrap.innerHTML = `<div class="work-empty"><div class="work-empty-icon">💰</div><div class="work-empty-text">No students yet</div></div>`;
     return;
   }
 
+  if(!workData.finArchivedMonths) workData.finArchivedMonths=[];
+
   // Group by monthGroup
   const groups = {};
-  all.forEach(s => {
-    const mg = s.monthGroup || '?';
-    if(!groups[mg]) groups[mg] = [];
-    groups[mg].push(s);
-  });
+  all.forEach(s => { const mg=s.monthGroup||'?'; if(!groups[mg])groups[mg]=[]; groups[mg].push(s); });
+  const MONTH_COLORS=['#4285f4','#34a853','#f59e0b','#e85a5a','#8b5cf6','#06b6d4','#f472b6','#10b981'];
+  let mci=0; const monthColor={};
+  Object.keys(groups).sort().forEach(mk=>{ monthColor[mk]=MONTH_COLORS[mci++%MONTH_COLORS.length]; });
 
-  let grandTotal = 0;
-  let grandActive = 0;
-
-  let html = '<div style="padding:20px">';
-
+  let html = '<div class="wa-table">';
   Object.keys(groups).sort().forEach(mk => {
-    const mObj = workData.months.find(m => m.key === mk);
+    const mObj = workData.months.find(m=>m.key===mk);
     const mLabel = mObj?.label || workMonthLabel(mk) || mk;
+    const mc = monthColor[mk];
+    const isArchived = (workData.finArchivedMonths||[]).includes(mk);
     const studentsInGroup = groups[mk];
-    const groupTotal = studentsInGroup.reduce((sum, s) => sum + ((s.price||{})[mk]||0), 0);
-    grandTotal += groupTotal;
-    if(!studentsInGroup.every(s=>s.archived)) grandActive += groupTotal;
+    const groupTotal = studentsInGroup.reduce((sum,s)=>sum+((s.price||{})[mk]||0),0);
 
-    html += `<div style="margin-bottom:28px">
-      <div style="display:flex;align-items:center;gap:12px;padding-bottom:8px;border-bottom:2px solid var(--border);margin-bottom:12px">
-        <span style="font-size:16px;font-family:'Instrument Serif',serif;font-style:italic;color:var(--ink)">${esc(mLabel)}</span>
-        <span style="font-size:11px;color:var(--subtle);font-family:'Geist Mono',monospace">${mk}</span>
-        ${groupTotal ? `<span style="margin-left:auto;font-size:14px;font-weight:700;color:#34d399;font-family:'Geist Mono',monospace">${groupTotal.toLocaleString('ru-KZ')} ₸</span>` : ''}
-      </div>
-      <table style="border-collapse:collapse;width:100%">
-        <thead><tr>
-          <th style="text-align:left;padding:5px 12px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Student</th>
-          <th style="text-align:center;padding:5px 12px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;font-weight:600;text-transform:uppercase">Lessons</th>
-          <th style="text-align:center;padding:5px 12px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;font-weight:600;text-transform:uppercase">Progress</th>
-          <th style="text-align:right;padding:5px 12px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;font-weight:600;text-transform:uppercase">Price</th>
-          <th style="text-align:left;padding:5px 12px;font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;font-weight:600;text-transform:uppercase">Status</th>
-        </tr></thead>
-        <tbody>`;
+    html += `<div class="wa-month-group" style="${isArchived?'opacity:.5':''}">
+      <div class="wa-month-hd" style="border-left:3px solid ${mc}">
+        <span class="wa-month-label" style="color:${mc}">${esc(mLabel)}</span>
+        <span style="font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace">${mk}</span>
+        ${groupTotal?`<span style="font-size:12px;font-weight:700;color:#34d399;font-family:'Geist Mono',monospace;margin-left:8px">${groupTotal.toLocaleString('ru-KZ')} ₸</span>`:''}
+        <button onclick="workFinToggleArchiveMonth('${mk}')"
+          style="margin-left:auto;padding:1px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--subtle);cursor:pointer;font-size:10px;font-family:'Geist',sans-serif">
+          ${isArchived?'↑ Unarchive':'Archive'}
+        </button>
+      </div>`;
 
-    studentsInGroup.forEach(s => {
-      const att = (workData.attendance[s.id]||[]).filter(c => c.month === mk);
-      const done   = att.filter(c=>c.status==='done').length;
-      const total  = att.length;
-      const pct    = total>0 ? Math.round(done/total*100) : 0;
-      const price  = (s.price||{})[mk] || 0;
+    if(!isArchived){
+      studentsInGroup.forEach(s => {
+        const att = (workData.attendance[s.id]||[]).filter(c=>c.month===mk);
+        const done  = att.filter(c=>c.status==='done').length;
+        const total = att.length;
+        const pct   = total>0?Math.round(done/total*100):0;
+        const price = (s.price||{})[mk]||0;
+        const isComplete = done>=total&&total>0;
 
-      html += `<tr style="border-bottom:1px solid var(--border-light);${s.archived?'opacity:.45':''}cursor:pointer" onclick="workOpenStudentPage(${s.id})">
-        <td style="padding:8px 12px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="width:8px;height:8px;border-radius:50%;background:${s.color||'#4285f4'};flex-shrink:0"></div>
-            <span style="font-size:13px;font-weight:500;color:${s.archived?'var(--muted)':'var(--ink)'}">
-              ${esc(s.name)}${s.archived?' <span style="font-size:10px;color:var(--subtle)">[archived]</span>':''}
+        html += `<div class="wa-student-row" onclick="workOpenStudentPage(${s.id})" style="cursor:pointer;border-left:3px solid ${s.color||'#4285f4'}20;${s.archived?'opacity:.55':''}">
+          <div class="wa-name-col" style="width:160px">
+            <div class="wa-color-dot" style="background:${s.color||'#4285f4'}"></div>
+            <div style="flex:1;min-width:0">
+              <div class="wa-row-name">${esc(s.name)}</div>
+              <div class="wa-row-meta" style="color:${isComplete?'#34a853':'var(--muted)'}">${done}/${total||'—'}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:0 10px;flex:1">
+            ${total?`<div style="width:90px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;flex-shrink:0">
+              <div style="height:100%;width:${pct}%;background:${isComplete?'#34a853':'#4285f4'};border-radius:2px"></div>
+            </div>
+            <span style="font-size:11px;font-family:'Geist Mono',monospace;color:${isComplete?'#34a853':'var(--muted)'}">${pct}%</span>`:''}
+            <span style="font-size:13px;font-weight:700;color:${price?'#34d399':'var(--subtle)'};font-family:'Geist Mono',monospace;margin-left:auto">
+              ${price?price.toLocaleString('ru-KZ')+' ₸':'—'}
+            </span>
+            <span style="font-size:10px;padding:2px 7px;border-radius:99px;background:${s.archived?'var(--surface2)':isComplete?'#0a2014':'var(--surface2)'};color:${s.archived?'#6b6760':isComplete?'#34a853':'var(--muted)'}">
+              ${s.archived?'archived':isComplete?'done':'active'}
             </span>
           </div>
-        </td>
-        <td style="padding:8px 12px;text-align:center;font-family:'Geist Mono',monospace;font-size:12px;color:var(--muted)">${total||'—'}</td>
-        <td style="padding:8px 12px">
-          <div style="display:flex;align-items:center;gap:8px;justify-content:center">
-            ${total ? `<div style="width:80px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden">
-              <div style="height:100%;width:${pct}%;background:${done>=total?'#34a853':'#4285f4'};border-radius:3px"></div>
-            </div>
-            <span style="font-size:11px;font-family:'Geist Mono',monospace;color:${done>=total?'#34a853':'var(--muted)'}">${done}/${total}</span>` : '—'}
-          </div>
-        </td>
-        <td style="padding:8px 12px;text-align:right;font-family:'Geist Mono',monospace;font-size:13px;font-weight:700;color:${price?'#34d399':'var(--subtle)'}">
-          ${price ? price.toLocaleString('ru-KZ')+' ₸' : '—'}
-        </td>
-        <td style="padding:8px 12px">
-          <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${s.archived?'var(--surface)':done>=total?'#0a2014':'var(--surface)'};color:${s.archived?'var(--subtle)':done>=total?'#34a853':'var(--muted)'}">
-            ${s.archived ? 'Archived' : done>=total ? 'Completed' : 'Active'}
-          </span>
-        </td>
-      </tr>`;
-    });
+        </div>`;
+      });
+    }
 
-    html += `</tbody></table></div>`;
+    html += `</div>`;
   });
-
-  // Grand totals
-  html += `<div style="border-top:2px solid var(--border);padding-top:16px;display:flex;gap:24px;align-items:center">
-    <div>
-      <div style="font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total revenue</div>
-      <div style="font-size:22px;font-weight:700;color:#34d399;font-family:'Geist Mono',monospace">${grandTotal.toLocaleString('ru-KZ')} ₸</div>
-    </div>
-    <div>
-      <div style="font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">From active</div>
-      <div style="font-size:22px;font-weight:700;color:#8ab4f8;font-family:'Geist Mono',monospace">${grandActive.toLocaleString('ru-KZ')} ₸</div>
-    </div>
-    <div>
-      <div style="font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Students</div>
-      <div style="font-size:22px;font-weight:700;color:var(--ink);font-family:'Geist Mono',monospace">${all.length}</div>
-    </div>
-  </div>`;
 
   html += '</div>';
   wrap.innerHTML = html;
 }
 
+function workFinToggleArchiveMonth(mk){
+  if(!workData.finArchivedMonths) workData.finArchivedMonths=[];
+  const idx=workData.finArchivedMonths.indexOf(mk);
+  if(idx>-1) workData.finArchivedMonths.splice(idx,1);
+  else workData.finArchivedMonths.push(mk);
+  workSave(); workRenderFinances();
+}
 
 // ── STUDENT PAGE SCHEDULE HELPERS ──
 function spAddScheduleSlot(id){
