@@ -282,8 +282,8 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-wdow{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;width:100%}
 .cal-wdn{font-size:20px;font-weight:300;color:var(--muted);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin:0 auto}
 .cal-wdn.is-today{background:#c8303a;color:#fff;font-weight:700}
-.cal-week-scroll{flex:1;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:var(--border) transparent;min-width:0;display:flex;flex-direction:column;min-height:0}
-.cal-week-inner{display:flex;flex-direction:column;flex:1;min-height:0;width:max-content;min-width:100%}
+.cal-week-scroll{flex:1;overflow-x:hidden;overflow-y:hidden;min-width:0;display:flex;flex-direction:column;min-height:0}
+.cal-week-inner{display:flex;flex-direction:column;flex:1;min-height:0;width:max-content}
 .cal-week-vscroll{flex:1;overflow-y:auto;overflow-x:visible;min-height:0;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .cal-week-body-row{display:flex}
 .cal-week-scroll::-webkit-scrollbar{height:5px}
@@ -1920,10 +1920,11 @@ function renderWeek(){
   });
 
   const body=document.getElementById('cal-body');
+  const _innerW = 58 + totalDays * CAL_DAY_W; // gutter(58) + all day columns
   body.innerHTML=`
     <div class="cal-week-wrap" id="cal-week-wrap">
-      <div class="cal-week-scroll" id="cal-wscroll">
-        <div class="cal-week-inner">
+      <div class="cal-week-scroll" id="cal-wscroll" style="overflow-x:hidden">
+        <div class="cal-week-inner" style="width:${_innerW}px">
           <div class="cal-week-head" id="cal-week-head-row">${headHtml}</div>
           <div class="cal-week-vscroll" id="cal-wvscroll">
             <div class="cal-week-body-row">
@@ -2205,11 +2206,12 @@ function evtDragEnd(e){
   const nextEnd=Math.max(nextStart+15,Math.min(24*60,nextStart+st.durationMin));
   const movedEvt={...src,start:minToStr(nextStart),end:minToStr(nextEnd)};
   const applyMove=()=>{ calSnapshot();
+    const _srcEvt=calEvts[st.dk][st.idx];
     calEvts[st.dk].splice(st.idx,1);
     if(!calEvts[st.targetDk])calEvts[st.targetDk]=[];
     calEvts[st.targetDk].push(movedEvt);
     gcalUpdateEvent(movedEvt, st.targetDk);
-    notionUpdateEvent(movedEvt, st.targetDk);
+    _calWorkEventMoved(movedEvt, st.dk, st.targetDk);
     save();
     renderCal();
   };
@@ -2518,13 +2520,17 @@ function capSave(){
         calEvts[origDk].splice(_pIdx,1);
         if(!calEvts[dk])calEvts[dk]=[];
         calEvts[dk].push(newEvt);
+        // Preserve work sync fields
+        if(oldEvt?._workStudentId){ newEvt._workStudentId=oldEvt._workStudentId; newEvt._fromWork=true; newEvt._lessonNum=oldEvt._lessonNum; }
+        _calWorkEventMoved(newEvt, origDk, dk);
       } else {
         calEvts[origDk][_pIdx]=newEvt;
+        // Preserve work sync fields
+        if(oldEvt?._workStudentId){ newEvt._workStudentId=oldEvt._workStudentId; newEvt._fromWork=true; newEvt._lessonNum=oldEvt._lessonNum; }
+        _calWorkEventMoved(newEvt, origDk, dk);
       }
-      // preserve gcalId and notionId so update hits the right records
       if(oldEvt?.gcalId) newEvt.gcalId=oldEvt.gcalId;
       gcalUpdateEvent(newEvt, dk);
-      notionUpdateEvent(newEvt, dk);
     } else {
       if(!calEvts[dk])calEvts[dk]=[];
       calEvts[dk].push(newEvt);
@@ -2576,7 +2582,9 @@ function capDelete(){
       calSnapshot();
       const delEvt=calEvts[_pDk][_pIdx];
       gcalDeleteEvent(delEvt?.gcalId);
-      calEvts[_pDk].splice(_pIdx,1);save();closeAllCal();renderCal();
+      calEvts[_pDk].splice(_pIdx,1);
+      _calWorkEventDeleted(delEvt,_pDk);
+      save();closeAllCal();renderCal();
     }
   }
 }
@@ -2584,7 +2592,9 @@ function calDelEvt(dk,idx){
   calSnapshot();
   const delEvt=calEvts[dk]?.[idx];
   gcalDeleteEvent(delEvt?.gcalId);
-  calEvts[dk].splice(idx,1);save();closeAllCal();renderCal();
+  calEvts[dk].splice(idx,1);
+  _calWorkEventDeleted(delEvt,dk);
+  save();closeAllCal();renderCal();
 }
 
 // ── REPEAT ──
@@ -2726,7 +2736,10 @@ function showCtxMenu(e,dk,idx){
       } else {
         calSnapshot();
         gcalDeleteEvent(evt.gcalId);
-        calEvts[dk].splice(idx,1);save();renderCalInPlace();
+        const _delEvt=calEvts[dk][idx];
+        calEvts[dk].splice(idx,1);
+        _calWorkEventDeleted(_delEvt,dk);
+        save();renderCalInPlace();
       }
     }}
   ]);
@@ -3411,6 +3424,7 @@ function _openFocusOverlay(noteId, titleVal, bodyHTML) {
   _focusNoteId  = noteId;
 
   document.getElementById('nf-title').value = titleVal;
+  if(titleVal) document.title=titleVal;
   const body = document.getElementById('nf-body');
   body.innerHTML = bodyHTML;
 
@@ -3478,6 +3492,7 @@ function exitFocusMode() {
   _focusOverlay.remove();
   _focusOverlay = null;
   _focusNoteId  = null;
+  document.title='Notes';
   renderNotes();
   renderTopics();
 }
@@ -5674,6 +5689,7 @@ function workOpenLessonPage(sid, cellIdx){
       </div>
     </div>`;
 
+  document.title = s.name+' — Lesson '+cell.num+(ln.title?' · '+ln.title:'');
   document.body.appendChild(page);
 
   // Auto-resize textareas
@@ -5681,7 +5697,7 @@ function workOpenLessonPage(sid, cellIdx){
     ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px';
   });
 
-  page.addEventListener('keydown',e=>{ if(e.key==='Escape') page.remove(); });
+  page.addEventListener('keydown',e=>{ if(e.key==='Escape'){ page.remove(); if(!document.getElementById('student-page'))document.title=({notes:'Notes',kanban:'Kanban',calendar:'Calendar',work:'Work'})[curView]||curView; } });
 }
 
 // Get default time for a lesson page from student's schedule
@@ -6721,11 +6737,15 @@ function workOpenStudentPage(id){
       </div>
     </div>`;
 
+  document.title = s.name;
   document.body.appendChild(page);
 
   const aimTA=page.querySelector('#sp-aim-input');
   if(aimTA){ aimTA.style.height='auto'; aimTA.style.height=aimTA.scrollHeight+'px'; }
-  page.addEventListener('keydown',e=>{ if(e.key==='Escape') page.remove(); });
+  page.addEventListener('keydown',e=>{ if(e.key==='Escape'){ page.remove(); document.title=({notes:'Notes',kanban:'Kanban',flash:'Flashcards',calendar:'Calendar',work:'Work',finance:'Finance',graph:'Graph',settings:'Settings'})[curView]||curView; } });
+  // Also restore title when ← button is clicked (already calls page.remove() inline)
+  const backBtn=page.querySelector('button[onclick*="remove()"]');
+  if(backBtn){ const orig=backBtn.getAttribute('onclick'); backBtn.setAttribute('onclick', orig+";document.title=({notes:'Notes',kanban:'Kanban',flash:'Flashcards',calendar:'Calendar',work:'Work',finance:'Finance',graph:'Graph',settings:'Settings'})[curView]||curView"); }
 }
 function workSetSubOnPage(id){
   const s = workData.students.find(x=>x.id===id);
@@ -6776,6 +6796,7 @@ function workStudentMenu(e, sid){
     <div class="sg-ctx-item" onclick="workOpenStudentPage(${sid})">👤 Open page</div>
     <div class="sg-ctx-sep"></div>
     <div class="sg-ctx-item" onclick="_workRefillAndSync(${sid})">🔄 Re-fill dates + sync calendar</div>
+    <div class="sg-ctx-item" onclick="_workEraseAllDates(${sid})">🗑 Erase all planned dates</div>
     <div class="sg-ctx-sep"></div>
     <div class="sg-ctx-item danger" onclick="workArchiveStudent(${sid})">🗄 Archive</div>`;
   let x=e.clientX, y=e.clientY+4;
@@ -6785,6 +6806,29 @@ function workStudentMenu(e, sid){
   document.body.appendChild(menu);
   const close=ev=>{ if(!menu.contains(ev.target)){menu.remove();document.removeEventListener('mousedown',close);} };
   setTimeout(()=>document.addEventListener('mousedown',close),0);
+}
+
+// Erase all planned dates from empty cells + remove calendar events for this student
+function _workEraseAllDates(sid){
+  const s=workData.students.find(x=>x.id===sid);if(!s)return;
+  const mg=s.monthGroup||workCurrentMonth;
+  const att=workData.attendance[sid]||[];
+  const cells=att.filter(c=>c.month===mg);
+  // Clear dates from empty cells only (keep done/missed)
+  cells.forEach(c=>{
+    if(c.status==='empty'){
+      c.date=''; c._plannedTs=0; c._plannedFull=''; c._manualDate=false; c.time='';
+    }
+  });
+  // Remove all work-synced calendar events for this student
+  Object.keys(calEvts).forEach(dk=>{
+    calEvts[dk]=(calEvts[dk]||[]).filter(e=>e._workStudentId!==sid);
+  });
+  workSave(); save();
+  workRenderSidebar(); workRenderAttendance();
+  if(curView==='calendar') renderCalInPlace();
+  document.getElementById('student-row-menu')?.remove();
+  if(document.getElementById('student-page')) workOpenStudentPage(sid);
 }
 
 // Re-fill all empty cells from schedule + push to calendar
@@ -6981,6 +7025,78 @@ function _cellDateToFullDate(displayDate, refDateStr){
   const refMonth=refDateStr?parseInt(refDateStr.split('-')[1]):new Date().getMonth()+1;
   const year=(m<refMonth-1)?refYear+1:refYear;
   return `${year}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+
+// ── CALENDAR ↔ ATTENDANCE SYNC ──
+
+// Called when a work-synced event is deleted from calendar.
+// Removes the date from the corresponding attendance cell,
+// shifts remaining planned dates left, refills the last empty cell.
+function _calWorkEventDeleted(evt, dk){
+  if(!evt?._workStudentId) return;
+  const sid = evt._workStudentId;
+  const s = workData.students?.find(x=>x.id===sid);
+  if(!s) return;
+  const mg = s.monthGroup;
+  const att = workData.attendance[sid]||[];
+  const cells = att.filter(c=>c.month===mg);
+
+  // Find the cell matching this date
+  const dateDisplay = _dkToDisplay(dk); // YYYY-MM-DD → DD.MM
+  const cellIdx = cells.findIndex(c=>c.date===dateDisplay || c._plannedFull===dk);
+  if(cellIdx<0) return;
+
+  // Clear that cell's date
+  const cell = cells[cellIdx];
+  cell.date=''; cell._plannedTs=0; cell._plannedFull=''; cell.time='';
+  // If it was done/missed, just clear — don't touch status
+  // If it was empty/planned, shift all subsequent empty cells left
+  if(cell.status==='empty'){
+    // Shift: copy dates from cells[i+1] to cells[i] for all empty cells after
+    for(let i=cellIdx; i<cells.length-1; i++){
+      if(cells[i].status!=='empty') continue;
+      const next = cells[i+1];
+      if(next.status==='empty'){
+        cells[i].date=next.date; cells[i]._plannedTs=next._plannedTs;
+        cells[i]._plannedFull=next._plannedFull; cells[i].time=next.time;
+        next.date=''; next._plannedTs=0; next._plannedFull=''; next.time='';
+      }
+    }
+    // Re-fill the last empty cell from schedule
+    _workAutoFillDates(sid, mg, cells, s.firstDate||'');
+  }
+
+  workSave();
+  workRenderAttendance();
+  if(document.getElementById('student-page')) workOpenStudentPage(sid);
+}
+
+// Called when a work-synced event is moved to a new date/time.
+function _calWorkEventMoved(evt, oldDk, newDk){
+  if(!evt?._workStudentId) return;
+  const sid = evt._workStudentId;
+  const att = workData.attendance[sid]||[];
+  const mg = workData.students?.find(x=>x.id===sid)?.monthGroup;
+  const cells = att.filter(c=>c.month===mg);
+  const oldDisplay = _dkToDisplay(oldDk);
+  const cell = cells.find(c=>c.date===oldDisplay || c._plannedFull===oldDk);
+  if(!cell) return;
+  cell.date = _dkToDisplay(newDk);
+  cell._plannedFull = newDk;
+  cell._plannedTs = new Date(newDk+'T12:00:00').getTime();
+  cell._manualDate = true; // user explicitly moved it
+  if(evt.start) cell.time = evt.start;
+  workSave();
+  workRenderAttendance();
+  if(document.getElementById('student-page')) workOpenStudentPage(sid);
+}
+
+// DD.MM from YYYY-MM-DD
+function _dkToDisplay(dk){
+  if(!dk) return '';
+  const[y,m,d]=dk.split('-');
+  return parseInt(d)+'.'+m;
 }
 
 // ── INIT ──
