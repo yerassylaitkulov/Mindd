@@ -282,11 +282,11 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-wdow{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;width:100%}
 .cal-wdn{font-size:20px;font-weight:300;color:var(--muted);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin:0 auto}
 .cal-wdn.is-today{background:#c8303a;color:#fff;font-weight:700}
-.cal-week-scroll{flex:1;overflow-x:hidden;overflow-y:hidden;min-width:0;display:flex;flex-direction:column;min-height:0}
+.cal-week-scroll{flex:1;overflow-x:scroll;overflow-y:hidden;min-width:0;display:flex;flex-direction:column;min-height:0;scrollbar-width:none}
 .cal-week-inner{display:flex;flex-direction:column;flex:1;min-height:0;width:max-content}
 .cal-week-vscroll{flex:1;overflow-y:auto;overflow-x:visible;min-height:0;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .cal-week-body-row{display:flex}
-.cal-week-scroll::-webkit-scrollbar{height:5px}
+.cal-week-scroll::-webkit-scrollbar{display:none}
 .cal-week-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .cal-week-vscroll::-webkit-scrollbar{width:5px}
 .cal-week-vscroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -1958,12 +1958,14 @@ function renderWeek(){
   setTimeout(()=>{
     // Scroll to Monday of the week containing selDate
     const _selD = new Date(selDate+'T12:00:00');
-    const _dow = _selD.getDay(); // 0=Sun,1=Mon,...6=Sat
-    const _daysToMon = _dow===0 ? -6 : 1-_dow; // shift back to Monday
+    const _dow = _selD.getDay();
+    const _daysToMon = _dow===0 ? -6 : 1-_dow;
     const _monD = new Date(_selD); _monD.setDate(_selD.getDate()+_daysToMon);
     calScrollToDate(dkey(_monD), false);
     const vsc=document.getElementById('cal-wvscroll');if(vsc)vsc.scrollTop=Math.floor((9*60+30)/15)*calSlotH;
-    // Update month label on horizontal scroll
+    // Clip the wrap to exactly 7 days wide (gutter + 7 columns)
+    const _wrap=document.getElementById('cal-week-wrap');
+    if(_wrap) _wrap.style.maxWidth=(58+7*CAL_DAY_W)+'px';
     const sc2=document.getElementById('cal-wscroll');
     if(sc2){
       sc2.addEventListener('scroll',()=>calUpdateSelFromScroll(),{passive:true});
@@ -5432,7 +5434,7 @@ function workRenderSidebar(){
       const done=att.filter(c=>c.status==='done').length;
       const total=(s.subs||{})[s.monthGroup]||0;
       const mgShort=workMonthLabel(s.monthGroup).slice(0,3).toUpperCase();
-      return`<div class="work-student${s.archived?' ws-archived':''}" oncontextmenu="event.preventDefault();workEditStudentModal(${s.id})"
+      return`<div class="work-student${s.archived?' ws-archived':''}" oncontextmenu="event.preventDefault();workStudentRightClick(event,${s.id})"
         onclick="workOpenStudentPage(${s.id})"
         draggable="true" ondragstart="workDragStart(event,${s.id})"
         style="border-left:3px solid ${s.color||'#4285f4'}">
@@ -5523,7 +5525,7 @@ function workRenderAttendance(){
       const hasNote=(cell)=>!!(lessonNotes[s.id]&&lessonNotes[s.id][cell.num]);
 
       html+=`<div class="wa-student-row" draggable="true" ondragstart="workDragStart(event,${s.id})" style="border-left:3px solid ${s.color||'#4285f4'}20">
-        <div class="wa-name-col" onclick="workOpenStudentPage(${s.id})" oncontextmenu="event.preventDefault();event.stopPropagation();workEditStudentModal(${s.id})" title="Click → open page · Right-click → edit">
+        <div class="wa-name-col" onclick="workOpenStudentPage(${s.id})" oncontextmenu="event.preventDefault();event.stopPropagation();workStudentRightClick(event,${s.id})" title="Click → open · Right-click → menu">
           <div class="wa-color-dot" style="background:${s.color||'#4285f4'}"></div>
           <div style="flex:1;min-width:0">
             <div class="wa-row-name">${esc(s.name)}</div>
@@ -5822,7 +5824,7 @@ function workRenderHomework(){
 
       html+=`<div class="wa-student-row" style="border-left:3px solid ${s.color||'#4285f4'}20">
         <div class="wa-name-col" onclick="workOpenStudentPage(${s.id})"
-          oncontextmenu="event.preventDefault();workEditStudentModal(${s.id})"
+          oncontextmenu="event.preventDefault();workStudentRightClick(event,${s.id})"
           title="Click → student page · Right-click → edit">
           <div class="wa-color-dot" style="background:${s.color||'#4285f4'}"></div>
           <div style="flex:1;min-width:0">
@@ -6334,7 +6336,7 @@ function workRenderArchive(){
       const fullAtt = workData.attendance[s.id]||[];
 
       html += `<div class="wa-student-row" style="opacity:.8;border-left:3px solid ${s.color||'#4285f4'}30">
-        <div class="wa-name-col" onclick="workOpenStudentPage(${s.id})" oncontextmenu="event.preventDefault();event.stopPropagation();workEditStudentModal(${s.id})" title="Click → open · Right-click → edit" style="cursor:pointer">
+        <div class="wa-name-col" onclick="workOpenStudentPage(${s.id})" oncontextmenu="event.preventDefault();event.stopPropagation();workStudentRightClick(event,${s.id})" title="Click → open · Right-click → menu" style="cursor:pointer">
           <div class="wa-color-dot" style="background:${s.color||'#4285f4'}cc"></div>
           <div style="flex:1;min-width:0">
             <div class="wa-row-name" style="color:#c8c4bc">${esc(s.name)}</div>
@@ -6785,6 +6787,30 @@ function workCreateNoteForStudent(name){
 // ── AUTO-FILL PLANNED DATES FROM SCHEDULE ──
 
 // ── STUDENT ROW MENU (⋯ button) ──
+function workStudentRightClick(e, sid){
+  e.stopPropagation();
+  document.getElementById('student-row-menu')?.remove();
+  const s=workData.students.find(x=>x.id===sid);if(!s)return;
+  const menu=document.createElement('div');
+  menu.id='student-row-menu';
+  menu.className='sg-ctx-menu';
+  menu.innerHTML=`
+    <div class="sg-ctx-item" onclick="workEditStudentModal(${sid})">✏ Edit student</div>
+    <div class="sg-ctx-item" onclick="workOpenStudentPage(${sid})">👤 Open page</div>
+    <div class="sg-ctx-sep"></div>
+    <div class="sg-ctx-item" onclick="_workRefillAndSync(${sid})">🔄 Re-fill dates + sync calendar</div>
+    <div class="sg-ctx-item" onclick="_workEraseAllDates(${sid})">🗑 Erase all planned dates</div>
+    <div class="sg-ctx-sep"></div>
+    <div class="sg-ctx-item danger" onclick="workArchiveStudent(${sid})">${s.archived?'↑ Unarchive':'🗄 Archive'}</div>`;
+  let x=e.clientX, y=e.clientY+2;
+  if(x+220>window.innerWidth) x=window.innerWidth-225;
+  if(y+220>window.innerHeight) y=e.clientY-220;
+  menu.style.cssText=`left:${Math.max(4,x)}px;top:${Math.max(4,y)}px`;
+  document.body.appendChild(menu);
+  const close=ev=>{ if(!menu.contains(ev.target)){menu.remove();document.removeEventListener('mousedown',close);} };
+  setTimeout(()=>document.addEventListener('mousedown',close),0);
+}
+
 function workStudentMenu(e, sid){
   e.stopPropagation();
   document.getElementById('student-row-menu')?.remove();
