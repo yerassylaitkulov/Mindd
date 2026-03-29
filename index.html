@@ -1281,6 +1281,7 @@ let expanded={}, draftTimer=null, cardTimers={}, pendingId=null;
 let activeTopic='', curView='notes';
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let selDate=dkey(new Date());
+let _calFirstOpen=false;
 let flashDeck=[], flashIdx=0, flashFlipped=false, flashScore={c:0,w:0};
 let autosaveDelay=900;
 let savedSel=null, savedCsel=null, activeCId=null;
@@ -1320,7 +1321,18 @@ function show(v){
   if(v==='notes')    {renderTopics();renderNotes()}
   if(v==='kanban')   renderKanban();
   if(v==='flash')    initFlash();
-  if(v==='calendar') renderCal();
+  if(v==='calendar'){
+    if(!_calFirstOpen){
+      _calFirstOpen=true;
+      // On first open: set selDate to Monday of current week
+      const _now=new Date();
+      const _dow=_now.getDay();
+      const _daysToMon=_dow===0?-6:1-_dow;
+      _now.setDate(_now.getDate()+_daysToMon);
+      selDate=dkey(_now);
+    }
+    renderCal();
+  }
   if(v==='graph')    renderGraph();
   if(v==='work')     workInit();
   if(v==='finance')  financeInit();
@@ -6470,8 +6482,6 @@ function workOpenStudentPage(id){
   const hw   = workData.homework[id]   || [];
   const mg   = s.monthGroup || workCurrentMonth;
   const DOWS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-
-  // Attendance cells for month group
   const mgAtt  = att.filter(c=>c.month===mg);
   const done   = mgAtt.filter(c=>c.status==='done').length;
   const missed = mgAtt.filter(c=>c.status==='missed').length;
@@ -6479,310 +6489,243 @@ function workOpenStudentPage(id){
   const pct    = total>0?Math.round(done/total*100):0;
   const price  = (s.price||{})[mg]||0;
   const aim    = s.aim||'';
-  const lessonNotes = workData.lessonNotes||{};
+  const ln     = workData.lessonNotes?.[id] || {};
 
-  // HW cells — same visual style as attendance
+  // ── Aggregate lesson notes across all lessons ──
+  const CATS = [
+    {key:'vocabulary', icon:'📖', label:'Vocabulary',   sep:', '},
+    {key:'grammar',    icon:'📐', label:'Grammar',      sep:', '},
+    {key:'speaking',   icon:'🗣', label:'Speaking',     sep:'\n• '},
+    {key:'listening',  icon:'👂', label:'Listening',    sep:'\n• '},
+    {key:'homework',   icon:'✏️', label:'Homework',     sep:'\n• '},
+    {key:'general',    icon:'💡', label:'General',      sep:'\n• '},
+  ];
+
+  // Collect all lesson note entries sorted by lesson num
+  const lessonNums = Object.keys(ln).map(Number).sort((a,b)=>a-b);
+  const aggregated = {};
+  CATS.forEach(cat => {
+    const parts = lessonNums
+      .map(num => (ln[num]?.[cat.key]||'').trim())
+      .filter(Boolean);
+    aggregated[cat.key] = parts.join(cat.sep);
+  });
+
+  // Lesson titles as a simple list
+  const lessonTitles = lessonNums
+    .map(num => ln[num]?.title ? `${num}. ${ln[num].title}` : null)
+    .filter(Boolean);
+
+  // HW cells
   const hwByLesson = {};
   hw.filter(h=>h.month===mg).forEach(h=>{ hwByLesson[h.num]=h; });
   const hwCellsHTML = mgAtt.map(cell=>{
-    const h = hwByLesson[cell.num];
-    const hwStatus = h?.hw||'none';
-    const cls = hwStatus==='checked'?'wc-done':hwStatus==='sent'?'wc-planned':'wc-empty';
-    const color = hwStatus==='checked'?'#34a853':hwStatus==='sent'?'#06b6d4':'';
+    const h=hwByLesson[cell.num];
+    const hwStatus=h?.hw||'none';
+    const cls=hwStatus==='checked'?'wc-done':hwStatus==='sent'?'wc-planned':'wc-empty';
+    const color=hwStatus==='checked'?'#34a853':hwStatus==='sent'?'#06b6d4':'';
     return`<div class="wa-cell ${cls}"
       onclick="document.getElementById('student-page').remove();show('work');workShowSection('homework')"
-      title="Lesson ${cell.num}${cell.date?' · '+cell.date:''} — HW: ${hwStatus}"
+      title="Lesson ${cell.num}${cell.date?' · '+cell.date:''}"
       style="${color?'border-color:'+color+';background:'+color+'18':''}">
       <span class="wc-date">${esc(cell.date||' ')}</span>
       <span class="wc-num">${cell.num}</span>
     </div>`;
-  }).join('') || '<span style="color:var(--subtle);font-size:12px;font-style:italic">No lessons yet</span>';
-
-  // Auto-compute planned dates for empty cells from schedule
-  function spGetPlannedDate(cellIdx, existingDates){
-    if(!s.schedule||!s.schedule.length) return '';
-    // Count empty cells before this one to know which slot to use
-    const emptysBefore = mgAtt.slice(0,cellIdx).filter(c=>!c.date&&c.status==='empty').length;
-    // Build future schedule dates
-    const upcoming=[];
-    const today=new Date(); today.setHours(0,0,0,0);
-    s.schedule.forEach(slot=>{
-      const d=new Date(today);
-      const dayDiff=(slot.dow-d.getDay()+7)%7;
-      d.setDate(d.getDate()+(dayDiff||7));
-      for(let w=0;w<20;w++){
-        const dk=d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');
-        if(!existingDates.has(dk)) upcoming.push(dk);
-        d.setDate(d.getDate()+7);
-      }
-    });
-    upcoming.sort();
-    return upcoming[emptysBefore]||'';
-  }
-  const existingDates=new Set(mgAtt.filter(c=>c.date).map(c=>c.date));
+  }).join('') || '<span style="color:var(--subtle);font-size:12px;font-style:italic">No lessons</span>';
 
   // Attendance cells
+  const existingDates=new Set(mgAtt.filter(c=>c.date).map(c=>c.date));
   const cellsHTML = mgAtt.map((cell,i)=>{
-    const cls = cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
-    const hasNote = !!(lessonNotes[id]&&lessonNotes[id][cell.num]);
-    const fullIdx = att.indexOf(cell);
-    const ln = lessonNotes[id]?.[cell.num];
-    const title = ln?.title||'';
-    // For empty cells, show planned date from schedule (dimmer)
-    const plannedDate = (!cell.date && cell.status==='empty') ? spGetPlannedDate(i, existingDates) : '';
-    const displayDate = cell.date || plannedDate;
-    const isPlanned = !cell.date && !!plannedDate;
+    const cls=cell.status==='done'?'wc-done':cell.status==='missed'?'wc-missed':'wc-empty';
+    const hasNote=!!(ln[cell.num]);
+    const fullIdx=att.indexOf(cell);
+    const lnTitle=ln[cell.num]?.title||'';
+    const isPlanned=cell.status==='empty'&&!cell.date&&!!cell._plannedFull;
+    const displayDate=cell.date||_fmt_ddmm(cell._plannedFull)||'';
     return`<div class="wa-cell ${cls}${hasNote?' wc-has-note':''}"
       onclick="workOpenLessonPage(${id},${fullIdx})"
-      title="Lesson ${cell.num}${displayDate?' · '+displayDate:''}${isPlanned?' (planned)':''}${title?' — '+title:''}">
-      <span class="wc-date" style="${isPlanned?'opacity:.45':''}${isPlanned&&cls==='wc-empty'?';color:#8ab4f8':''}">${esc(displayDate||' ')}</span>
+      title="Lesson ${cell.num}${displayDate?' · '+displayDate:''}${isPlanned?' (planned)':''}${lnTitle?' — '+lnTitle:''}">
+      <span class="wc-date" style="${isPlanned?'opacity:.65;color:#93c5fd':''}">${esc(displayDate||' ')}</span>
       <span class="wc-num">${cell.num}</span>
     </div>`;
   }).join('') || '<span style="color:var(--subtle);font-size:12px;font-style:italic;padding:8px">Click "Set lessons" to add subscription</span>';
 
-  // Schedule HTML — with inline delete/edit per slot
-  const DOW_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const _buildSchedSlot=(slot,i)=>{
-    const[h24,m]=(slot.time||'09:00').split(':').map(Number);
-    const ap=h24<12?'AM':'PM'; const h12=h24===0?12:h24>12?h24-12:h24;
-    return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light)">
-      <select onchange="spUpdateSchedule(${id},${i},'dow',this.value)"
-        style="padding:2px 6px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--ink);font-size:12px;outline:none;cursor:pointer">
-        ${DOW_NAMES.map((d,di)=>`<option value="${di}" ${slot.dow==di?'selected':''}>${d}</option>`).join('')}
-      </select>
-      <div style="display:flex;gap:2px;align-items:center">
-        <select onchange="spUpdateScheduleTime(${id},${i},this.parentElement)"
-          style="padding:2px 4px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:#8ab4f8;font-size:12px;outline:none;cursor:pointer;font-family:'Geist Mono',monospace">
-          ${[12,1,2,3,4,5,6,7,8,9,10,11].map(h=>`<option value="${h}" ${h===h12?'selected':''}>${h}</option>`).join('')}
-        </select>:<select onchange="spUpdateScheduleTime(${id},${i},this.parentElement)"
-          style="padding:2px 4px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:#8ab4f8;font-size:12px;outline:none;cursor:pointer;font-family:'Geist Mono',monospace;min-width:38px">
-          ${['00','15','30','45'].map(mv=>`<option value="${mv}" ${parseInt(mv)===m?'selected':''}>${mv}</option>`).join('')}
-        </select>
-        <select onchange="spUpdateScheduleTime(${id},${i},this.parentElement)"
-          style="padding:2px 4px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:#8ab4f8;font-size:12px;outline:none;cursor:pointer">
-          <option value="AM" ${ap==='AM'?'selected':''}>AM</option><option value="PM" ${ap==='PM'?'selected':''}>PM</option>
-        </select>
-      </div>
-      <input type="number" value="${slot.duration||60}" min="15" max="180" step="15"
-        onchange="spUpdateSchedule(${id},${i},'duration',this.value)"
-        style="width:44px;padding:2px 4px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:11px;outline:none;text-align:center"/>
-      <span style="font-size:10px;color:var(--subtle)">min</span>
-      <button onclick="spRemoveScheduleSlot(${id},${i})" style="margin-left:auto;background:none;border:none;color:var(--subtle);cursor:pointer;font-size:13px;padding:0 4px">✕</button>
-    </div>`;
-  };
-  const schedHTMLInline = (s.schedule||[]).length
-    ? (s.schedule||[]).map((slot,i)=>_buildSchedSlot(slot,i)).join('')
-    : '<span style="color:var(--subtle);font-size:12px;font-style:italic">No schedule yet — click + Add</span>';
-  const schedHTML = schedHTMLInline; // keep for compatibility
+  // Schedule
+  const schedHTML = (s.schedule||[]).length
+    ? (s.schedule||[]).map(slot=>{
+        const[h24,m]=(slot.time||'09:00').split(':').map(Number);
+        const ap=h24<12?'AM':'PM'; const h12=h24===0?12:h24>12?h24-12:h24;
+        return`<div style="display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:1px solid var(--border-light)">
+          <span style="font-size:12px;font-weight:500;color:var(--ink);min-width:36px">${DOWS[slot.dow]}</span>
+          <span style="font-size:12px;color:#8ab4f8;font-family:'Geist Mono',monospace">${h12}:${String(m).padStart(2,'0')} ${ap}</span>
+          <span style="font-size:11px;color:var(--muted)">${slot.duration||60}min</span>
+        </div>`;
+      }).join('')
+    : '<span style="color:var(--subtle);font-size:12px;font-style:italic">No schedule — right-click to edit</span>';
 
-  // Calendar events
-  const calEvents=[];
-  Object.entries(calEvts||{}).forEach(([dk,evts])=>{
-    (evts||[]).forEach(evt=>{
-      if(evt.title&&evt.title.toLowerCase().includes(s.name.toLowerCase())) calEvents.push({dk,evt});
-    });
-  });
-  calEvents.sort((a,b)=>a.dk.localeCompare(b.dk));
-  const calHTML = calEvents.slice(-6).map(({dk,evt})=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border-light)">
-      <span style="font-size:10px;font-family:'Geist Mono',monospace;color:var(--subtle);min-width:72px">${dk}</span>
-      <span style="font-size:12px;color:var(--ink);flex:1">${esc(evt.title)}</span>
-      ${evt.start?`<span style="font-size:11px;color:#8ab4f8;font-family:'Geist Mono',monospace">${fmtTime(evt.start)}</span>`:''}
-    </div>`).join('') || '<span style="color:var(--subtle);font-size:12px;font-style:italic">No calendar events</span>';
-
-  // Notes
+  // Notes panel
   const studentNotes=(notes||[]).filter(n=>(n.title+' '+n.body).toLowerCase().includes(s.name.toLowerCase()));
   const notesHTML = studentNotes.length
     ? studentNotes.map(n=>`<div onclick="document.getElementById('student-page').remove();editNoteFocus(${n.id})"
-        style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:5px;transition:border-color .1s"
+        style="padding:7px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:5px"
         onmouseover="this.style.borderColor='#06b6d4'" onmouseout="this.style.borderColor='var(--border)'">
         <div style="font-size:13px;font-weight:500;color:var(--ink)">${esc(n.title||'(untitled)')}</div>
         <div style="font-size:10px;color:var(--subtle);margin-top:2px">${n.topic||'no topic'} · ${n.date||''}</div>
       </div>`).join('')
-    : '<span style="color:var(--subtle);font-size:12px;font-style:italic">No notes found</span>';
+    : '<span style="color:var(--subtle);font-size:12px;font-style:italic">No notes</span>';
 
   // Aim stickers
-  const AIM_STICKERS = ['🎯','⭐','🏆','🚀','💪','📈','🎓','🌟','✨','🔥','💡','🎵'];
-  const aimStickerHTML = AIM_STICKERS.map(st=>
+  const AIM_STICKERS=['🎯','⭐','🏆','🚀','💪','📈','🎓','🌟','✨','🔥','💡','🎵'];
+  const aimStickerHTML=AIM_STICKERS.map(st=>
     `<span onclick="spToggleAimSticker(${id},'${st}')"
-      style="font-size:18px;cursor:pointer;opacity:${(s.aimStickers||[]).includes(st)?1:.25};transition:opacity .1s;user-select:none"
-      title="${st}">${st}</span>`
+      style="font-size:18px;cursor:pointer;opacity:${(s.aimStickers||[]).includes(st)?1:.3};transition:opacity .1s;user-select:none">${st}</span>`
   ).join('');
 
-  const page = document.createElement('div');
-  page.id = 'student-page';
-  page.style.cssText = 'position:fixed;inset:0;z-index:4000;background:#0e0d0b;overflow-y:auto;animation:fi .15s ease';
-
-  // Helper: editable card builder
-  const card = (icon, label, contentHTML, onClickFn='', extraBtn='') => `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;${onClickFn?'cursor:pointer;':''}"
-      ${onClickFn?`onclick="${onClickFn}"`:''}>
-      <div style="padding:9px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:7px">
-        <span style="font-size:14px">${icon}</span>
+  // Card builder
+  const card=(icon,label,body,hdrExtra='',clickFn='')=>`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;${clickFn?'cursor:pointer':''}">
+      <div style="padding:8px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:7px;${clickFn?'cursor:pointer':''}" ${clickFn?`onclick="${clickFn}"`:''}
+        onmouseover="${clickFn?`this.style.background='#141210'`:''}" onmouseout="${clickFn?`this.style.background='#0d0d0b'`:''}">
+        <span style="font-size:13px">${icon}</span>
         <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">${label}</span>
-        ${extraBtn}
+        ${hdrExtra}
       </div>
-      <div style="padding:12px 14px">${contentHTML}</div>
+      <div style="padding:12px 14px">${body}</div>
     </div>`;
 
-  page.innerHTML = `
-    <div style="max-width:900px;margin:0 auto;padding:24px 20px 60px">
+  const page=document.createElement('div');
+  page.id='student-page';
+  page.style.cssText='position:fixed;inset:0;z-index:4000;background:#0e0d0b;overflow-y:auto;animation:fi .15s ease';
+
+  page.innerHTML=`
+    <div style="max-width:960px;margin:0 auto;padding:20px 20px 60px">
 
       <!-- Header -->
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
         <button onclick="document.getElementById('student-page').remove()"
           style="padding:5px 12px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Geist',sans-serif;font-size:13px">←</button>
-        <div style="width:14px;height:14px;border-radius:50%;background:${s.color||'#4285f4'}"></div>
+        <div style="width:13px;height:13px;border-radius:50%;background:${s.color||'#4285f4'}"></div>
         <h1 style="font-size:22px;font-weight:700;color:var(--ink);margin:0;font-family:'Instrument Serif',serif;font-style:italic">${esc(s.name)}</h1>
         ${s.archived?'<span style="padding:2px 9px;background:var(--surface2);border-radius:99px;font-size:11px;color:var(--muted)">archived</span>':''}
         <div style="margin-left:auto;display:flex;gap:8px">
-          <button onclick="workSetSubOnPage(${id})"
-            style="padding:6px 14px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;color:var(--muted)">Set lessons</button>
-          <button onclick="workEditStudentModal(${id})"
-            style="padding:6px 16px;background:#06b6d4;color:#0a0a08;border:none;border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;font-weight:700">✏ Edit</button>
+          <button onclick="workSetSubOnPage(${id})" style="padding:5px 12px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:12px;color:var(--muted)">Set lessons</button>
+          <button oncontextmenu="event.preventDefault();workEditStudentModal(${id})" onclick="workEditStudentModal(${id})"
+            style="padding:5px 14px;background:#06b6d4;color:#0a0a08;border:none;border-radius:6px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;font-weight:700">✏ Edit</button>
         </div>
       </div>
 
-      <!-- KPI row: clickable cards -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
-        <!-- Lessons -->
-        <div onclick="workSetSubOnPage(${id})" title="Click to edit lesson count"
-          style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:border-color .15s"
+      <!-- Top 3-col layout: technical + aim -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+        <!-- Lessons KPI -->
+        <div onclick="workSetSubOnPage(${id})" title="Click to set lesson count"
+          style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer"
           onmouseover="this.style.borderColor='#06b6d4'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Lessons</div>
-          <div style="font-size:22px;font-weight:700;color:${done>=total&&total>0?'#34a853':'var(--ink)'};font-family:'Geist Mono',monospace">${done}/${total||'—'}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">${pct}% done · ${missed} missed</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:4px">Lessons</div>
+          <div style="font-size:20px;font-weight:700;color:${done>=total&&total>0?'#34a853':'var(--ink)'};font-family:'Geist Mono',monospace">${done}/${total||'—'}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${pct}% done · ${missed} missed</div>
         </div>
-        <!-- Price — inline editable -->
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;transition:border-color .15s"
+        <!-- Price KPI -->
+        <div onclick="spEditPrice(${id})" title="Click to edit price"
+          style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer"
           onmouseover="this.style.borderColor='#34d399'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Price ₸ <span style="opacity:.5;font-size:9px">(click to edit)</span></div>
-          <input id="sp-price-inp" type="number" value="${price||''}" placeholder="0"
-            onchange="spSavePrice(${id},this.value)"
-            style="font-size:22px;font-weight:700;color:#34d399;font-family:'Geist Mono',monospace;background:none;border:none;outline:none;width:100%;padding:0"
-            title="Click to edit price"/>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">${workMonthLabel(mg)}</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:4px">Price</div>
+          <div id="sp-price-val" style="font-size:20px;font-weight:700;color:#34d399;font-family:'Geist Mono',monospace">${price?price.toLocaleString('ru-KZ')+' ₸':'—'}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${workMonthLabel(mg)}</div>
         </div>
         <!-- Month -->
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:5px">Month</div>
-          <div style="font-size:16px;font-weight:700;color:var(--ink);font-family:'Geist',sans-serif;margin-top:4px">${workMonthLabel(mg).split(' ')[0]}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">${mg}</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:4px">Month</div>
+          <div style="font-size:16px;font-weight:700;color:var(--ink);font-family:'Geist',sans-serif">${workMonthLabel(mg).split(' ')[0]}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${mg}</div>
         </div>
       </div>
 
-      <!-- Aim + stickers — editable textarea -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">
-        <div style="padding:9px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:8px">
-          <span style="font-size:14px">🎯</span>
+      <!-- Aim -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden">
+        <div style="padding:8px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px">🎯</span>
           <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">Aim</span>
-          <div style="margin-left:auto;display:flex;gap:6px;font-size:18px">${aimStickerHTML}</div>
+          <div style="margin-left:auto;display:flex;gap:5px">${aimStickerHTML}</div>
         </div>
-        <textarea id="sp-aim-input" placeholder="What's this student aiming for? Goals, targets, motivation…"
+        <textarea id="sp-aim-input" placeholder="Student's goals, targets, motivation…"
           oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';spSaveAim(${id},this.value)"
-          style="width:100%;min-height:56px;padding:12px 14px;background:none;border:none;outline:none;color:var(--ink);font-size:13px;font-family:'Geist',sans-serif;resize:none;line-height:1.6;box-sizing:border-box"
+          style="width:100%;min-height:48px;padding:10px 14px;background:none;border:none;outline:none;color:var(--ink);font-size:13px;font-family:'Geist',sans-serif;resize:none;line-height:1.6;box-sizing:border-box"
         >${esc(aim)}</textarea>
       </div>
 
-      <!-- 2-col: schedule + calendar -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
-        <!-- Schedule card — inline editing -->
+      <!-- Schedule + Attendance side by side -->
+      <div style="display:grid;grid-template-columns:180px 1fr;gap:12px;margin-bottom:14px">
+        ${card('📅','Schedule',schedHTML,'','')}
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-          <div style="padding:9px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:7px">
-            <span style="font-size:14px">📅</span>
-            <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">Schedule</span>
-            <button onclick="spAddScheduleSlot(${id})" style="margin-left:auto;padding:2px 9px;background:none;border:1px dashed var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px;font-family:'Geist',sans-serif">+ Add</button>
-            <button onclick="workSyncScheduleToCalendar(${id})" style="padding:2px 9px;background:none;border:1px solid #1a2e4a;border-radius:4px;color:#8ab4f8;cursor:pointer;font-size:11px;font-family:'Geist',sans-serif">→ Cal</button>
+          <div onclick="document.getElementById('student-page').remove();show('work');workShowSection('attendance')"
+            style="padding:8px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:8px;cursor:pointer"
+            onmouseover="this.style.background='#111'" onmouseout="this.style.background='#0d0d0b'">
+            <span style="font-size:13px">📊</span>
+            <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">Attendance</span>
+            ${total>0?`<div style="flex:1;max-width:100px;height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-left:6px"><div style="height:100%;width:${pct}%;background:${done>=total?'#34a853':'#4285f4'};border-radius:2px"></div></div>
+            <span style="font-size:10px;color:${done>=total?'#34a853':'#8ab4f8'};font-family:'Geist Mono',monospace">${done}/${total}</span>`:''}
+            <span style="font-size:10px;color:var(--subtle);margin-left:4px">↗</span>
           </div>
-          <div id="sp-sched-body" style="padding:10px 14px">${schedHTMLInline}</div>
+          <div style="padding:8px 10px"><div class="wa-cells">${cellsHTML}</div></div>
         </div>
-        ${card('🗓','Calendar',calHTML)}
       </div>
 
-      <!-- Attendance — click card header → attendance section -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">
-        <div onclick="document.getElementById('student-page').remove();show('work');workShowSection('attendance')"
-          style="padding:9px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:8px;cursor:pointer"
-          onmouseover="this.style.background='#111'" onmouseout="this.style.background='#0d0d0b'">
-          <span style="font-size:14px">📊</span>
-          <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">Attendance</span>
-          ${total>0?`<div style="flex:1;max-width:120px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-left:8px"><div style="height:100%;width:${pct}%;background:${done>=total?'#34a853':'#4285f4'};border-radius:2px"></div></div>
-          <span style="font-size:11px;color:${done>=total?'#34a853':'#8ab4f8'};font-family:'Geist Mono',monospace">${done}/${total}</span>`:''}
-          <span style="font-size:10px;color:var(--subtle);margin-left:4px">↗ open section</span>
-        </div>
-        <div style="padding:10px 12px"><div class="wa-cells">${cellsHTML}</div></div>
-      </div>
-
-      <!-- Homework attendance-style cells -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">
+      <!-- Homework row -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden">
         <div onclick="document.getElementById('student-page').remove();show('work');workShowSection('homework')"
-          style="padding:9px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:8px;cursor:pointer"
+          style="padding:8px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:8px;cursor:pointer"
           onmouseover="this.style.background='#111'" onmouseout="this.style.background='#0d0d0b'">
-          <span style="font-size:14px">📝</span>
+          <span style="font-size:13px">📝</span>
           <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">Homework</span>
-          <span style="font-size:10px;color:var(--subtle);margin-left:auto">↗ open section</span>
+          <span style="font-size:10px;color:var(--subtle);margin-left:auto">↗ homework section</span>
         </div>
-        <div style="padding:6px 12px">
-          <div style="display:flex;gap:10px;font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-bottom:6px;padding:0 2px">
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#0c2216;border:1px solid #1a4a28;display:inline-block"></span>Checked</span>
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;border:1px solid #06b6d4;background:#06b6d418;display:inline-block"></span>Sent</span>
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;border:1px dashed #252320;background:#141210;display:inline-block"></span>None</span>
+        <div style="padding:6px 10px">
+          <div style="display:flex;gap:8px;font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-bottom:5px;padding:0 2px">
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;border-radius:2px;background:#0c2216;border:1px solid #1a4a28;display:inline-block"></span>Checked</span>
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;border-radius:2px;border:1px solid #06b6d4;background:#06b6d418;display:inline-block"></span>Sent</span>
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:9px;height:9px;border-radius:2px;border:1px dashed #3a3630;background:#141210;display:inline-block"></span>None</span>
           </div>
           <div class="wa-cells">${hwCellsHTML}</div>
         </div>
       </div>
 
-      <!-- Notes -->
-      ${card('📝','Notes',
-        notesHTML + `<button onclick="event.stopPropagation();workCreateNoteForStudent('${esc(s.name.replace(/'/g,"\\'"))}')" style="margin-top:10px;padding:5px 12px;background:none;border:1px dashed var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:12px;font-family:'Geist',sans-serif;display:block;width:100%">+ New note</button>`
-      )}
+      <!-- ══ LESSON NOTES — aggregated ══ -->
+      ${lessonNums.length ? `
+      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace;margin-bottom:10px;margin-top:6px">
+        Lesson notes · ${lessonNums.length} lesson${lessonNums.length!==1?'s':''} recorded
+        ${lessonTitles.length?`<span style="font-size:10px;font-weight:400;color:var(--subtle);margin-left:8px">${lessonTitles.slice(0,5).join(' · ')}${lessonTitles.length>5?' …':''}</span>`:''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        ${CATS.filter(cat=>aggregated[cat.key]).map(cat=>`
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <div style="padding:8px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:7px">
+              <span style="font-size:13px">${cat.icon}</span>
+              <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">${cat.label}</span>
+            </div>
+            <div style="padding:12px 14px;font-size:13px;color:var(--ink);line-height:1.7;white-space:pre-wrap;max-height:200px;overflow-y:auto">${esc(aggregated[cat.key])}</div>
+          </div>`).join('')}
+      </div>` : `
+      <div style="padding:16px;text-align:center;color:var(--subtle);font-size:13px;font-style:italic">
+        No lesson notes yet — click any attendance cell to add notes for that lesson
+      </div>`}
+
+      <!-- Notes from Notes tab -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        <div style="padding:8px 14px;border-bottom:1px solid var(--border);background:#0d0d0b;display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px">🗒</span>
+          <span style="font-size:11px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace">Notes</span>
+          <button onclick="event.stopPropagation();workCreateNoteForStudent('${esc(s.name.replace(/'/g,"\\'"))}')"
+            style="margin-left:auto;padding:2px 8px;background:none;border:1px dashed var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px">+ New</button>
+        </div>
+        <div style="padding:10px 12px">${notesHTML}</div>
+      </div>
     </div>`;
 
   document.body.appendChild(page);
 
-  // Setup aim textarea auto-height
-  const aimTA = page.querySelector('#sp-aim-input');
+  const aimTA=page.querySelector('#sp-aim-input');
   if(aimTA){ aimTA.style.height='auto'; aimTA.style.height=aimTA.scrollHeight+'px'; }
-
   page.addEventListener('keydown',e=>{ if(e.key==='Escape') page.remove(); });
-}
-
-// ── STUDENT PAGE HELPERS ──
-function spEditPrice(id){
-  const inp=document.getElementById('sp-price-inp');
-  if(inp) inp.focus();
-}
-
-function spSavePrice(id, val){
-  const s=workData.students.find(x=>x.id===id);if(!s)return;
-  const mg=s.monthGroup||workCurrentMonth;
-  const n=parseInt(String(val).replace(/[, ]/g,''));
-  if(!isNaN(n)&&n>=0){
-    if(!s.price)s.price={};
-    s.price[mg]=n;
-    workSave();
-  }
-}
-
-function spSaveAim(id, val){
-  const s=workData.students.find(x=>x.id===id);if(!s)return;
-  s.aim=val;
-  workSave();
-}
-
-function spToggleAimSticker(id, sticker){
-  const s=workData.students.find(x=>x.id===id);if(!s)return;
-  if(!s.aimStickers)s.aimStickers=[];
-  const idx=s.aimStickers.indexOf(sticker);
-  if(idx>-1) s.aimStickers.splice(idx,1);
-  else s.aimStickers.push(sticker);
-  workSave();
-  // Refresh sticker opacities
-  const page=document.getElementById('student-page');
-  if(page) page.querySelectorAll('[onclick^="spToggleAimSticker"]').forEach(el=>{
-    const st=el.title;
-    el.style.opacity=s.aimStickers.includes(st)?1:.25;
-  });
 }
 function workSetSubOnPage(id){
   const s = workData.students.find(x=>x.id===id);
