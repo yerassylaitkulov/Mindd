@@ -165,6 +165,23 @@ body{font-family:'Geist',system-ui,sans-serif;background:var(--bg);color:var(--i
 .card{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,box-shadow .15s;position:relative;animation:up .18s ease both}
 .card:hover{border-color:var(--border);box-shadow:0 2px 12px rgba(0,0,0,.2)}
 .card.quick{border-left:3px solid var(--gold-d)}
+/* Note view modes */
+.note-month-hd{display:flex;align-items:center;gap:8px;padding:6px 0 5px;border-bottom:1px solid var(--border);margin-bottom:8px;margin-top:16px}
+.note-month-hd:first-child{margin-top:0}
+.note-month-label{font-size:12px;font-weight:700;color:#8ab4f8;font-family:'Geist Mono',monospace;letter-spacing:.06em;text-transform:uppercase}
+.note-month-count{font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace}
+/* List view row */
+.note-list-row{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:5px;cursor:pointer;transition:background .1s;border-bottom:1px solid var(--border-light)}
+.note-list-row:hover{background:var(--surface)}
+.note-list-title{font-size:13px;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Instrument Serif',serif;font-style:italic}
+.note-list-meta{font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;white-space:nowrap}
+.note-list-topic{font-size:10px;padding:1px 6px;border-radius:99px;background:var(--gold-bg);color:var(--gold-d);font-family:'Geist Mono',monospace;white-space:nowrap}
+/* Mini view */
+.note-mini-row{display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:4px;cursor:pointer;transition:background .1s}
+.note-mini-row:hover{background:var(--surface)}
+.note-mini-dot{width:5px;height:5px;border-radius:50%;background:var(--gold-d);flex-shrink:0}
+.note-mini-title{font-size:12px;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-mini-date{font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace}
 @keyframes up{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .card-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .card-title{font-family:'Instrument Serif',serif;font-size:15px;font-style:italic;color:var(--ink);line-height:1.35;flex:1;outline:none;cursor:text;border-radius:3px}
@@ -808,7 +825,17 @@ canvas#gc{width:100%;height:100%;display:block}
         <div class="view-title">Notes</div>
         <input class="search-inp" id="note-search" placeholder="Search…" oninput="renderNotes()"/>
         <span class="vcount" id="note-count"></span>
-        <button class="btn pri" onclick="newNoteFocus()" style="margin-left:auto">+ New note</button>
+        <div style="display:flex;gap:4px;margin-left:auto;align-items:center">
+          <div style="display:flex;border:1px solid var(--border);border-radius:5px;overflow:hidden">
+            <button id="nv-cards" onclick="setNoteView('cards')" title="Card view"
+              style="padding:4px 9px;background:var(--surface2);border:none;color:var(--ink);cursor:pointer;font-size:12px;font-family:'Geist',sans-serif">⊞</button>
+            <button id="nv-list" onclick="setNoteView('list')" title="List view"
+              style="padding:4px 9px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;font-family:'Geist',sans-serif">≡</button>
+            <button id="nv-mini" onclick="setNoteView('mini')" title="Minimal view"
+              style="padding:4px 9px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;font-family:'Geist',sans-serif">·</button>
+          </div>
+          <button class="btn pri" onclick="newNoteFocus()">+ New</button>
+        </div>
       </div>
       <!-- hidden form used internally for draft/save machinery -->
       <input id="f-title" style="display:none"/>
@@ -1486,6 +1513,17 @@ function hl(html,q){
   const d=document.createElement('div');d.innerHTML=html;
   d.innerHTML=d.innerHTML.replace(re,'<mark class="hl">$1</mark>');return d.innerHTML;
 }
+let _noteView = 'list'; // 'cards' | 'list' | 'mini'
+
+function setNoteView(v){
+  _noteView=v;
+  ['cards','list','mini'].forEach(mode=>{
+    const btn=document.getElementById('nv-'+mode);
+    if(btn){ btn.style.background=mode===v?'var(--surface2)':'none'; btn.style.color=mode===v?'var(--ink)':'var(--muted)'; }
+  });
+  renderNotes();
+}
+
 function renderNotes(){
   const q=document.getElementById('note-search').value.toLowerCase().trim();
   const grid=document.getElementById('cards');
@@ -1501,24 +1539,80 @@ function renderNotes(){
     grid.innerHTML=`<div class="empty"><p>${notes.length?'Nothing found.':'Your mind is empty.'}</p><small>${notes.length?'Try a different search.':"Press + New note to start writing."}</small></div>`;
     return;
   }
-  grid.innerHTML=filtered.map(n=>{
-    const isExp=!!expanded[n.id];
-    const long=txt(n.body).length>280;
-    const bd=long&&!isExp?hl(txt(n.body).slice(0,280)+'…',q):hl(n.body||'',q);
-    const ti=q?hl(esc(n.title),q):esc(n.title);
-    return `<div class="card ${n.quick?'quick':''}" data-card-id="${n.id}"
-      onclick="editNoteFocus(${n.id})" style="cursor:pointer">
-      <div class="card-hd">
-        <div class="card-title">${ti}</div>
-        <button class="card-del" onclick="event.stopPropagation();delNote(${n.id})">✕</button>
-      </div>
-      ${n.topic?`<span class="card-topic">${esc(n.topic)}</span>`:''}
-      <div class="card-meta">${n.date}${n.quick?' · ⚡':''}</div>
-      ${n.body?`<div class="card-body ${clamp&&long&&!isExp?'clamp':''}">${bd}</div>`:''}
-      ${long?`<button class="more-btn" onclick="event.stopPropagation();toggleExp(${n.id})">${isExp?'show less ↑':'show more ↓'}</button>`:''}
-      ${n.tags.length?`<div class="card-tags">${n.tags.map(t=>`<span class="ctag">${esc(t)}</span>`).join('')}</div>`:''}
-    </div>`;
-  }).join('');
+
+  // Group by month (from n.dateKey YYYY-MM-DD → YYYY-MM, or n.date)
+  const getMonthKey=n=>{
+    if(n.dateKey) return n.dateKey.slice(0,7); // YYYY-MM
+    if(n.date){
+      // parse "29 Mar 2026" or similar
+      try{ const d=new Date(n.date); if(!isNaN(d)) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); } catch(_){}
+    }
+    return 'unknown';
+  };
+  const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthLabel=mk=>{ if(mk==='unknown')return'Unknown'; const[y,m]=mk.split('-'); return MONTH_NAMES[parseInt(m)-1]+' '+y; };
+
+  const groups={};
+  filtered.forEach(n=>{ const mk=getMonthKey(n); if(!groups[mk])groups[mk]=[]; groups[mk].push(n); });
+  const sortedMonths=Object.keys(groups).sort((a,b)=>b.localeCompare(a)); // newest first
+
+  const MONTH_COLORS=['#4285f4','#34a853','#f59e0b','#e85a5a','#8b5cf6','#06b6d4','#f472b6','#10b981'];
+  let mci=0;
+
+  let html='';
+  sortedMonths.forEach(mk=>{
+    const mc=MONTH_COLORS[mci++%MONTH_COLORS.length];
+    const mnotes=groups[mk];
+    html+=`<div class="note-month-hd"><span class="note-month-label" style="color:${mc}">${esc(monthLabel(mk))}</span><span class="note-month-count">${mnotes.length} note${mnotes.length!==1?'s':''}</span></div>`;
+
+    if(_noteView==='cards'){
+      html+=`<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px">`;
+      mnotes.forEach(n=>{
+        const isExp=!!expanded[n.id];
+        const long=txt(n.body).length>280;
+        const bd=long&&!isExp?hl(txt(n.body).slice(0,280)+'…',q):hl(n.body||'',q);
+        const ti=q?hl(esc(n.title),q):esc(n.title);
+        html+=`<div class="card ${n.quick?'quick':''}" data-card-id="${n.id}" onclick="editNoteFocus(${n.id})" style="cursor:pointer">
+          <div class="card-hd">
+            <div class="card-title">${ti}</div>
+            <button class="card-del" onclick="event.stopPropagation();delNote(${n.id})">✕</button>
+          </div>
+          ${n.topic?`<span class="card-topic">${esc(n.topic)}</span>`:''}
+          <div class="card-meta">${n.date}${n.quick?' · ⚡':''}</div>
+          ${n.body?`<div class="card-body ${clamp&&long&&!isExp?'clamp':''}">${bd}</div>`:''}
+          ${long?`<button class="more-btn" onclick="event.stopPropagation();toggleExp(${n.id})">${isExp?'show less ↑':'show more ↓'}</button>`:''}
+          ${n.tags.length?`<div class="card-tags">${n.tags.map(t=>`<span class="ctag">${esc(t)}</span>`).join('')}</div>`:''}
+        </div>`;
+      });
+      html+=`</div>`;
+    } else if(_noteView==='list'){
+      html+=`<div style="margin-bottom:8px">`;
+      mnotes.forEach(n=>{
+        const ti=q?hl(esc(n.title||'(untitled)'),q):esc(n.title||'(untitled)');
+        html+=`<div class="note-list-row" onclick="editNoteFocus(${n.id})">
+          ${n.quick?`<span style="font-size:9px;color:var(--gold-d)">⚡</span>`:`<span style="font-size:9px;color:var(--subtle)">●</span>`}
+          <div class="note-list-title">${ti}</div>
+          ${n.topic?`<span class="note-list-topic">${esc(n.topic)}</span>`:''}
+          <span class="note-list-meta">${n.date||''}</span>
+          <button onclick="event.stopPropagation();delNote(${n.id})" style="padding:1px 5px;background:none;border:none;color:var(--subtle);cursor:pointer;font-size:11px;opacity:0;transition:opacity .1s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">✕</button>
+        </div>`;
+      });
+      html+=`</div>`;
+    } else { // mini
+      html+=`<div style="margin-bottom:8px;column-count:2;column-gap:12px">`;
+      mnotes.forEach(n=>{
+        const ti=q?hl(esc(n.title||'(untitled)'),q):esc(n.title||'(untitled)');
+        html+=`<div class="note-mini-row" onclick="editNoteFocus(${n.id})">
+          <div class="note-mini-dot" style="${n.quick?'background:var(--gold-d)':''}"></div>
+          <div class="note-mini-title">${ti}</div>
+          <span class="note-mini-date">${(n.date||'').split(' ').slice(0,2).join(' ')}</span>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+  });
+
+  grid.innerHTML=html;
 }
 function cardChg(id){
   pulse();clearTimeout(cardTimers[id]);
