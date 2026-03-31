@@ -1309,6 +1309,9 @@ const SK={notes:'mind_n',tags:'mind_t',topics:'mind_tp',kanban:'mind_kb',cal:'mi
 let notes   = JSON.parse(localStorage.getItem(SK.notes)  ||'[]');
 let allTags = JSON.parse(localStorage.getItem(SK.tags)   ||'["idea","question","insight","todo","reference","memory","goal","quote"]');
 let topics  = JSON.parse(localStorage.getItem(SK.topics) ||'["Thoughts","Learning","Work","Personal","Goals"]');
+let topicColors = JSON.parse(localStorage.getItem('mind_topic_colors')||'{}');
+function saveTopicColors(){ localStorage.setItem('mind_topic_colors', JSON.stringify(topicColors)); }
+function getTopicColor(t){ return topicColors[t]||'#8ab4f8'; }
 let kanban  = JSON.parse(localStorage.getItem(SK.kanban) ||'{"todo":[{"id":1,"text":"Set up your second brain","date":"today"}],"doing":[],"done":[],"idea":[{"id":2,"text":"Add more topics","date":"today"}]}');
 let calEvts = JSON.parse(localStorage.getItem(SK.cal)    ||'{}');
 let cfg     = JSON.parse(localStorage.getItem(SK.cfg)    ||'{}');
@@ -1529,6 +1532,9 @@ function setNoteView(v){
     const btn=document.getElementById('nv-'+mode);
     if(btn){ btn.style.background=mode===v?'var(--surface2)':'none'; btn.style.color=mode===v?'var(--ink)':'var(--muted)'; }
   });
+  // Switch grid layout based on view
+  const grid=document.getElementById('cards');
+  if(grid) grid.style.display=v==='cards'?'grid':'block';
   renderNotes();
 }
 
@@ -1543,6 +1549,7 @@ function renderNotes(){
     return true;
   });
   document.getElementById('note-count').textContent=filtered.length+' notes';
+  grid.style.display=_noteView==='cards'?'grid':'block';
   if(!filtered.length){
     grid.innerHTML=`<div class="empty"><p>${notes.length?'Nothing found.':'Your mind is empty.'}</p><small>${notes.length?'Try a different search.':"Press + New note to start writing."}</small></div>`;
     return;
@@ -1600,7 +1607,7 @@ function renderNotes(){
         html+=`<div class="note-list-row" onclick="editNoteFocus(${n.id})">
           ${n.quick?`<span style="font-size:9px;color:var(--gold-d)">⚡</span>`:`<span style="font-size:9px;color:var(--subtle)">●</span>`}
           <div class="note-list-title">${ti}</div>
-          ${n.topic?`<span class="note-list-topic">${esc(n.topic)}</span>`:''}
+          ${n.topic?`<span class="note-list-topic" style="background:${getTopicColor(n.topic)}18;color:${getTopicColor(n.topic)}">${esc(n.topic)}</span>`:''}
           <span class="note-list-meta">${n.date||''}</span>
           <button onclick="event.stopPropagation();delNote(${n.id})" style="padding:1px 5px;background:none;border:none;color:var(--subtle);cursor:pointer;font-size:11px;opacity:0;transition:opacity .1s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">✕</button>
         </div>`;
