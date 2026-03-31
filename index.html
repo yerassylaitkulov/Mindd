@@ -166,9 +166,9 @@ body{font-family:'Geist',system-ui,sans-serif;background:var(--bg);color:var(--i
 .card:hover{border-color:var(--border);box-shadow:0 2px 12px rgba(0,0,0,.2)}
 .card.quick{border-left:3px solid var(--gold-d)}
 /* Note view modes */
-.note-month-hd{display:flex;align-items:center;gap:8px;padding:6px 0 5px;border-bottom:1px solid var(--border);margin-bottom:8px;margin-top:16px}
+.note-month-hd{display:flex;align-items:center;gap:6px;padding:2px 0 4px;margin-bottom:4px;margin-top:14px}
 .note-month-hd:first-child{margin-top:0}
-.note-month-label{font-size:12px;font-weight:700;color:#8ab4f8;font-family:'Geist Mono',monospace;letter-spacing:.06em;text-transform:uppercase}
+.note-month-label{font-size:10px;font-weight:700;color:#8ab4f8;font-family:'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase}
 .note-month-count{font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace}
 /* List view row */
 .note-list-row{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:5px;cursor:pointer;transition:background .1s;border-bottom:1px solid var(--border-light)}
@@ -768,6 +768,14 @@ canvas#gc{width:100%;height:100%;display:block}
 .tadd-row input:focus{border-color:var(--gold-d)}
 .sfb{font-family:'Geist Mono',monospace;font-size:11px;color:var(--green);margin-top:6px;min-height:14px}
 .data-box{width:100%;min-height:70px;padding:9px;font-family:'Geist Mono',monospace;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);color:var(--ink);outline:none;resize:vertical}
+
+/* Emoji picker */
+.emoji-picker{position:fixed;z-index:6000;background:#1a1816;border:1px solid #3a3630;border-radius:10px;padding:10px;box-shadow:0 8px 32px rgba(0,0,0,.8);width:280px;animation:popin .1s ease}
+.emoji-search{width:100%;padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:13px;font-family:'Geist',sans-serif;outline:none;box-sizing:border-box;margin-bottom:8px}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-height:180px;overflow-y:auto;scrollbar-width:thin}
+.emoji-btn{font-size:18px;padding:3px;border:none;background:none;cursor:pointer;border-radius:4px;text-align:center;line-height:1}
+.emoji-btn:hover{background:var(--surface2)}
+.emoji-cat{font-size:10px;font-family:'Geist Mono',monospace;color:var(--muted);padding:4px 2px 2px;grid-column:1/-1;text-transform:uppercase;letter-spacing:.06em}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -3541,6 +3549,7 @@ function _openFocusOverlay(noteId, titleVal, bodyHTML) {
 
   // Keys
   body.addEventListener('keydown', _editorKey);
+  body.addEventListener('keydown', _noteBodyEmojiKey);
 
   // Selection toolbar
   body.addEventListener('mouseup',   _onSelChange);
@@ -7236,6 +7245,134 @@ function _dkToDisplay(dk){
   if(!dk) return '';
   const[y,m,d]=dk.split('-');
   return parseInt(d)+'.'+m;
+}
+
+
+// ── EMOJI PICKER ──
+const EMOJIS = {
+  'Smileys': ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','😵','🤯','🥳','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿'],
+  'Gestures': ['👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦿','🦵','🦶','👃','👀','👁️','👅','👄'],
+  'People': ['👶','🧒','👦','👧','🧑','👱','👩','🧔','🧓','👴','👵','🙍','🙎','🙅','🙆','💁','🙋','🧏','🙇','🤦','🤷','👮','🧑‍⚕️','👩‍🏫','👨‍🍳','🧑‍🌾','🧑‍🔧','🧑‍🏭','🧑‍💼','🧑‍🎨','🧑‍✈️','🧑‍🚀','🧑‍🚒','🦸','🦹','🧙','🧝','🧛','🧟','🧞','🧜','🧚'],
+  'Animals': ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🪱','🐛','🦋','🐌','🐞','🐜','🪲','🦟','🦗','🕷️','🦂','🐢','🦎','🐍','🦕','🦖','🐙','🦑','🦐','🦞','🦀','🐡','🐟','🐠','🐬','🐳','🐋','🦈','🦭','🐊','🐆','🐅','  ','🦍','🦧','🦣','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐈','🐓','🦃','🦤','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿️','🦔'],
+  'Food': ['🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','🫑','🧄','🧅','🥔','🍠','🥐','🥯','🍞','🥖','🫓','🧀','🥚','🍳','🧈','🥞','🧇','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕','🫔','🌮','🌯','🥙','🧆','🥚','🍜','🍝','🍲','🍛','🍣','🍱','🍤','🍙','🍚','🍘','🍥','🥮','🍢','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯','🧃','🥤','🧋','☕','🫖','🍵','🧉','🍺','🍻','🥂','🍷','🫗','🥃','🍸','🍹','🍾'],
+  'Travel': ['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🛻','🚐','🛺','🚲','🛵','🏍️','🛻','✈️','🚀','🛸','🚁','⛵','🚤','🛥️','🛳️','⛴️','🚢','🏖️','🏝️','🏔️','⛰️','🗻','🏕️','🏜️','🏡','🏙️','🌃','🌆','🌇','🌉','🗼','🗽','⛪','🕌','🛕','🕍','⛩️','🕋','⛲','⛺','🌁','🌄','🌅'],
+  'Objects': ['⌚','📱','💻','⌨️','🖥️','🖨️','🖱️','🖲️','💽','💾','💿','📀','📞','☎️','📟','📠','📺','📻','🎙️','🎚️','🎛️','⏱️','⏲️','⏰','🕰️','📡','🔋','🔌','💡','🔦','🕯️','🪔','🧯','💰','💳','💎','⚖️','🔧','🔨','⚒️','🛠️','⛏️','🔩','🪛','🔫','🧲','💣','🔪','🗡️','⚔️','🛡️','🪚','📖','📚','📓','📒','📃','📜','📄','📑','🗒️','🗓️','📊','📈','📉','📆','📅','🗃️','🗄️','🗑️','📦','📫','📪','📬','📭','📮','🗳️','✏️','✒️','🖊️','🖋️','📝','📌','📍','🗺️','🗾','🧭'],
+  'Symbols': ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','⭐','🌟','💫','✨','⚡','☄️','🔥','💧','🌊','🌀','🌈','☁️','⛅','🌤️','⛈️','🌩️','🌪️','❄️','⛄','☃️','🌡️','☀️','🌝','🌛','🌜','🌙','🌏','🌍','🌎','🪐','⭐','🌠','🎇','🎆','🌌'],
+};
+
+let _emojiPickerOpen=false;
+let _emojiAnchorRange=null;
+let _emojiQuery='';
+
+function showEmojiPicker(x, y){
+  document.getElementById('emoji-picker')?.remove();
+  _emojiPickerOpen=true;
+  const pk=document.createElement('div');
+  pk.id='emoji-picker'; pk.className='emoji-picker';
+  pk.style.cssText=`left:${Math.min(x,window.innerWidth-290)}px;top:${Math.min(y,window.innerHeight-240)}px`;
+  pk.innerHTML=`<input class="emoji-search" id="emoji-search" placeholder="Search emoji…" oninput="filterEmojis(this.value)"/>
+    <div class="emoji-grid" id="emoji-grid"></div>`;
+  document.body.appendChild(pk);
+  renderEmojiGrid('');
+  const inp=document.getElementById('emoji-search');
+  inp.focus();
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){ closeEmojiPicker(); }
+    if(e.key==='Enter'){
+      const first=document.querySelector('.emoji-btn');
+      if(first) insertEmoji(first.dataset.emoji);
+    }
+  });
+  setTimeout(()=>document.addEventListener('mousedown',_emojiOutside,{once:true}),0);
+}
+
+function _emojiOutside(e){
+  const pk=document.getElementById('emoji-picker');
+  if(pk&&!pk.contains(e.target)) closeEmojiPicker();
+  else if(pk) setTimeout(()=>document.addEventListener('mousedown',_emojiOutside,{once:true}),0);
+}
+
+function closeEmojiPicker(){
+  document.getElementById('emoji-picker')?.remove();
+  _emojiPickerOpen=false;
+  _emojiQuery='';
+  _emojiAnchorRange=null;
+}
+
+function renderEmojiGrid(q){
+  const grid=document.getElementById('emoji-grid');if(!grid)return;
+  let html='';
+  const sq=q.toLowerCase();
+  Object.entries(EMOJIS).forEach(([cat,emojis])=>{
+    const visible=sq?emojis.filter(e=>e.toLowerCase().includes(sq)||cat.toLowerCase().includes(sq)):emojis;
+    if(!visible.length)return;
+    if(!sq)html+=`<div class="emoji-cat">${cat}</div>`;
+    visible.forEach(e=>{ html+=`<button class="emoji-btn" data-emoji="${e}" onclick="insertEmoji('${e}')" title="${e}">${e}</button>`; });
+  });
+  grid.innerHTML=html||'<span style="font-size:12px;color:var(--muted);padding:8px">No results</span>';
+}
+
+function filterEmojis(q){ renderEmojiGrid(q); }
+
+function insertEmoji(emoji){
+  const body=document.getElementById('nf-body');
+  if(!body)return;
+  body.focus();
+  // If we have an anchor range (from : trigger), delete the :query first
+  if(_emojiAnchorRange){
+    const sel=window.getSelection();
+    const r=_emojiAnchorRange.cloneRange();
+    r.setEnd(sel.focusNode,sel.focusOffset);
+    r.deleteContents();
+    sel.removeAllRanges();sel.addRange(r);
+  }
+  document.execCommand('insertText',false,emoji);
+  closeEmojiPicker();
+  _syncBody(); draftChanged();
+}
+
+// Hook into the note body keydown to detect : and open emoji picker
+function _noteBodyEmojiKey(e){
+  if(_emojiPickerOpen){
+    if(e.key==='Escape'){ closeEmojiPicker(); e.stopPropagation(); return; }
+  }
+  if(e.key===':'){
+    // Save cursor position for later deletion of :query
+    const sel=window.getSelection();
+    if(sel.rangeCount>0){
+      _emojiAnchorRange=sel.getRangeAt(0).cloneRange();
+      // Delay slightly so the : character is inserted first
+      setTimeout(()=>{
+        const body=document.getElementById('nf-body');
+        if(!body)return;
+        const rect=body.getBoundingClientRect();
+        // Position picker near cursor
+        const sel2=window.getSelection();
+        let x=rect.left+100, y=rect.top+40;
+        if(sel2.rangeCount>0){
+          const cr=sel2.getRangeAt(0).getBoundingClientRect();
+          x=cr.left; y=cr.bottom+4;
+        }
+        showEmojiPicker(x,y);
+        // Also hook body input to filter as user types after :
+        body.addEventListener('input',_emojiTypingFilter);
+      },10);
+    }
+  }
+}
+
+function _emojiTypingFilter(){
+  if(!_emojiPickerOpen){ document.getElementById('nf-body')?.removeEventListener('input',_emojiTypingFilter); return; }
+  const body=document.getElementById('nf-body');if(!body)return;
+  const sel=window.getSelection();if(!sel.rangeCount)return;
+  const node=sel.focusNode;
+  if(!node||node.nodeType!==3)return;
+  const text=node.textContent.slice(0,sel.focusOffset);
+  const colonIdx=text.lastIndexOf(':');
+  if(colonIdx<0){ closeEmojiPicker(); body.removeEventListener('input',_emojiTypingFilter); return; }
+  const query=text.slice(colonIdx+1);
+  const searchInp=document.getElementById('emoji-search');
+  if(searchInp){ searchInp.value=query; renderEmojiGrid(query); }
 }
 
 // ── INIT ──
