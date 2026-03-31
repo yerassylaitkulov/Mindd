@@ -1734,14 +1734,14 @@ function renderCalInPlace(){
   _calSavedH = sc ? sc.scrollLeft : null;
   _calSavedV = vsc ? vsc.scrollTop : null;
   renderCal();
-  // Restore after renderWeek's setTimeout(30ms) has fired
+  // Restore at 80ms — after renderWeek's own 30ms setTimeout has set scrollLeft
   setTimeout(()=>{
     const sc2=document.getElementById('cal-wscroll');
     const vsc2=document.getElementById('cal-wvscroll');
     if(sc2 && _calSavedH!==null) sc2.scrollLeft=_calSavedH;
     if(vsc2 && _calSavedV!==null) vsc2.scrollTop=_calSavedV;
     _calSavedH=null; _calSavedV=null;
-  }, 50);
+  }, 80);
 }
 
 // helpers
@@ -2217,7 +2217,7 @@ function evtDragEnd(e){
     gcalUpdateEvent(movedEvt, st.targetDk);
     _calWorkEventMoved(movedEvt, st.dk, st.targetDk);
     save();
-    renderCal();
+    renderCalInPlace();
   };
   const isRecur=(src.repeat||'none')!=='none';
   if(isRecur){
@@ -2244,7 +2244,7 @@ function cResizeStart(e,dk,idx){
     const dMin=Math.round(dy/calSlotH)*15;
     const[sh,sm]=evt.start.split(':').map(Number);
     const newMin=Math.max(sh*60+sm+15,Math.min(origEndMin+dMin,24*60-1));
-    evt.end=minToStr(newMin);save();renderCal();
+    evt.end=minToStr(newMin);save();renderCalInPlace();
   };
   const onUp2=()=>{
     document.removeEventListener('mousemove',onMove);
@@ -2541,7 +2541,7 @@ function capSave(){
       gcalCreateEvent(newEvt, dk);
       save();
     }
-    save();closeAllCal();renderCal();
+    save();closeAllCal();renderCalInPlace();
   };
   const isRecur=isEdit&&_pIdx!==null&&(calEvts[origDk]?.[_pIdx]?.repeat||'none')!=='none';
   if(isRecur){
@@ -2580,7 +2580,7 @@ function capDelete(){
           notionDeleteEvent(evt?.notionId);
           calEvts[_pDk].splice(_pIdx,1);
         }
-        save();closeAllCal();renderCal();
+        save();closeAllCal();renderCalInPlace();
       });
     } else {
       calSnapshot();
@@ -2588,7 +2588,7 @@ function capDelete(){
       gcalDeleteEvent(delEvt?.gcalId);
       calEvts[_pDk].splice(_pIdx,1);
       _calWorkEventDeleted(delEvt,_pDk);
-      save();closeAllCal();renderCal();
+      save();closeAllCal();renderCalInPlace();
     }
   }
 }
@@ -2598,7 +2598,7 @@ function calDelEvt(dk,idx){
   gcalDeleteEvent(delEvt?.gcalId);
   calEvts[dk].splice(idx,1);
   _calWorkEventDeleted(delEvt,dk);
-  save();closeAllCal();renderCal();
+  save();closeAllCal();renderCalInPlace();
 }
 
 // ── REPEAT ──
@@ -2714,7 +2714,7 @@ function showCtxMenu(e,dk,idx){
   if(!calEvts[dk])calEvts[dk]=[];
   calEvts[dk].push(cp);
   gcalCreateEvent(cp,dk);
-  save();renderCal();
+  save();renderCalInPlace();
 }},
     {sep:true},
     {icon:'🗑',label:'Delete event',danger:true,action:()=>{
@@ -7072,31 +7072,45 @@ function _calWorkEventDeleted(evt, dk){
   const mg = s.monthGroup;
   const att = workData.attendance[sid]||[];
   const cells = att.filter(c=>c.month===mg);
+  const dateDisplay = _dkToDisplay(dk);
 
-  // Find the cell matching this date
-  const dateDisplay = _dkToDisplay(dk); // YYYY-MM-DD → DD.MM
-  const cellIdx = cells.findIndex(c=>c.date===dateDisplay || c._plannedFull===dk);
+  // Find matching cell by date display or _plannedFull
+  const cellIdx = cells.findIndex(c=>
+    c.date===dateDisplay || c._plannedFull===dk
+  );
   if(cellIdx<0) return;
 
-  // Clear that cell's date
   const cell = cells[cellIdx];
-  cell.date=''; cell._plannedTs=0; cell._plannedFull=''; cell.time='';
-  // If it was done/missed, just clear — don't touch status
-  // If it was empty/planned, shift all subsequent empty cells left
-  if(cell.status==='empty'){
-    // Shift: copy dates from cells[i+1] to cells[i] for all empty cells after
-    for(let i=cellIdx; i<cells.length-1; i++){
-      if(cells[i].status!=='empty') continue;
-      const next = cells[i+1];
-      if(next.status==='empty'){
-        cells[i].date=next.date; cells[i]._plannedTs=next._plannedTs;
-        cells[i]._plannedFull=next._plannedFull; cells[i].time=next.time;
-        next.date=''; next._plannedTs=0; next._plannedFull=''; next.time='';
-      }
-    }
-    // Re-fill the last empty cell from schedule
-    _workAutoFillDates(sid, mg, cells, s.firstDate||'');
+
+  // Only act if the cell is a planned/upcoming lesson (empty status)
+  // For done/missed lessons, deleting from calendar just clears the date
+  if(cell.status !== 'empty'){
+    cell.date=''; cell._plannedTs=0; cell._plannedFull=''; cell.time='';
+    workSave(); workRenderAttendance();
+    return;
   }
+
+  // Clear this cell
+  cell.date=''; cell._plannedTs=0; cell._plannedFull=''; cell.time='';
+
+  // Collect all empty cells from this point on
+  const emptyAfter = [];
+  for(let i=cellIdx; i<cells.length; i++){
+    if(cells[i].status==='empty') emptyAfter.push(cells[i]);
+  }
+
+  // Shift dates left: each empty cell takes the date of the next empty cell
+  for(let i=0; i<emptyAfter.length-1; i++){
+    const cur=emptyAfter[i], nxt=emptyAfter[i+1];
+    cur.date=nxt.date; cur._plannedTs=nxt._plannedTs;
+    cur._plannedFull=nxt._plannedFull; cur.time=nxt.time;
+  }
+  // Clear the last empty cell (it will be refilled)
+  const last=emptyAfter[emptyAfter.length-1];
+  if(last){ last.date=''; last._plannedTs=0; last._plannedFull=''; last.time=''; }
+
+  // Refill the last empty cell from schedule (uses last-done-lesson anchor)
+  _workAutoFillDates(sid, mg, cells, s.firstDate||'');
 
   workSave();
   workRenderAttendance();
