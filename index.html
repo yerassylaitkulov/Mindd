@@ -6389,10 +6389,12 @@ function workModalSave(id){
 
 function workSyncScheduleToCalendar(id){
   const s=workData.students.find(x=>x.id===id);if(!s)return;
-  if(!s.schedule?.length){ alert('No schedule set. Add schedule slots first.'); return; }
-  // No firstDate needed — _workSyncToCalendar reads directly from attendance cells
-  _workSyncToCalendar(id, s.firstDate||'');
-  document.getElementById('work-edit-modal')?.remove();
+  _workSyncToCalendar(id, s.firstDate||'').then(()=>{
+    const att=workData.attendance[id]||[];
+    const synced=att.filter(c=>c.month===s.monthGroup&&c.date).length;
+    document.getElementById('work-edit-modal')?.remove();
+    if(synced===0) alert(`No dates found in ${s.name}'s attendance cells to sync. Set dates on cells first, or set a schedule and use "Re-fill dates".`);
+  });
 }
 
 
@@ -7091,33 +7093,33 @@ async function _workSyncToCalendar(sid, firstDateStr){
 
   const plannedDates=[];
   att.filter(c=>c.month===mg).forEach(cell=>{
-    // Resolve the full YYYY-MM-DD date from the cell
+    // Sync all cells that have any date — done, missed, or planned empty
     let fullDate='';
     if(cell._plannedFull){
       fullDate=cell._plannedFull;
     } else if(cell.date){
-      // Parse DD.MM — use 2026 as the year (current subscription year)
       const parts=cell.date.split('.');
       if(parts.length===2){
         const d=parseInt(parts[0]),m=parseInt(parts[1]);
-        const yr = m>=1&&m<=6 ? 2026 : 2025; // Jan-Jun = 2026, rest = prior year
-        fullDate=`${yr}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        if(!isNaN(d)&&!isNaN(m)&&d>0&&m>0&&m<=12){
+          const yr = m>=1&&m<=6 ? 2026 : 2025;
+          fullDate=`${yr}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        }
       }
     }
     if(!fullDate) return;
 
     const dow=new Date(fullDate+'T12:00:00').getDay();
-    // Use cell.time (manually set or auto-filled) if available, else fall back to schedule
     const {time:schedTime,duration:durMin}=slotTime(dow);
     const startTime=cell.time||schedTime;
     const[sh,sm]=startTime.split(':').map(Number);
     const eh=Math.floor((sh*60+sm+durMin)/60),em=(sh*60+sm+durMin)%60;
     const endTime=String(eh).padStart(2,'0')+':'+String(em).padStart(2,'0');
-    plannedDates.push({dk:fullDate,start:startTime,end:endTime});
+    plannedDates.push({dk:fullDate,start:startTime,end:endTime,isDone:cell.status==='done',isMissed:cell.status==='missed'});
   });
 
   if(!plannedDates.length){
-    console.log(`[Work] No dates to sync for ${name}`);
+    console.log(`[Work] No dates to sync for ${name} — no cells have dates set`);
     return;
   }
 
@@ -7126,10 +7128,11 @@ async function _workSyncToCalendar(sid, firstDateStr){
     calEvts[dk]=(calEvts[dk]||[]).filter(e=>e._workStudentId!==sid);
   });
 
-  // Add new events
-  plannedDates.forEach(({dk,start,end})=>{
+  // Add new events — done=green, missed=red, planned=blue
+  plannedDates.forEach(({dk,start,end,isDone,isMissed})=>{
     if(!calEvts[dk]) calEvts[dk]=[];
-    calEvts[dk].push({title,start,end,color:'blue',_workStudentId:sid,_fromWork:true});
+    const color=isDone?'green':isMissed?'red':'blue';
+    calEvts[dk].push({title,start,end,color,_workStudentId:sid,_fromWork:true});
   });
 
   save();
