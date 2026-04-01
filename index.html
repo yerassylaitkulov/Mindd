@@ -5672,7 +5672,84 @@ function workCellClick(e, sid, cellIdx){
   const s=workData.students.find(x=>x.id===sid);if(!s)return;
   const att=workData.attendance[sid]||[];
   const cell=att[cellIdx];if(!cell)return;
-  workOpenLessonPage(sid, cellIdx);
+
+  // Done/missed cells open the full lesson notes page
+  if(cell.status==='done'||cell.status==='missed'){
+    workOpenLessonPage(sid, cellIdx);
+    return;
+  }
+
+  // Empty cells: show quick popup to set date+time+status, then sync to calendar
+  document.getElementById('wa-quick-pop')?.remove();
+  const pop=document.createElement('div');
+  pop.id='wa-quick-pop';
+  pop.className='wa-date-popup';
+  pop.style.minWidth='220px';
+
+  // Pre-fill time from schedule for this cell's planned date
+  const plannedDate=cell.date||_fmt_ddmm(cell._plannedFull)||'';
+  const plannedTime=cell.time||(s.schedule?.length?s.schedule[0].time:'');
+  const fmtT=t=>{ if(!t)return''; const[h,m]=t.split(':').map(Number); const ap=h<12?'AM':'PM'; const h12=h===0?12:h>12?h-12:h; return h12+':'+(m<10?'0':'')+m+' '+ap; };
+
+  pop.innerHTML=`
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:'Geist Mono',monospace">${esc(s.name)} · Lesson ${cell.num}</div>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <input id="wq-date" value="${esc(plannedDate)}" placeholder="Date e.g. 30.03"
+        style="flex:1;padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;font-family:'Geist Mono',monospace;outline:none"/>
+      <input id="wq-time" value="${esc(plannedTime)}" placeholder="Time e.g. 14:00"
+        style="width:72px;padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--ink);font-size:12px;font-family:'Geist Mono',monospace;outline:none"/>
+    </div>
+    <div style="display:flex;gap:4px">
+      <button onclick="_wqSet(${sid},${cellIdx},'done')"
+        style="flex:1;padding:5px;border-radius:5px;border:1px solid #1a4a28;background:#0c2216;color:#34a853;cursor:pointer;font-size:12px;font-weight:600">✓ Done</button>
+      <button onclick="_wqSet(${sid},${cellIdx},'missed')"
+        style="flex:1;padding:5px;border-radius:5px;border:1px solid #3a1212;background:#1e0808;color:#e85a5a;cursor:pointer;font-size:12px;font-weight:600">✕ Missed</button>
+      <button onclick="_wqSet(${sid},${cellIdx},'planned')"
+        style="flex:1;padding:5px;border-radius:5px;border:1px solid #06b6d4;background:#051a1e;color:#06b6d4;cursor:pointer;font-size:12px;font-weight:600">📅 Plan</button>
+    </div>
+    <div style="margin-top:6px;text-align:center">
+      <button onclick="document.getElementById('wa-quick-pop').remove();workOpenLessonPage(${sid},${cellIdx})"
+        style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Geist',sans-serif">📝 Open lesson notes →</button>
+    </div>`;
+
+  document.body.appendChild(pop);
+  let x=e.clientX, y=e.clientY+8;
+  if(x+230>window.innerWidth) x=window.innerWidth-235;
+  if(y+160>window.innerHeight) y=e.clientY-160;
+  pop.style.cssText=`left:${Math.max(4,x)}px;top:${Math.max(4,y)}px;min-width:220px`;
+
+  const dateInp=document.getElementById('wq-date');
+  dateInp.focus(); dateInp.select();
+  dateInp.addEventListener('keydown',ev=>{
+    if(ev.key==='Enter'){ ev.preventDefault(); _wqSet(sid,cellIdx,'done'); }
+    if(ev.key==='Escape') document.getElementById('wa-quick-pop')?.remove();
+  });
+  setTimeout(()=>document.addEventListener('mousedown',ev=>{
+    const p=document.getElementById('wa-quick-pop');
+    if(p&&!p.contains(ev.target))p.remove();
+  },{once:true}),0);
+}
+
+function _wqSet(sid, cellIdx, action){
+  const date=document.getElementById('wq-date')?.value.trim()||'';
+  const time=document.getElementById('wq-time')?.value.trim()||'';
+  const att=workData.attendance[sid]||[];
+  const cell=att[cellIdx];
+  if(!cell) return;
+  if(date){ cell.date=date; cell._manualDate=true; }
+  if(time){ cell.time=time; }
+  if(action==='done'||action==='missed'){
+    cell.status=action;
+    document.getElementById('wa-quick-pop')?.remove();
+    // Sync this single lesson to calendar
+    workSyncOneLessonToCalendar(sid, cellIdx);
+    workSave(); workRenderSidebar(); workRenderAttendance(); workRenderHomework();
+  } else if(action==='planned'){
+    // Keep empty status, just save date+time and sync
+    document.getElementById('wa-quick-pop')?.remove();
+    workSyncOneLessonToCalendar(sid, cellIdx);
+    workSave(); workRenderSidebar(); workRenderAttendance();
+  }
 }
 
 function workCellSet(sid, cellIdx, status, date){
@@ -5815,6 +5892,8 @@ function workCellSetDateTime(sid, cellIdx){
   if(date) cell.date=date;
   if(time) cell.time=time;
   workSave();
+  // Auto-sync date/time change to calendar
+  if(date) workSyncOneLessonToCalendar(sid, cellIdx);
 }
 
 // Sync a single lesson cell to calendar
@@ -5822,12 +5901,12 @@ function workSyncOneLessonToCalendar(sid, cellIdx){
   const s=workData.students.find(x=>x.id===sid);if(!s)return;
   const att=workData.attendance[sid]||[];
   const cell=att[cellIdx];if(!cell)return;
-  const date=document.getElementById('lp-date')?.value.trim()||cell.date||'';
-  const time=document.getElementById('lp-time')?.value.trim()||cell.time||s.schedule?.[0]?.time||'';
-  if(!date){ alert('Enter a date first.'); return; }
-  if(cell.date!==date||cell.time!==time){
-    cell.date=date; if(time) cell.time=time; workSave();
-  }
+  // Read from DOM if lesson page is open, otherwise use cell data
+  const date=(document.getElementById('lp-date')?.value.trim())||cell.date||_fmt_ddmm(cell._plannedFull)||'';
+  const time=(document.getElementById('lp-time')?.value.trim())||cell.time||s.schedule?.[0]?.time||'';
+  if(!date){ return; } // no date — silently skip
+  if(cell.date!==date) cell.date=date;
+  if(time&&cell.time!==time) cell.time=time;
   // Resolve full date
   const parts=date.split('.');
   if(parts.length!==2){ alert('Date format should be DD.MM e.g. 16.01'); return; }
@@ -5857,12 +5936,19 @@ function workLessonSetStatus(sid, cellIdx, status, btn){
   const cell=att[cellIdx];
   if(cell){ cell.status=status; if(date) cell.date=date; if(time) cell.time=time; }
   workSave(); workRenderSidebar(); workRenderAttendance(); workRenderHomework();
+  // Auto-sync to calendar
+  if(status!=='empty') workSyncOneLessonToCalendar(sid, cellIdx);
+  else {
+    // Clear=remove calendar event for this cell
+    Object.keys(calEvts).forEach(dk=>{ calEvts[dk]=(calEvts[dk]||[]).filter(e=>!(e._workStudentId===sid&&e._lessonNum===cell.num)); });
+    save(); renderCalInPlace();
+  }
   // Update button styles
-  ['done','missed','empty'].forEach(s=>{
-    const b=document.getElementById('lp-btn-'+s);
+  ['done','missed','empty'].forEach(st=>{
+    const b=document.getElementById('lp-btn-'+st);
     if(!b)return;
-    b.style.background=s===status?(s==='done'?'#0c2216':s==='missed'?'#1e0808':'var(--surface2)'):'none';
-    b.style.color=s===status?(s==='done'?'#34a853':s==='missed'?'#e85a5a':'var(--muted)'):'var(--muted)';
+    b.style.background=st===status?(st==='done'?'#0c2216':st==='missed'?'#1e0808':'var(--surface2)'):'none';
+    b.style.color=st===status?(st==='done'?'#34a853':st==='missed'?'#e85a5a':'var(--muted)'):'var(--muted)';
   });
 }
 
@@ -7161,75 +7247,67 @@ function _cellDateToFullDate(displayDate, refDateStr){
 // shifts remaining planned dates left, refills the last empty cell.
 function _calWorkEventDeleted(evt, dk){
   if(!evt?._workStudentId) return;
-  const sid = evt._workStudentId;
-  const s = workData.students?.find(x=>x.id===sid);
-  if(!s) return;
-  const mg = s.monthGroup;
-  const att = workData.attendance[sid]||[];
+  const sid2 = evt._workStudentId;
+  const sDel = workData.students?.find(x=>x.id===sid2);
+  if(!sDel) return;
+  const dateDisp = _dkToDisplay(dk);
+  if(!confirm('Sync to Work tab?\n\nDeleting "'+evt.title+'" ('+dateDisp+') from calendar.\nThis will remove the date from '+sDel.name+'\'s attendance and shift upcoming lessons forward.')){
+    return;
+  }
+  const mg = sDel.monthGroup;
+  const att = workData.attendance[sid2]||[];
   const cells = att.filter(c=>c.month===mg);
   const dateDisplay = _dkToDisplay(dk);
-
-  // Find matching cell by date display or _plannedFull
-  const cellIdx = cells.findIndex(c=>
-    c.date===dateDisplay || c._plannedFull===dk
-  );
+  const cellIdx = cells.findIndex(c=>c.date===dateDisplay || c._plannedFull===dk);
   if(cellIdx<0) return;
-
   const cell = cells[cellIdx];
-
-  // Only act if the cell is a planned/upcoming lesson (empty status)
-  // For done/missed lessons, deleting from calendar just clears the date
   if(cell.status !== 'empty'){
     cell.date=''; cell._plannedTs=0; cell._plannedFull=''; cell.time='';
     workSave(); workRenderAttendance();
     return;
   }
-
-  // Clear this cell
   cell.date=''; cell._plannedTs=0; cell._plannedFull=''; cell.time='';
-
-  // Collect all empty cells from this point on
   const emptyAfter = [];
   for(let i=cellIdx; i<cells.length; i++){
     if(cells[i].status==='empty') emptyAfter.push(cells[i]);
   }
-
-  // Shift dates left: each empty cell takes the date of the next empty cell
   for(let i=0; i<emptyAfter.length-1; i++){
     const cur=emptyAfter[i], nxt=emptyAfter[i+1];
     cur.date=nxt.date; cur._plannedTs=nxt._plannedTs;
     cur._plannedFull=nxt._plannedFull; cur.time=nxt.time;
   }
-  // Clear the last empty cell (it will be refilled)
   const last=emptyAfter[emptyAfter.length-1];
   if(last){ last.date=''; last._plannedTs=0; last._plannedFull=''; last.time=''; }
-
-  // Refill the last empty cell from schedule (uses last-done-lesson anchor)
-  _workAutoFillDates(sid, mg, cells, s.firstDate||'');
-
+  _workAutoFillDates(sid2, mg, cells, sDel.firstDate||'');
   workSave();
   workRenderAttendance();
-  if(document.getElementById('student-page')) workOpenStudentPage(sid);
+  if(document.getElementById('student-page')) workOpenStudentPage(sid2);
 }
 
 // Called when a work-synced event is moved to a new date/time.
 function _calWorkEventMoved(evt, oldDk, newDk){
   if(!evt?._workStudentId) return;
-  const sid = evt._workStudentId;
-  const att = workData.attendance[sid]||[];
-  const mg = workData.students?.find(x=>x.id===sid)?.monthGroup;
-  const cells = att.filter(c=>c.month===mg);
-  const oldDisplay = _dkToDisplay(oldDk);
-  const cell = cells.find(c=>c.date===oldDisplay || c._plannedFull===oldDk);
-  if(!cell) return;
-  cell.date = _dkToDisplay(newDk);
-  cell._plannedFull = newDk;
-  cell._plannedTs = new Date(newDk+'T12:00:00').getTime();
-  cell._manualDate = true; // user explicitly moved it
-  if(evt.start) cell.time = evt.start;
+  if(oldDk===newDk) return;
+  const sid3 = evt._workStudentId;
+  const sMov = workData.students?.find(x=>x.id===sid3);
+  if(!sMov) return;
+  const oldDisp=_dkToDisplay(oldDk), newDisp=_dkToDisplay(newDk);
+  if(!confirm('Sync to Work tab?\n\nMove lesson from '+oldDisp+' → '+newDisp+' for '+sMov.name+'.\nThis will update the date in their attendance.')){
+    return;
+  }
+  const mg3 = sMov.monthGroup;
+  const att3 = workData.attendance[sid3]||[];
+  const cells3 = att3.filter(c=>c.month===mg3);
+  const cell3 = cells3.find(c=>c.date===oldDisp || c._plannedFull===oldDk);
+  if(!cell3) return;
+  cell3.date = newDisp;
+  cell3._plannedFull = newDk;
+  cell3._plannedTs = new Date(newDk+'T12:00:00').getTime();
+  cell3._manualDate = true;
+  if(evt.start) cell3.time = evt.start;
   workSave();
   workRenderAttendance();
-  if(document.getElementById('student-page')) workOpenStudentPage(sid);
+  if(document.getElementById('student-page')) workOpenStudentPage(sid3);
 }
 
 // DD.MM from YYYY-MM-DD
