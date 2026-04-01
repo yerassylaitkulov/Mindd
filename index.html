@@ -2359,7 +2359,6 @@ function cResizeStart(e,dk,idx){
     document.removeEventListener('mousemove',onMove);
     document.removeEventListener('mouseup',onUp2);
     gcalUpdateEvent(evt,dk);
-    notionUpdateEvent(evt,dk);
   };
   document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp2);
 }
@@ -2682,11 +2681,9 @@ function capDelete(){
           evt.repeatEnds='on';
           evt.repeatEndDate=dkey(prevDay);
           gcalUpdateEvent(evt,_pDk);
-          notionUpdateEvent(evt,_pDk);
         } else {
           // Delete all — remove the master
           gcalDeleteEvent(evt?.gcalId);
-          notionDeleteEvent(evt?.notionId);
           calEvts[_pDk].splice(_pIdx,1);
         }
         save();closeAllCal();renderCalInPlace();
@@ -3353,20 +3350,7 @@ async function gcalDeleteEvent(gcalId) {
 
 // ── NOTION DELETE / UPDATE ──
 
-async function notionUpdateEvent(evt, dk) {
-  if (!evt.notionId) {
-    // Not in Notion yet — push it
-    pushToNotion(evt.title, dk, evt.start, evt.end);
-    return;
-  }
-  try {
-    await fetch(NOTION_PROXY + '/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: evt.notionId, title: evt.title, day: dk, start: evt.start, end: evt.end })
-    });
-  } catch(e) { console.warn('notionUpdate failed', e); }
-}
+function notionUpdateEvent(){} // removed
 
 
 // ── KEYBOARD SHORTCUTS ──
@@ -6991,9 +6975,7 @@ function _workRefillAndSync(sid){
   _workAutoFillDates(sid, mg, cells, s.firstDate||'');
   workSave();
   workRenderSidebar(); workRenderAttendance();
-  _workSyncToCalendar(sid, s.firstDate).then(()=>{
-    if(curView==='calendar') renderCal();
-  });
+  _workSyncToCalendar(sid, s.firstDate||'');
   document.getElementById('student-row-menu')?.remove();
   document.getElementById('work-edit-modal')?.remove();
 }
