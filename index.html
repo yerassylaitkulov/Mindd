@@ -2040,7 +2040,7 @@ function renderWeek(){
   body.innerHTML=`
     <div class="cal-week-wrap" id="cal-week-wrap">
       <div class="cal-gutter-col" id="cal-gutter">
-        <div style="height:${headHtml.split('').length<10?38:38}px;flex-shrink:0;border-bottom:1px solid var(--border)"></div>
+        <div id="cal-gutter-spacer" style="flex-shrink:0;border-bottom:1px solid var(--border)"></div>
         <div style="flex:1;overflow:hidden" id="cal-gutter-body">${gutterHtml}</div>
       </div>
       <div class="cal-week-scroll" id="cal-wscroll">
@@ -2077,27 +2077,39 @@ function renderWeek(){
 
   // Scroll to selDate horizontally and 9:30am vertically
   setTimeout(()=>{
-    // Scroll horizontally to Monday of selDate's week
+    // Match gutter spacer height to actual rendered header
+    const head=document.getElementById('cal-week-head-row');
+    const spacer=document.getElementById('cal-gutter-spacer');
+    if(head&&spacer) spacer.style.height=head.offsetHeight+'px';
+
+    // Scroll to Monday
     const _selD = new Date(selDate+'T12:00:00');
     const _dow = _selD.getDay();
     const _daysToMon = _dow===0 ? -6 : 1-_dow;
     const _monD = new Date(_selD); _monD.setDate(_selD.getDate()+_daysToMon);
     calScrollToDate(dkey(_monD), false);
+
+    // Scroll to 10am
     const vsc=document.getElementById('cal-wvscroll');
-    if(vsc) vsc.scrollTop=Math.floor(10*60/15)*calSlotH;
-    // Clip scroll container to exactly 7 days: set its width = gutter + 7*dayW
-    // The scroll container overflows but its parent (cal-week-wrap) clips it
+    const initialScroll=Math.floor(10*60/15)*calSlotH;
+    if(vsc) vsc.scrollTop=initialScroll;
+
+    // Set gutter body scroll to match
+    const gut=document.getElementById('cal-gutter-body');
+    if(gut) gut.scrollTop=initialScroll;
+
+    // Clip scroll width to exactly 7 day columns
     const sc2=document.getElementById('cal-wscroll');
     if(sc2){
       sc2.style.width=(7*CAL_DAY_W)+'px';
       sc2.addEventListener('scroll',()=>calUpdateSelFromScroll(),{passive:true});
     }
-    // Sync gutter vertical scroll with vscroll
-    const vsc2=document.getElementById('cal-wvscroll');
-    const gut=document.getElementById('cal-gutter-body');
-    if(vsc2&&gut){
-      vsc2.addEventListener('scroll',()=>{ gut.scrollTop=vsc2.scrollTop; },{passive:true});
+
+    // Keep gutter in sync with vertical scroll
+    if(vsc&&gut){
+      vsc.addEventListener('scroll',()=>{ gut.scrollTop=vsc.scrollTop; },{passive:true});
     }
+
     initCalSwipe();
     initCalDrag();
   },30);
