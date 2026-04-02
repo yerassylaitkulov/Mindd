@@ -310,9 +310,9 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-week-vscroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .cal-week-gutter-stub{display:none}
 .cal-gutter-col{width:54px;flex-shrink:0;border-right:1px solid var(--border);box-sizing:border-box;position:sticky;left:0;z-index:15;background:var(--bg)}
-.cal-gutter-lbl{display:flex;align-items:flex-start;justify-content:flex-end;padding:0 6px 0 0;font-size:11px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:-7px;user-select:none;line-height:1;white-space:nowrap}
-.cal-gutter-lbl.gl-hour{color:#b0aba4;font-size:11px;font-weight:500}
-.cal-gutter-lbl.gl-half{color:rgba(107,103,96,.45);font-size:9px}
+.cal-gutter-lbl{display:flex;align-items:flex-start;justify-content:flex-end;padding:0 8px 0 0;font-size:11px;color:transparent;font-family:'Geist Mono',monospace;user-select:none;line-height:1;white-space:nowrap;overflow:visible;height:20px}
+.cal-gutter-lbl.gl-hour{color:#c8c4bc;font-size:11px;font-weight:500;margin-top:-7px}
+.cal-gutter-lbl.gl-half{color:rgba(180,170,160,.4);font-size:9px;margin-top:-5px}
 .cal-gutter-lbl.gl-quarter{color:rgba(107,103,96,.3);font-size:7.5px}
 .cal-day-col{position:relative;width:var(--cal-day-w,140px);flex-shrink:0;background:var(--bg);border-left:none;box-sizing:border-box;contain:layout style}
 .cal-day-col+.cal-day-col{border-left:1px solid rgba(255,255,255,.05)}
@@ -2708,20 +2708,25 @@ function capDelete(){
     } else {
       calSnapshot();
       const delEvt=calEvts[_pDk][_pIdx];
-      gcalDeleteEvent(delEvt?.gcalId);
-      calEvts[_pDk].splice(_pIdx,1);
-      _calWorkEventDeleted(delEvt,_pDk);
-      save();closeAllCal();renderCalInPlace();
+      const pDk=_pDk, pIdx=_pIdx;
+      closeAllCal();
+      _calWorkEventDeleted(delEvt, pDk, ()=>{
+        gcalDeleteEvent(delEvt?.gcalId);
+        if(calEvts[pDk]) calEvts[pDk]=calEvts[pDk].filter(e=>e!==delEvt);
+        save(); renderCalInPlace();
+      });
     }
   }
 }
 function calDelEvt(dk,idx){
   calSnapshot();
   const delEvt=calEvts[dk]?.[idx];
-  gcalDeleteEvent(delEvt?.gcalId);
-  calEvts[dk].splice(idx,1);
-  _calWorkEventDeleted(delEvt,dk);
-  save();closeAllCal();renderCalInPlace();
+  closeAllCal();
+  _calWorkEventDeleted(delEvt, dk, ()=>{
+    gcalDeleteEvent(delEvt?.gcalId);
+    if(calEvts[dk]) calEvts[dk]=calEvts[dk].filter(e=>e!==delEvt);
+    save(); renderCalInPlace();
+  });
 }
 
 // ── REPEAT ──
@@ -2862,11 +2867,13 @@ function showCtxMenu(e,dk,idx){
         });
       } else {
         calSnapshot();
-        gcalDeleteEvent(evt.gcalId);
-        const _delEvt=calEvts[dk][idx];
-        calEvts[dk].splice(idx,1);
-        _calWorkEventDeleted(_delEvt,dk);
-        save();renderCalInPlace();
+        const _delEvt=calEvts[dk]?.[idx];
+        closeAllCal();
+        _calWorkEventDeleted(_delEvt, dk, ()=>{
+          gcalDeleteEvent(_delEvt?.gcalId);
+          if(calEvts[dk]) calEvts[dk]=calEvts[dk].filter(e=>e!==_delEvt);
+          save(); renderCalInPlace();
+        });
       }
     }}
   ]);
@@ -7293,29 +7300,30 @@ function showWorkSyncDialog(title, body, onYes, onNo){
 // Called when a work-synced event is deleted from calendar.
 // Removes the date from the corresponding attendance cell,
 // shifts remaining planned dates left, refills the last empty cell.
-function _calWorkEventDeleted(evt, dk){
-  if(!evt?._workStudentId) return;
+function _calWorkEventDeleted(evt, dk, deleteFn){
+  if(!evt?._workStudentId){
+    // Not a work event — just delete immediately
+    if(deleteFn) deleteFn();
+    return;
+  }
   const sid=evt._workStudentId;
   const st=workData.students?.find(x=>x.id===sid);
-  if(!st) return;
+  if(!st){ if(deleteFn) deleteFn(); return; }
   const dateDisp=_dkToDisplay(dk);
   showWorkSyncDialog(
-    'Remove from Work tab?',
-    '"'+evt.title+'" on '+dateDisp+' — remove date from attendance and shift upcoming lessons forward.',
+    'Delete & sync to Work?',
+    '"'+evt.title+'" on '+dateDisp+' — delete from calendar and remove date from attendance.',
     ()=>{
-      // YES — update work tab only (calendar event already deleted above)
+      // YES — delete from calendar, then update work
+      if(deleteFn) deleteFn();
       const mg=st.monthGroup;
       const att=workData.attendance[sid]||[];
       const cells=att.filter(c=>c.month===mg);
       const cellIdx=cells.findIndex(c=>c.date===dateDisp||c._plannedFull===dk);
       if(cellIdx<0) return;
       const cell=cells[cellIdx];
-      // Remove the deleted event from calendar for this lesson (safety — should already be gone)
-      workRemoveCellFromCalendar(sid, cell.num);
-      // Clear the cell
       cell.date=''; cell._plannedTs=0; cell._plannedFull=''; cell.time=''; cell._manualDate=false;
       if(cell.status==='empty'){
-        // Shift remaining empty cells left
         const empties=cells.filter(c=>c.status==='empty');
         const ei=empties.indexOf(cell);
         for(let i=ei;i<empties.length-1;i++){
@@ -7324,14 +7332,16 @@ function _calWorkEventDeleted(evt, dk){
         }
         const last=empties[empties.length-1];
         if(last){last.date='';last._plannedTs=0;last._plannedFull='';last.time='';}
-        // Refill last cell from schedule
         _workAutoFillDates(sid,mg,cells,st.firstDate||'');
-        // Only sync the newly refilled last cell (others unchanged, deleted event already gone)
         const lastIdx=att.indexOf(last);
-        if(lastIdx>=0 && last?.date) workAutoSyncCell(sid,lastIdx);
+        if(lastIdx>=0&&last?.date) workAutoSyncCell(sid,lastIdx);
       }
       workSave(); workRenderAttendance();
       if(document.getElementById('student-page')) workOpenStudentPage(sid);
+    },
+    ()=>{
+      // NO — still delete from calendar, just don't touch work
+      if(deleteFn) deleteFn();
     }
   );
 }
