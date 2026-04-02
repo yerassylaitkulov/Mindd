@@ -291,7 +291,7 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 @keyframes fi{from{opacity:0}to{opacity:1}}
 
 /* WEEK GRID */
-.cal-week-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:8px;min-width:0;isolation:isolate}
+.cal-week-wrap{flex:1;display:flex;flex-direction:row;overflow:hidden;border:1px solid var(--border);border-radius:8px;min-width:0;isolation:isolate}
 .cal-week-head{display:flex;flex-shrink:0;background:#0d0d0b;border-bottom:1px solid var(--border);box-sizing:border-box}
 .cal-week-gutter{width:58px;flex-shrink:0;padding:6px 0 4px;display:flex;align-items:flex-end;justify-content:center;border-right:1px solid var(--border-light);display:none}
 .cal-week-gutter-tz{font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;text-align:center}
@@ -299,7 +299,7 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-wdow{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;width:100%}
 .cal-wdn{font-size:20px;font-weight:300;color:var(--muted);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin:0 auto}
 .cal-wdn.is-today{background:#c8303a;color:#fff;font-weight:700}
-.cal-week-scroll{flex:1;overflow-x:scroll;overflow-y:hidden;min-width:0;display:flex;flex-direction:column;min-height:0;scrollbar-width:none}
+.cal-week-scroll{flex:1;overflow-x:scroll;overflow-y:hidden;min-width:0;display:flex;flex-direction:column;min-height:0;scrollbar-width:none;border-left:1px solid var(--border)}
 .cal-week-inner{display:flex;flex-direction:column;flex:1;min-height:0;width:max-content}
 .cal-week-vscroll{flex:1;overflow-y:auto;overflow-x:visible;min-height:0;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .cal-week-body-row{display:flex}
@@ -309,9 +309,9 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-week-vscroll::-webkit-scrollbar{width:5px}
 .cal-week-vscroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .cal-week-gutter-stub{display:none}
-.cal-gutter-col{width:54px;flex-shrink:0;border-right:1px solid var(--border);box-sizing:border-box;position:sticky;left:0;z-index:15;background:var(--bg)}
-.cal-gutter-hr{position:relative;display:flex;justify-content:flex-end;padding-right:7px;box-sizing:border-box}
-.cal-gutter-hr-lbl{position:absolute;top:-7px;right:7px;font-size:11px;font-weight:500;color:#c8c4bc;font-family:'Geist Mono',monospace;user-select:none;white-space:nowrap;line-height:1}
+.cal-gutter-col{width:54px;flex-shrink:0;box-sizing:border-box;background:var(--bg);overflow:visible;display:flex;flex-direction:column}
+.cal-gutter-hr{position:relative;box-sizing:border-box;overflow:visible}
+.cal-gutter-hr-lbl{display:block;text-align:right;padding-right:8px;padding-top:0;font-size:11px;font-weight:500;color:#c8c4bc;font-family:'Geist Mono',monospace;user-select:none;white-space:nowrap;line-height:1;transform:translateY(-50%)}
 .cal-gutter-lbl{font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;user-select:none;line-height:1;white-space:nowrap}
 .cal-gutter-lbl.gl-hour{color:#c8c4bc;font-size:11px;font-weight:500}
 .cal-gutter-lbl.gl-half{color:rgba(180,170,160,.35);font-size:9px}
@@ -1717,7 +1717,7 @@ function fAns(ok){if(ok)flashScore.c++;else flashScore.w++;flashIdx++;flashFlipp
 
 // ── CALENDAR ──
 let calView='week';
-const CAL_FIXED_SLOT_H=20;
+const CAL_FIXED_SLOT_H=14;
 let calSlotH=CAL_FIXED_SLOT_H; // fixed calendar scale
 let evtMoveState=null; // {dk,idx,durationMin,hasMoved,targetDk,targetMin}
 
@@ -1846,12 +1846,12 @@ function renderCalInPlace(){
   _calSavedH = sc ? sc.scrollLeft : null;
   _calSavedV = vsc ? vsc.scrollTop : null;
   renderCal();
-  // Restore at 80ms — after renderWeek's own 30ms setTimeout has set scrollLeft
   setTimeout(()=>{
     const sc2=document.getElementById('cal-wscroll');
     const vsc2=document.getElementById('cal-wvscroll');
+    const gut=document.getElementById('cal-gutter-body');
     if(sc2 && _calSavedH!==null) sc2.scrollLeft=_calSavedH;
-    if(vsc2 && _calSavedV!==null) vsc2.scrollTop=_calSavedV;
+    if(vsc2 && _calSavedV!==null){ vsc2.scrollTop=_calSavedV; if(gut) gut.scrollTop=_calSavedV; }
     _calSavedH=null; _calSavedV=null;
   }, 80);
 }
@@ -1951,17 +1951,17 @@ function renderWeek(){
 
   document.getElementById('cal-month-label').textContent=_calMonthLabel(anchor);
 
-  // Gutter: one block per hour, label at top
-  const hourPx=calSlotH*4; // px per hour
-  let gutterHtml='';
+  // Gutter: render 96 slot divs but show hour label every 4 slots
+  // Label is placed at the TOP border of the slot using a simple positioned span
+  const hourPx=calSlotH*4;
+  let gutterHtml='<div style="position:relative;height:'+(96*calSlotH)+'px">';
   for(let h=0;h<24;h++){
     const lbl=h===0?'':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM';
-    gutterHtml+=`<div class="cal-gutter-hr" style="height:${hourPx}px">`;
-    if(lbl) gutterHtml+=`<div class="cal-gutter-hr-lbl">${lbl}</div>`;
-    // Half-hour tick
-    if(hourPx>=40) gutterHtml+=`<div style="position:absolute;top:${hourPx/2}px;right:0;left:0;border-top:1px solid rgba(255,255,255,.04)"></div>`;
-    gutterHtml+=`</div>`;
+    if(!lbl) continue;
+    const topPx=h*hourPx;
+    gutterHtml+=`<div style="position:absolute;top:${topPx}px;right:8px;font-size:11px;font-weight:500;color:#c8c4bc;font-family:'Geist Mono',monospace;user-select:none;white-space:nowrap;line-height:1;transform:translateY(-50%);z-index:1">${lbl}</div>`;
   }
+  gutterHtml+='</div>';
 
   // Build recurring map across all strip days
   const recurMap={};
@@ -2039,12 +2039,15 @@ function renderWeek(){
   const body=document.getElementById('cal-body');
   body.innerHTML=`
     <div class="cal-week-wrap" id="cal-week-wrap">
+      <div class="cal-gutter-col" id="cal-gutter">
+        <div style="height:${headHtml.split('').length<10?38:38}px;flex-shrink:0;border-bottom:1px solid var(--border)"></div>
+        <div style="flex:1;overflow:hidden" id="cal-gutter-body">${gutterHtml}</div>
+      </div>
       <div class="cal-week-scroll" id="cal-wscroll">
         <div class="cal-week-inner">
           <div class="cal-week-head" id="cal-week-head-row">${headHtml}</div>
           <div class="cal-week-vscroll" id="cal-wvscroll">
             <div class="cal-week-body-row">
-              <div class="cal-gutter-col">${gutterHtml}</div>
               ${colsHtml}
             </div>
           </div>
@@ -2081,13 +2084,19 @@ function renderWeek(){
     const _monD = new Date(_selD); _monD.setDate(_selD.getDate()+_daysToMon);
     calScrollToDate(dkey(_monD), false);
     const vsc=document.getElementById('cal-wvscroll');
-    if(vsc) vsc.scrollTop=Math.floor((9*60+30)/15)*calSlotH;
+    if(vsc) vsc.scrollTop=Math.floor(10*60/15)*calSlotH;
     // Clip scroll container to exactly 7 days: set its width = gutter + 7*dayW
     // The scroll container overflows but its parent (cal-week-wrap) clips it
     const sc2=document.getElementById('cal-wscroll');
     if(sc2){
-      sc2.style.width=(58+7*CAL_DAY_W)+'px';
+      sc2.style.width=(7*CAL_DAY_W)+'px';
       sc2.addEventListener('scroll',()=>calUpdateSelFromScroll(),{passive:true});
+    }
+    // Sync gutter vertical scroll with vscroll
+    const vsc2=document.getElementById('cal-wvscroll');
+    const gut=document.getElementById('cal-gutter-body');
+    if(vsc2&&gut){
+      vsc2.addEventListener('scroll',()=>{ gut.scrollTop=vsc2.scrollTop; },{passive:true});
     }
     initCalSwipe();
     initCalDrag();
@@ -2323,9 +2332,9 @@ function evtDragEnd(e){
   const nextEnd=Math.max(nextStart+15,Math.min(24*60,nextStart+st.durationMin));
   const movedEvt={...src,start:minToStr(nextStart),end:minToStr(nextEnd),_prevStart:src.start};
   const applyMove=()=>{ calSnapshot();
-    const _srcEvt=calEvts[st.dk][st.idx];
     calEvts[st.dk].splice(st.idx,1);
     if(!calEvts[st.targetDk])calEvts[st.targetDk]=[];
+    movedEvt._manualCalOverride=true; // user manually moved — don't overwrite
     calEvts[st.targetDk].push(movedEvt);
     gcalUpdateEvent(movedEvt, st.targetDk);
     _calWorkEventMoved(movedEvt, st.dk, st.targetDk);
@@ -5926,6 +5935,14 @@ function workAutoSyncCell(sid, cellIdx){
   const eh=Math.floor((sh*60+sm2+dur)/60), em=(sh*60+sm2+dur)%60;
   const endTime=String(eh).padStart(2,'0')+':'+String(em).padStart(2,'0');
   const color=cell.status==='done'?'green':cell.status==='missed'?'red':'blue';
+  // Skip if this lesson was manually repositioned by user in calendar
+  let hasManualOverride=false;
+  Object.keys(calEvts).forEach(k=>{
+    (calEvts[k]||[]).forEach(e=>{
+      if(e._workStudentId===sid&&e._lessonNum===cell.num&&e._manualCalOverride) hasManualOverride=true;
+    });
+  });
+  if(hasManualOverride) return;
   // Remove existing event for this lesson (regardless of which date it was on)
   Object.keys(calEvts).forEach(k=>{
     calEvts[k]=(calEvts[k]||[]).filter(e=>!(e._workStudentId===sid&&e._lessonNum===cell.num));
@@ -7270,13 +7287,57 @@ function _cellDateToFullDate(displayDate, refDateStr){
 // Removes the date from the corresponding attendance cell,
 // shifts remaining planned dates left, refills the last empty cell.
 function _calWorkEventDeleted(evt, dk, deleteFn){
-  // Calendar→Work sync removed. Just execute the delete.
+  // Always execute the calendar delete first
   if(deleteFn) deleteFn();
+  if(!evt?._workStudentId) return;
+  const sid=evt._workStudentId;
+  const st=workData.students?.find(x=>x.id===sid);
+  if(!st) return;
+  const mg=st.monthGroup;
+  const att=workData.attendance[sid]||[];
+  const cells=att.filter(c=>c.month===mg);
+  const dateDisp=_dkToDisplay(dk);
+  const cellIdx=cells.findIndex(c=>c.date===dateDisp||c._plannedFull===dk);
+  if(cellIdx<0) return;
+  const cell=cells[cellIdx];
+  cell.date=''; cell._plannedTs=0; cell._plannedFull=''; cell.time=''; cell._manualDate=false;
+  if(cell.status==='empty'){
+    const empties=cells.filter(c=>c.status==='empty');
+    const ei=empties.indexOf(cell);
+    for(let i=ei;i<empties.length-1;i++){
+      empties[i].date=empties[i+1].date; empties[i]._plannedTs=empties[i+1]._plannedTs;
+      empties[i]._plannedFull=empties[i+1]._plannedFull; empties[i].time=empties[i+1].time;
+    }
+    const last=empties[empties.length-1];
+    if(last){last.date='';last._plannedTs=0;last._plannedFull='';last.time='';}
+    _workAutoFillDates(sid,mg,cells,st.firstDate||'');
+    const lastIdx=att.indexOf(last);
+    if(lastIdx>=0&&last?.date) workAutoSyncCell(sid,lastIdx);
+  }
+  workSave(); workRenderAttendance();
 }
 
 // Called when a work-synced event is moved to a new date/time.
 function _calWorkEventMoved(evt, oldDk, newDk){
-  // Calendar→Work sync removed. No-op.
+  if(!evt?._workStudentId) return;
+  if(oldDk===newDk&&!evt._prevStart) return;
+  const sid=evt._workStudentId;
+  const st=workData.students?.find(x=>x.id===sid);
+  if(!st) return;
+  const mg=st.monthGroup;
+  const att=workData.attendance[sid]||[];
+  const cells=att.filter(c=>c.month===mg);
+  const oldDisp=_dkToDisplay(oldDk);
+  const cell=cells.find(c=>c.date===oldDisp||c._plannedFull===oldDk);
+  if(!cell) return;
+  if(oldDk!==newDk){
+    const newDisp=_dkToDisplay(newDk);
+    cell.date=newDisp; cell._plannedFull=newDk;
+    cell._plannedTs=new Date(newDk+'T12:00:00').getTime();
+    cell._manualDate=true;
+  }
+  if(evt.start) cell.time=evt.start;
+  workSave(); workRenderAttendance();
 }
 
 // DD.MM from YYYY-MM-DD
