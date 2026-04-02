@@ -309,10 +309,10 @@ mark.hl{background:#fff17660;border-radius:2px;padding:0 1px;color:var(--ink)}
 .cal-week-vscroll::-webkit-scrollbar{width:5px}
 .cal-week-vscroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .cal-week-gutter-stub{display:none}
-.cal-gutter-col{width:58px;flex-shrink:0;border-right:1px solid var(--border);box-sizing:border-box;position:sticky;left:0;z-index:15;background:var(--bg)}
-.cal-gutter-lbl{display:flex;align-items:flex-start;justify-content:flex-end;padding-right:8px;font-size:9px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:0;user-select:none}
-.cal-gutter-lbl.gl-hour{color:var(--subtle)}
-.cal-gutter-lbl.gl-half{color:rgba(107,103,96,.5);font-size:8px}
+.cal-gutter-col{width:54px;flex-shrink:0;border-right:1px solid var(--border);box-sizing:border-box;position:sticky;left:0;z-index:15;background:var(--bg)}
+.cal-gutter-lbl{display:flex;align-items:flex-start;justify-content:flex-end;padding-right:6px;font-size:10px;color:var(--subtle);font-family:'Geist Mono',monospace;margin-top:-6px;user-select:none;line-height:1}
+.cal-gutter-lbl.gl-hour{color:#8a8680;font-size:10px}
+.cal-gutter-lbl.gl-half{color:rgba(107,103,96,.45);font-size:9px}
 .cal-gutter-lbl.gl-quarter{color:rgba(107,103,96,.3);font-size:7.5px}
 .cal-day-col{position:relative;width:var(--cal-day-w,140px);flex-shrink:0;background:var(--bg);border-left:none;box-sizing:border-box;contain:layout style}
 .cal-day-col+.cal-day-col{border-left:1px solid rgba(255,255,255,.05)}
@@ -776,6 +776,16 @@ canvas#gc{width:100%;height:100%;display:block}
 .emoji-btn{font-size:18px;padding:3px;border:none;background:none;cursor:pointer;border-radius:4px;text-align:center;line-height:1}
 .emoji-btn:hover{background:var(--surface2)}
 .emoji-cat{font-size:10px;font-family:'Geist Mono',monospace;color:var(--muted);padding:4px 2px 2px;grid-column:1/-1;text-transform:uppercase;letter-spacing:.06em}
+
+.work-sync-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:8000;display:flex;align-items:center;justify-content:center;animation:fi .12s ease}
+.work-sync-dialog{background:#1e1c19;border:1px solid #3a3630;border-radius:12px;padding:24px 24px 20px;width:380px;box-shadow:0 12px 48px rgba(0,0,0,.7)}
+.work-sync-dialog h3{font-size:14px;font-weight:600;color:var(--ink);margin:0 0 8px;font-family:'Geist',sans-serif}
+.work-sync-dialog p{font-size:13px;color:var(--muted);margin:0 0 18px;line-height:1.55;font-family:'Geist',sans-serif}
+.work-sync-footer{display:flex;gap:8px;justify-content:flex-end}
+.wsd-no{font-size:13px;color:var(--muted);background:none;border:1px solid #3a3630;cursor:pointer;padding:7px 16px;border-radius:6px;font-family:'Geist',sans-serif}
+.wsd-no:hover{border-color:var(--red);color:var(--red)}
+.wsd-yes{font-size:13px;color:#0a0a08;background:#06b6d4;border:none;cursor:pointer;padding:7px 18px;border-radius:6px;font-family:'Geist',sans-serif;font-weight:600}
+.wsd-yes:hover{background:#08d4f0}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -1714,7 +1724,7 @@ function fAns(ok){if(ok)flashScore.c++;else flashScore.w++;flashIdx++;flashFlipp
 
 // ── CALENDAR ──
 let calView='week';
-const CAL_FIXED_SLOT_H=9;
+const CAL_FIXED_SLOT_H=20;
 let calSlotH=CAL_FIXED_SLOT_H; // fixed calendar scale
 let evtMoveState=null; // {dk,idx,durationMin,hasMoved,targetDk,targetMin}
 
@@ -1954,8 +1964,15 @@ function renderWeek(){
   for(let s=0;s<96;s++){
     const h=Math.floor(s/4),q=s%4;
     let lbl='',cls='';
-    if(q===0){lbl=h===0?'':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM';cls='gl-hour';}
-    else if((q===1||q===3)&&hourPx>=72){lbl=q===1?':15':':45';cls='gl-quarter';}
+    if(q===0){
+      if(h===0) lbl='';
+      else if(h<12) lbl=h+' AM';
+      else if(h===12) lbl='12 PM';
+      else lbl=(h-12)+' PM';
+      cls='gl-hour';
+    } else if(q===2&&hourPx>=48){
+      lbl=':30'; cls='gl-half';
+    }
     gutterHtml+=`<div class="cal-gutter-lbl ${cls}" style="height:${calSlotH}px">${lbl}</div>`;
   }
 
@@ -6116,6 +6133,9 @@ function workEditStudentModal(id){
   const s = isNew ? {id:null,name:'',color:WORK_COLORS[workData.students.length%WORK_COLORS.length],subs:{},schedule:[],price:{},monthGroup:workCurrentMonth,archived:false} : workData.students.find(x=>x.id===id);
   if(!s&&!isNew)return;
   document.getElementById('work-edit-modal')?.remove();
+  // Set _wmStudent FIRST so schedule checkboxes render correctly
+  window._wmStudent=JSON.parse(JSON.stringify(s));
+  window._wmStudent.color=s.color||'#4285f4';
 
   const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const mg=s.monthGroup||workCurrentMonth;
@@ -6288,9 +6308,6 @@ function workEditStudentModal(id){
   modal.addEventListener('click',e=>{ if(e.target===modal){ document.getElementById('work-edit-modal').remove(); }});
   if(isNew) setTimeout(()=>document.getElementById('wm-name')?.focus(),50);
 
-  // Store temp edit state
-  window._wmStudent=JSON.parse(JSON.stringify(s));
-  window._wmStudent.color=s.color||'#4285f4';
   // schedule is read directly from day rows in wmBuildScheduleFromDays()
 }
 
@@ -7250,6 +7267,27 @@ function _cellDateToFullDate(displayDate, refDateStr){
 }
 
 
+
+// ── WORK SYNC CONFIRM DIALOG (same design as recur-dialog) ──
+function showWorkSyncDialog(title, body, onYes, onNo){
+  document.getElementById('work-sync-overlay')?.remove();
+  const ov=document.createElement('div');
+  ov.className='work-sync-overlay'; ov.id='work-sync-overlay';
+  ov.innerHTML=`
+    <div class="work-sync-dialog">
+      <h3>${esc(title)}</h3>
+      <p>${esc(body)}</p>
+      <div class="work-sync-footer">
+        <button class="wsd-no" id="wsd-no">Don't sync</button>
+        <button class="wsd-yes" id="wsd-yes">Sync to Work</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  document.getElementById('wsd-no').onclick=()=>{ ov.remove(); if(onNo) onNo(); };
+  document.getElementById('wsd-yes').onclick=()=>{ ov.remove(); if(onYes) onYes(); };
+  ov.addEventListener('keydown',e=>{ if(e.key==='Escape'){ov.remove();if(onNo)onNo();} });
+}
+
 // ── CALENDAR ↔ ATTENDANCE SYNC ──
 
 // Called when a work-synced event is deleted from calendar.
@@ -7257,66 +7295,72 @@ function _cellDateToFullDate(displayDate, refDateStr){
 // shifts remaining planned dates left, refills the last empty cell.
 function _calWorkEventDeleted(evt, dk){
   if(!evt?._workStudentId) return;
-  // Ask user before touching work tab
   const sid=evt._workStudentId;
   const st=workData.students?.find(x=>x.id===sid);
-  const dateDisp=_dkToDisplay(dk);
-  if(!confirm('Sync to Work tab?\n\n"'+evt.title+'" on '+dateDisp+' will be removed from attendance. Upcoming dates shift left and the last cell gets a new date (if schedule is set).')){
-    return;
-  }
   if(!st) return;
-  const mg=st.monthGroup;
-  const att=workData.attendance[sid]||[];
-  const cells=att.filter(c=>c.month===mg);
-  const cellIdx=cells.findIndex(c=>c.date===dateDisp||c._plannedFull===dk);
-  if(cellIdx<0) return;
-  const cell=cells[cellIdx];
-  // Clear the cell date
-  cell.date=''; cell._plannedTs=0; cell._plannedFull=''; cell.time=''; cell._manualDate=false;
-  // For planned (empty) cells: shift remaining empty cells left, refill last
-  if(cell.status==='empty'){
-    const empties=cells.filter(c=>c.status==='empty');
-    const ei=empties.indexOf(cell);
-    for(let i=ei;i<empties.length-1;i++){
-      empties[i].date=empties[i+1].date; empties[i]._plannedTs=empties[i+1]._plannedTs;
-      empties[i]._plannedFull=empties[i+1]._plannedFull; empties[i].time=empties[i+1].time;
+  const dateDisp=_dkToDisplay(dk);
+  showWorkSyncDialog(
+    'Remove from Work tab?',
+    '"'+evt.title+'" on '+dateDisp+' — remove date from attendance and shift upcoming lessons forward.',
+    ()=>{
+      // YES — apply to work
+      const mg=st.monthGroup;
+      const att=workData.attendance[sid]||[];
+      const cells=att.filter(c=>c.month===mg);
+      const cellIdx=cells.findIndex(c=>c.date===dateDisp||c._plannedFull===dk);
+      if(cellIdx<0) return;
+      const cell=cells[cellIdx];
+      cell.date=''; cell._plannedTs=0; cell._plannedFull=''; cell.time=''; cell._manualDate=false;
+      if(cell.status==='empty'){
+        const empties=cells.filter(c=>c.status==='empty');
+        const ei=empties.indexOf(cell);
+        for(let i=ei;i<empties.length-1;i++){
+          empties[i].date=empties[i+1].date; empties[i]._plannedTs=empties[i+1]._plannedTs;
+          empties[i]._plannedFull=empties[i+1]._plannedFull; empties[i].time=empties[i+1].time;
+        }
+        const last=empties[empties.length-1];
+        if(last){last.date='';last._plannedTs=0;last._plannedFull='';last.time='';}
+        _workAutoFillDates(sid,mg,cells,st.firstDate||'');
+        att.forEach((c,i)=>{ if(c.month===mg) workAutoSyncCell(sid,i); });
+      }
+      workSave(); workRenderAttendance();
+      if(document.getElementById('student-page')) workOpenStudentPage(sid);
     }
-    const last=empties[empties.length-1];
-    if(last){last.date='';last._plannedTs=0;last._plannedFull='';last.time='';}
-    _workAutoFillDates(sid,mg,cells,st.firstDate||'');
-    // Re-sync all cells for this student
-    att.forEach((c,i)=>{ if(c.month===mg) workAutoSyncCell(sid,i); });
-  }
-  workSave(); workRenderAttendance();
-  if(document.getElementById('student-page')) workOpenStudentPage(sid);
+  );
 }
 
 // Called when a work-synced event is moved to a new date/time.
 function _calWorkEventMoved(evt, oldDk, newDk){
   if(!evt?._workStudentId) return;
-  const timeChanged=evt._prevStart&&evt.start!==evt._prevStart;
-  const dateChanged=oldDk!==newDk;
-  if(!dateChanged&&!timeChanged) return;
   const sid=evt._workStudentId;
   const st=workData.students?.find(x=>x.id===sid);
   if(!st) return;
   const oldDisp=_dkToDisplay(oldDk), newDisp=_dkToDisplay(newDk);
-  const desc=dateChanged?'"'+evt.title+'" moved from '+oldDisp+' → '+newDisp:'"'+evt.title+'" time changed on '+oldDisp;
-  if(!confirm('Sync to Work tab?\n\n'+desc+'.')){
-    return;
-  }
-  const mg=st.monthGroup;
-  const att=workData.attendance[sid]||[];
-  const cells=att.filter(c=>c.month===mg);
-  const cell=cells.find(c=>c.date===oldDisp||c._plannedFull===oldDk);
-  if(!cell) return;
-  if(dateChanged){
-    cell.date=newDisp; cell._plannedFull=newDk;
-    cell._plannedTs=new Date(newDk+'T12:00:00').getTime(); cell._manualDate=true;
-  }
-  if(evt.start) cell.time=evt.start;
-  workSave(); workRenderAttendance();
-  if(document.getElementById('student-page')) workOpenStudentPage(sid);
+  const dateChanged=oldDk!==newDk;
+  const timeChanged=evt._prevStart&&evt.start!==evt._prevStart;
+  if(!dateChanged&&!timeChanged) return;
+  const desc=dateChanged
+    ? '"'+evt.title+'" moved from '+oldDisp+' → '+newDisp+'.'
+    : '"'+evt.title+'" time changed on '+oldDisp+'.';
+  showWorkSyncDialog(
+    'Update Work tab?',
+    desc,
+    ()=>{
+      // YES — apply to work
+      const mg=st.monthGroup;
+      const att=workData.attendance[sid]||[];
+      const cells=att.filter(c=>c.month===mg);
+      const cell=cells.find(c=>c.date===oldDisp||c._plannedFull===oldDk);
+      if(!cell) return;
+      if(dateChanged){
+        cell.date=newDisp; cell._plannedFull=newDk;
+        cell._plannedTs=new Date(newDk+'T12:00:00').getTime(); cell._manualDate=true;
+      }
+      if(evt.start) cell.time=evt.start;
+      workSave(); workRenderAttendance();
+      if(document.getElementById('student-page')) workOpenStudentPage(sid);
+    }
+  );
 }
 
 // DD.MM from YYYY-MM-DD
